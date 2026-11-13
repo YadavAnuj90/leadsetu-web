@@ -1,0 +1,152 @@
+@config "../../tailwind.theme.config.js";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --brand-navy: #17243A;
+    --brand-dark: #0B1320;
+    --brand-blue: #3978EA;
+    --brand-sky: #68A0FF;
+    --brand-light: #EEF3FD;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+  }
+
+  body {
+    @apply antialiased text-slate-900 bg-white dark:bg-[#070D19] dark:text-slate-100 transition-colors duration-200 selection:bg-brand-blue/20 selection:text-brand-navy;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+/* Hero surface adapts cleanly between Light Mode and Dark Mode */
+.hero-theme-surface {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -15%, rgba(57, 120, 234, 0.2), transparent),
+    linear-gradient(180deg, #E8F0FE 0%, #F4F8FF 50%, #FFFFFF 100%);
+}
+
+html.dark .hero-theme-surface {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -15%, rgba(57, 120, 234, 0.32), transparent),
+    linear-gradient(160deg, #070D19 0%, #111C30 55%, #0B1320 100%);
+}
+
+/* Smooth Dark Mode adaptation for common surfaces & dashboard cards */
+html.dark .glass-header {
+  background: rgba(11, 19, 32, 0.88) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html.dark .text-gradient-navy {
+  background: linear-gradient(135deg, #93C5FD 0%, #3978EA 60%, #60A5FA 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+html.dark .bg-grid-light {
+  background-size: 36px 36px;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+}
+
+html.dark .bg-dots-light {
+  background-image: radial-gradient(rgba(104, 160, 255, 0.14) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Scoped Dark Mode surface overrides for CRM Dashboard pages */
+html.dark .dashboard-shell .bg-white {
+  background-color: #0D1628 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html.dark .dashboard-shell .bg-slate-50,
+html.dark .dashboard-shell .bg-slate-50\/80,
+html.dark .dashboard-shell .bg-slate-50\/70,
+html.dark .dashboard-shell .bg-slate-50\/60 {
+  background-color: #111D33 !important;
+}
+
+html.dark .dashboard-shell .text-brand-navy {
+  color: #F8FAFC !important;
+}
+
+html.dark .dashboard-shell .border-slate-200,
+html.dark .dashboard-shell .border-slate-200\/80,
+html.dark .dashboard-shell .border-slate-100 {
+  border-color: rgba(255, 255, 255, 0.09) !important;
+}
+
+@layer components {
+  /* Subtle architectural grid patterns */
+  .bg-grid-dark {
+    background-size: 40px 40px;
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  }
+
+  .bg-grid-light {
+    background-size: 36px 36px;
+    background-image:
+      linear-gradient(to right, rgba(23, 36, 58, 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(23, 36, 58, 0.04) 1px, transparent 1px);
+  }
+
+  .bg-dots-light {
+    background-image: radial-gradient(rgba(57, 120, 234, 0.14) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  /* Glassmorphism utilities */
+  .glass-header {
+    background: rgba(255, 255, 255, 0.86);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .glass-dark {
+    background: rgba(23, 36, 58, 0.72);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* Brand gradients */
+  .text-gradient-brand {
+    background: linear-gradient(135deg, #68A0FF 0%, #3978EA 50%, #93C5FD 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .text-gradient-navy {
+    background: linear-gradient(135deg, #17243A 0%, #3978EA 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .btn-primary-brand {
+    background: linear-gradient(135deg, #3978EA 0%, #2563EB 100%);
+    box-shadow: 0 10px 25px -5px rgba(57, 120, 234, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+  }
+
+  .btn-primary-brand:hover {
+    background: linear-gradient(135deg, #4785F5 0%, #2D6BF2 100%);
+    box-shadow: 0 15px 30px -5px rgba(57, 120, 234, 0.55), inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
