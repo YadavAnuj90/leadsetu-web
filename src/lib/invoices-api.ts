@@ -4,6 +4,8 @@ import type {
   InvoiceStats,
   CreateInvoicePayload,
   InvoicePaymentMethod,
+  PublicQuoteView,
+  RecordInvoicePaymentPayload,
 } from '@/types/contracts';
 
 export interface InvoicesListResponse {
@@ -52,6 +54,27 @@ export async function markInvoicePaid(
   return data;
 }
 
+export async function recordInvoicePaymentApi(
+  id: string,
+  payload: RecordInvoicePaymentPayload,
+): Promise<Invoice> {
+  const { data } = await apiClient.post<Invoice>(
+    `/invoices/${id}/payments`,
+    payload,
+  );
+  return data;
+}
+
+export async function deleteInvoicePaymentApi(
+  id: string,
+  paymentId: string,
+): Promise<Invoice> {
+  const { data } = await apiClient.delete<Invoice>(
+    `/invoices/${id}/payments/${paymentId}`,
+  );
+  return data;
+}
+
 export async function deleteInvoice(id: string): Promise<{ success: boolean }> {
   const { data } = await apiClient.delete<{ success: boolean }>(
     `/invoices/${id}`,
@@ -65,6 +88,56 @@ export async function seedInvoices(): Promise<{
 }> {
   const { data } = await apiClient.post<{ count: number; data: Invoice[] }>(
     '/invoices/seed',
+  );
+  return data;
+}
+
+export async function exportGstr1CsvApi(): Promise<{
+  filename: string;
+  rowCount: number;
+  csv: string;
+}> {
+  const { data } = await apiClient.get<{
+    filename: string;
+    rowCount: number;
+    csv: string;
+  }>('/invoices/export/gstr1');
+  return data;
+}
+
+export async function convertQuoteToInvoiceApi(id: string): Promise<{
+  alreadyConverted: boolean;
+  quote: Invoice;
+  invoice: Invoice;
+}> {
+  const { data } = await apiClient.post<{
+    alreadyConverted: boolean;
+    quote: Invoice;
+    invoice: Invoice;
+  }>(`/invoices/${id}/convert-to-invoice`);
+  return data;
+}
+
+export async function fetchPublicQuoteApi(
+  token: string,
+): Promise<PublicQuoteView> {
+  const { data } = await apiClient.get<PublicQuoteView>(
+    `/invoices/public/${token}`,
+  );
+  return data;
+}
+
+export async function respondToPublicQuoteApi(
+  token: string,
+  payload: {
+    decision: 'approved' | 'changes_requested';
+    buyerName?: string;
+    remark?: string;
+  },
+): Promise<PublicQuoteView> {
+  const { data } = await apiClient.post<PublicQuoteView>(
+    `/invoices/public/${token}/respond`,
+    payload,
   );
   return data;
 }

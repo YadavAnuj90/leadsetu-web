@@ -117,9 +117,16 @@ export default function DealDetailPage() {
           <ArrowLeft className="w-4 h-4" /> Back to Kanban Pipeline
         </Link>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <Link
-            href={`/invoices?client=${encodeURIComponent(deal.company || deal.contactName || deal.title)}&contact=${encodeURIComponent(deal.contactName || '')}&phone=${encodeURIComponent(deal.contactPhone || '')}&amount=${deal.value || 0}&title=${encodeURIComponent(deal.title)}`}
+            href={`/quotations?dealId=${encodeURIComponent(deal.id)}&client=${encodeURIComponent(deal.company || deal.contactName || deal.title)}&contact=${encodeURIComponent(deal.contactName || '')}&phone=${encodeURIComponent(deal.contactPhone || '')}&email=${encodeURIComponent(deal.contactEmail || '')}&city=${encodeURIComponent(deal.city || '')}&amount=${deal.value || 0}&title=${encodeURIComponent(deal.title)}`}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold border border-brand-blue/30 bg-brand-light text-brand-blue hover:bg-brand-blue hover:text-white transition-colors"
+          >
+            <FileText className="w-3.5 h-3.5" /> Create Proforma Quote
+          </Link>
+
+          <Link
+            href={`/invoices?docType=tax_invoice&dealId=${encodeURIComponent(deal.id)}&client=${encodeURIComponent(deal.company || deal.contactName || deal.title)}&contact=${encodeURIComponent(deal.contactName || '')}&phone=${encodeURIComponent(deal.contactPhone || '')}&email=${encodeURIComponent(deal.contactEmail || '')}&city=${encodeURIComponent(deal.city || '')}&amount=${deal.value || 0}&title=${encodeURIComponent(deal.title)}`}
             className="btn-primary-brand inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white"
           >
             <FileText className="w-3.5 h-3.5" /> Generate GST Invoice

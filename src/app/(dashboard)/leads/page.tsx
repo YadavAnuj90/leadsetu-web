@@ -21,6 +21,8 @@ import {
   Database,
 } from 'lucide-react';
 import { useLeads } from '@/hooks/useLeads';
+import { Upload } from 'lucide-react';
+import BulkCsvImportModal from '@/components/leads/BulkCsvImportModal';
 import LeadForm from '@/components/leads/LeadForm';
 import LeadCard from '@/components/leads/LeadCard';
 import type { CreateLeadPayload, Lead, LeadStatus } from '@/types/contracts';
@@ -59,10 +61,12 @@ export default function LeadsPage() {
     updateLead,
     deleteLead,
     seedSamples,
+    fetchLeads,
   } = useLeads();
 
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [modalOpen, setModalOpen] = useState(false);
+  const [csvModalOpen, setCsvModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
 
   const handleOpenCreate = () => {
@@ -117,6 +121,15 @@ export default function LeadsPage() {
               <span>Load 5 Sample Delhi-NCR Leads</span>
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={() => setCsvModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border border-slate-200 bg-white text-brand-navy hover:bg-slate-50 transition-all"
+          >
+            <Upload className="w-4 h-4 text-brand-blue" />
+            <span>Import CSV</span>
+          </button>
 
           <button
             type="button"
@@ -534,6 +547,14 @@ export default function LeadsPage() {
             setEditingLead(null);
           }}
           onSubmit={handleFormSubmit}
+        />
+      )}
+
+      {/* CSV Bulk Importer Modal */}
+      {csvModalOpen && (
+        <BulkCsvImportModal
+          onClose={() => setCsvModalOpen(false)}
+          onImported={() => fetchLeads()}
         />
       )}
     </div>

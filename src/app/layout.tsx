@@ -31,8 +31,9 @@ export const metadata: Metadata = {
 const themeInitScript = `
 (function() {
   try {
-    var saved = localStorage.getItem('leadsetu_theme');
-    var isDark = saved === 'dark';
+    var savedMode = localStorage.getItem('leadsetu-theme') || localStorage.getItem('leadsetu_theme');
+    var isDark = savedMode === 'dark';
+    var savedColor = localStorage.getItem('leadsetu-color-theme') || 'static-blue';
     var root = document.documentElement;
     if (isDark) {
       root.classList.add('dark');
@@ -41,6 +42,7 @@ const themeInitScript = `
       root.classList.remove('dark');
       root.setAttribute('data-theme', 'light');
     }
+    root.setAttribute('data-color-theme', savedColor);
   } catch (e) {}
 })();
 `;

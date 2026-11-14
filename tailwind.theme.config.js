@@ -6,13 +6,13 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          navy: '#17243A',
-          dark: '#0B1320',
-          slate: '#1E3150',
-          blue: '#3978EA',
-          sky: '#68A0FF',
-          light: '#EEF3FD',
-          surface: '#F8FAFF',
+          navy: 'rgb(var(--brand-navy-rgb) / <alpha-value>)',
+          dark: 'rgb(var(--brand-dark-rgb) / <alpha-value>)',
+          slate: 'rgb(var(--brand-slate-rgb) / <alpha-value>)',
+          blue: 'rgb(var(--brand-blue-rgb) / <alpha-value>)',
+          sky: 'rgb(var(--brand-sky-rgb) / <alpha-value>)',
+          light: 'rgb(var(--brand-light-rgb) / <alpha-value>)',
+          surface: 'rgb(var(--brand-surface-rgb) / <alpha-value>)',
         },
       },
       fontFamily: {

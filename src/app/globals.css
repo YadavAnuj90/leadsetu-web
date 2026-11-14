@@ -4,12 +4,68 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
+  :root,
+  html[data-color-theme='static-blue'] {
+    --brand-navy-rgb: 23 36 58;
+    --brand-dark-rgb: 11 19 32;
+    --brand-slate-rgb: 30 49 80;
+    --brand-blue-rgb: 57 120 234;
+    --brand-sky-rgb: 104 160 255;
+    --brand-light-rgb: 238 243 253;
+    --brand-surface-rgb: 248 250 255;
     --brand-navy: #17243A;
     --brand-dark: #0B1320;
     --brand-blue: #3978EA;
     --brand-sky: #68A0FF;
     --brand-light: #EEF3FD;
+    --sidebar-bg: #0B1320;
+    --shell-bg: #F8FAFF;
+    --shell-dark-bg: #070D19;
+    --btn-grad: linear-gradient(135deg, #3978EA 0%, #2563EB 100%);
+    --btn-grad-hover: linear-gradient(135deg, #4785F5 0%, #2D6BF2 100%);
+    --btn-shadow: rgba(57, 120, 234, 0.4);
+  }
+
+  html[data-color-theme='aurora-live'] {
+    --brand-navy-rgb: 30 27 75;
+    --brand-dark-rgb: 15 16 41;
+    --brand-slate-rgb: 49 46 129;
+    --brand-blue-rgb: 99 102 241;
+    --brand-sky-rgb: 56 189 248;
+    --brand-light-rgb: 238 242 255;
+    --brand-surface-rgb: 245 247 255;
+    --brand-navy: #1E1B4B;
+    --brand-dark: #0F1029;
+    --brand-blue: #6366F1;
+    --brand-sky: #38BDF8;
+    --brand-light: #EEF2FF;
+    --sidebar-bg: linear-gradient(180deg, #0D102B 0%, #1E1B4B 52%, #0E294B 100%);
+    --shell-bg: linear-gradient(125deg, #EEF2FF 0%, #E0F2FE 35%, #F5F3FF 70%, #EEF2FF 100%);
+    --shell-dark-bg: linear-gradient(125deg, #070B19 0%, #131136 45%, #081C2E 80%, #070B19 100%);
+    --btn-grad: linear-gradient(135deg, #6366F1 0%, #3B82F6 50%, #06B6D4 100%);
+    --btn-grad-hover: linear-gradient(135deg, #4F46E5 0%, #2563EB 50%, #0891B2 100%);
+    --btn-shadow: rgba(99, 102, 241, 0.45);
+  }
+
+  html[data-color-theme='static-emerald'] {
+    --brand-navy-rgb: 19 46 39;
+    --brand-dark-rgb: 6 30 25;
+    --brand-slate-rgb: 20 83 45;
+    --brand-blue-rgb: 5 150 105;
+    --brand-sky-rgb: 52 211 153;
+    --brand-light-rgb: 236 253 245;
+    --brand-surface-rgb: 243 251 247;
+    --brand-navy: #132E27;
+    --brand-dark: #061E19;
+    --brand-blue: #059669;
+    --brand-sky: #34D399;
+    --brand-light: #ECFDF5;
+    --sidebar-bg: #061E19;
+    --shell-bg: #F2FBF7;
+    --shell-dark-bg: #04130F;
+    --btn-grad: linear-gradient(135deg, #059669 0%, #0D9488 100%);
+    --btn-grad-hover: linear-gradient(135deg, #10B981 0%, #14B8A6 100%);
+    --btn-shadow: rgba(5, 150, 105, 0.4);
   }
 
   html {
@@ -26,17 +82,69 @@
   }
 }
 
-/* Hero surface adapts cleanly between Light Mode and Dark Mode */
+@keyframes leadsetuAuroraShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.dashboard-shell-surface {
+  background: var(--shell-bg);
+}
+
+html.dark .dashboard-shell-surface {
+  background: var(--shell-dark-bg);
+}
+
+html[data-color-theme='aurora-live'] .dashboard-shell-surface {
+  background-size: 240% 240%;
+  animation: leadsetuAuroraShift 16s ease infinite;
+}
+
+.sidebar-theme-surface {
+  background: var(--sidebar-bg);
+}
+
+html[data-color-theme='aurora-live'] .sidebar-theme-surface {
+  background-size: 200% 200%;
+  animation: leadsetuAuroraShift 18s ease infinite;
+}
+
+/* Hero surface adapts cleanly between Light Mode, Dark Mode & 3 Themes */
 .hero-theme-surface {
   background:
-    radial-gradient(ellipse 80% 60% at 50% -15%, rgba(57, 120, 234, 0.2), transparent),
-    linear-gradient(180deg, #E8F0FE 0%, #F4F8FF 50%, #FFFFFF 100%);
+    radial-gradient(ellipse 80% 60% at 50% -15%, rgb(var(--brand-blue-rgb) / 0.22), transparent),
+    linear-gradient(180deg, rgb(var(--brand-light-rgb)) 0%, rgb(var(--brand-surface-rgb)) 55%, #FFFFFF 100%);
 }
 
 html.dark .hero-theme-surface {
   background:
-    radial-gradient(ellipse 80% 60% at 50% -15%, rgba(57, 120, 234, 0.32), transparent),
-    linear-gradient(160deg, #070D19 0%, #111C30 55%, #0B1320 100%);
+    radial-gradient(ellipse 80% 60% at 50% -15%, rgb(var(--brand-blue-rgb) / 0.34), transparent),
+    linear-gradient(160deg, #070D19 0%, rgb(var(--brand-dark-rgb)) 55%, #0B1320 100%);
+}
+
+html[data-color-theme='aurora-live'] .hero-theme-surface {
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 0%, rgba(99, 102, 241, 0.24), transparent 60%),
+    radial-gradient(ellipse 70% 55% at 85% 15%, rgba(6, 182, 212, 0.22), transparent 60%),
+    linear-gradient(135deg, #EEF2FF 0%, #E0F2FE 50%, #F5F3FF 100%);
+  background-size: 220% 220%;
+  animation: leadsetuAuroraShift 14s ease infinite;
+}
+
+html.dark[data-color-theme='aurora-live'] .hero-theme-surface {
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 0%, rgba(99, 102, 241, 0.36), transparent 60%),
+    radial-gradient(ellipse 70% 55% at 85% 15%, rgba(6, 182, 212, 0.28), transparent 60%),
+    linear-gradient(135deg, #070B19 0%, #15143D 50%, #092036 100%);
+  background-size: 220% 220%;
+  animation: leadsetuAuroraShift 14s ease infinite;
 }
 
 /* Smooth Dark Mode adaptation for common surfaces & dashboard cards */
@@ -135,13 +243,13 @@ html.dark .dashboard-shell .border-slate-100 {
   }
 
   .btn-primary-brand {
-    background: linear-gradient(135deg, #3978EA 0%, #2563EB 100%);
-    box-shadow: 0 10px 25px -5px rgba(57, 120, 234, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+    background: var(--btn-grad);
+    box-shadow: 0 10px 25px -5px var(--btn-shadow), inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
   }
 
   .btn-primary-brand:hover {
-    background: linear-gradient(135deg, #4785F5 0%, #2D6BF2 100%);
-    box-shadow: 0 15px 30px -5px rgba(57, 120, 234, 0.55), inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
+    background: var(--btn-grad-hover);
+    box-shadow: 0 15px 30px -5px var(--btn-shadow), inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
   }
 }
 

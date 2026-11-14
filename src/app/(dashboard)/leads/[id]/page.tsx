@@ -15,11 +15,13 @@ import {
   CheckCircle2,
   Loader2,
   Trash2,
+  Briefcase,
+  FileText,
 } from 'lucide-react';
 import { fetchSingleLead, addLeadActivityApi } from '@/hooks/useLeads';
 import { apiClient, getErrorMessage } from '@/lib/api-client';
 import LeadTimeline from '@/components/leads/LeadTimeline';
-import type { Lead, LeadActivity, LeadStatus } from '@/types/contracts';
+import type { Deal, Lead, LeadActivity, LeadStatus } from '@/types/contracts';
 
 const stages: { id: LeadStatus; label: string }[] = [
   { id: 'new', label: 'New Inquiry' },
@@ -36,6 +38,7 @@ export default function LeadDetailPage() {
 
   const [lead, setLead] = useState<Lead | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isConvertingDeal, setIsConvertingDeal] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadLead = useCallback(async () => {
@@ -81,6 +84,32 @@ export default function LeadDetailPage() {
     if (!lead) return;
     await apiClient.delete(`/leads/${lead.id}`);
     router.push('/leads');
+  };
+
+  const handleConvertToDeal = async () => {
+    if (!lead) return;
+    setIsConvertingDeal(true);
+    setError(null);
+    try {
+      const { data: createdDeal } = await apiClient.post<Deal>('/deals', {
+        title: `${lead.company || lead.name} — B2B Requirement`,
+        company: lead.company || lead.name,
+        contactName: lead.name,
+        contactPhone: lead.phone,
+        contactEmail: lead.email,
+        city: lead.city || 'Delhi-NCR',
+        value: Number(lead.estimatedValue || 0) || 150000,
+        stage: 'proposal',
+        probability: 65,
+        source: lead.source,
+        notes: lead.notes || `Converted from Lead ${lead.name}`,
+      });
+      await apiClient.patch(`/leads/${lead.id}`, { status: 'converted' });
+      router.push(`/deals/${createdDeal.id}`);
+    } catch (err) {
+      setError(getErrorMessage(err));
+      setIsConvertingDeal(false);
+    }
   };
 
   if (isLoading) {
@@ -136,7 +165,35 @@ export default function LeadDetailPage() {
           <ArrowLeft className="w-4 h-4" /> Back to All Leads
         </Link>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            disabled={isConvertingDeal}
+            onClick={handleConvertToDeal}
+            className="btn-primary-brand inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white"
+          >
+            {isConvertingDeal ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Briefcase className="w-3.5 h-3.5" />
+            )}
+            <span>Convert to Deal</span>
+          </button>
+
+          <Link
+            href={`/quotations?leadId=${encodeURIComponent(lead.id)}&client=${encodeURIComponent(lead.company || lead.name)}&contact=${encodeURIComponent(lead.name)}&phone=${encodeURIComponent(lead.phone || '')}&email=${encodeURIComponent(lead.email || '')}&city=${encodeURIComponent(lead.city || '')}&amount=${lead.estimatedValue || 0}&title=${encodeURIComponent(lead.company ? `${lead.company} Supply Proposal` : `${lead.name} Quotation`)}`}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border border-brand-blue/30 bg-brand-light text-brand-blue hover:bg-brand-blue hover:text-white transition-colors"
+          >
+            <FileText className="w-3.5 h-3.5" /> Create Proforma Quote
+          </Link>
+
+          <Link
+            href={`/invoices?docType=tax_invoice&leadId=${encodeURIComponent(lead.id)}&client=${encodeURIComponent(lead.company || lead.name)}&contact=${encodeURIComponent(lead.name)}&phone=${encodeURIComponent(lead.phone || '')}&email=${encodeURIComponent(lead.email || '')}&city=${encodeURIComponent(lead.city || '')}&amount=${lead.estimatedValue || 0}&title=${encodeURIComponent(lead.company ? `${lead.company} Tax Supply` : `${lead.name} Supply`)}`}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white text-brand-navy hover:bg-slate-50 transition-colors"
+          >
+            <FileText className="w-3.5 h-3.5 text-brand-blue" /> GST Invoice
+          </Link>
+
           {lead.phone && (
             <a
               href={waUrl}

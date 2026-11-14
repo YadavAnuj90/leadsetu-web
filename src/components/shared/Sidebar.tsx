@@ -12,6 +12,9 @@ import {
   Workflow,
   BarChart3,
   FileText,
+  ScrollText,
+  FolderOpen,
+  Package,
   Settings,
   LogOut,
   Sparkles,
@@ -31,7 +34,10 @@ const navItems = [
   { label: 'SLA Tickets', href: '/tickets', icon: LifeBuoy },
   { label: 'Workflows', href: '/workflows', icon: Workflow },
   { label: 'Analytics', href: '/analytics', icon: BarChart3 },
+  { label: 'Products & HSN', href: '/products', icon: Package },
+  { label: 'Quotations', href: '/quotations', icon: ScrollText, badge: 'PDF' },
   { label: 'GST Invoices', href: '/invoices', icon: FileText },
+  { label: 'Document Center', href: '/documents', icon: FolderOpen },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
@@ -41,12 +47,11 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="w-64 flex-shrink-0 hidden md:flex flex-col justify-between text-white border-r border-white/10"
-      style={{ background: '#0B1320' }}
+      className="sidebar-theme-surface w-64 h-full flex-shrink-0 hidden md:flex flex-col text-white border-r border-white/10 overflow-hidden transition-colors"
     >
-      <div className="p-5">
-        {/* Brand */}
-        <Link href="/dashboard" className="flex items-center gap-2.5 mb-6">
+      {/* Brand Header */}
+      <div className="p-5 pb-4 flex-shrink-0">
+        <Link href="/dashboard" className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl overflow-hidden shadow-md ring-1 ring-white/20 flex-shrink-0">
             <img
               src="/logo.png"
@@ -63,45 +68,45 @@ export default function Sidebar() {
             </div>
           </div>
         </Link>
-
-        {/* Navigation Links */}
-        <nav className="space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = pathname === item.href || pathname?.startsWith(`${item.href}/`);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                  active
-                    ? 'bg-brand-blue text-white shadow-md'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <span className="flex items-center gap-3">
-                  <Icon className="w-4 h-4" />
-                  <span>{item.label}</span>
-                </span>
-                {item.badge && (
-                  <span
-                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                      active
-                        ? 'bg-white/20 text-white'
-                        : 'bg-brand-blue/20 text-brand-sky'
-                    }`}
-                  >
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </nav>
       </div>
 
+      {/* Independent Scrollable Navigation Links */}
+      <nav className="flex-1 overflow-y-auto overscroll-contain px-5 pb-4 space-y-1">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const active = pathname === item.href || pathname?.startsWith(`${item.href}/`);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                active
+                  ? 'bg-brand-blue text-white shadow-md'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <span className="flex items-center gap-3">
+                <Icon className="w-4 h-4" />
+                <span>{item.label}</span>
+              </span>
+              {item.badge && (
+                <span
+                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                    active
+                      ? 'bg-white/20 text-white'
+                      : 'bg-brand-blue/20 text-brand-sky'
+                  }`}
+                >
+                  {item.badge}
+                </span>
+              )}
+            </Link>
+          );
+        })}
+      </nav>
+
       {/* Bottom User Card */}
-      <div className="p-4 border-t border-white/10 space-y-3">
+      <div className="p-4 border-t border-white/10 space-y-3 flex-shrink-0">
         <div className="p-3 rounded-xl bg-brand-blue/15 border border-brand-blue/30">
           <div className="flex items-center gap-1.5 text-xs font-bold text-brand-sky">
             <Sparkles className="w-3.5 h-3.5" />

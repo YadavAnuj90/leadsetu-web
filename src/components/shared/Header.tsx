@@ -21,6 +21,7 @@ import {
   X,
   ArrowRight,
   Command,
+  FolderOpen,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import ThemeToggle from '@/components/shared/ThemeToggle';
@@ -60,6 +61,11 @@ const TYPE_META: Record<
     label: 'SLA Ticket',
     icon: LifeBuoy,
     pill: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300',
+  },
+  document: {
+    label: 'Document',
+    icon: FolderOpen,
+    pill: 'bg-teal-50 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300',
   },
 };
 

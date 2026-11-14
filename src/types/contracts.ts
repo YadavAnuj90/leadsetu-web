@@ -277,9 +277,43 @@ export interface InvoiceLineItem {
 }
 
 export type InvoiceDocType = 'tax_invoice' | 'proforma_quote';
-export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+export type InvoiceStatus =
+  | 'draft'
+  | 'sent'
+  | 'partial'
+  | 'paid'
+  | 'overdue'
+  | 'cancelled';
 export type InvoiceTaxType = 'cgst_sgst' | 'igst';
 export type InvoicePaymentMethod = 'razorpay' | 'upi' | 'neft_rtgs' | 'unpaid';
+export type InvoicePaymentMode =
+  | 'UPI'
+  | 'NEFT'
+  | 'RTGS'
+  | 'Cheque'
+  | 'Razorpay'
+  | 'Cash';
+
+export interface InvoicePaymentRecord {
+  id: string;
+  amountPaid: number;
+  tdsDeducted: number;
+  totalSettled: number;
+  paymentMode: InvoicePaymentMode;
+  utrOrChequeNo: string;
+  paymentDate: string;
+  note: string;
+  recordedAt: string;
+}
+
+export interface RecordInvoicePaymentPayload {
+  amountPaid: number;
+  tdsDeducted?: number;
+  paymentMode: InvoicePaymentMode;
+  utrOrChequeNo?: string;
+  paymentDate?: string;
+  note?: string;
+}
 
 export interface Invoice {
   id: string;
@@ -303,6 +337,11 @@ export interface Invoice {
   igstAmount: number;
   gstAmount: number;
   grandTotal: number;
+  amountPaid?: number;
+  tdsDeducted?: number;
+  totalSettled?: number;
+  balanceDue?: number;
+  payments?: InvoicePaymentRecord[];
   status: InvoiceStatus;
   paymentMethod: InvoicePaymentMethod;
   paymentLink: string;
@@ -310,19 +349,83 @@ export interface Invoice {
   notes: string;
   linkedDealId?: string;
   linkedLeadId?: string;
+  publicToken?: string;
+  quoteApprovalStatus?: 'pending' | 'approved' | 'changes_requested';
+  approvedByName?: string;
+  approvedAt?: string;
+  convertedFromQuoteId?: string;
+  convertedToInvoiceId?: string;
+  daysOverdue?: number;
+  agingBucket?: 'paid' | 'current' | '1_15_days' | '16_30_days' | '30_plus_days';
   createdAt: string;
   updatedAt: string;
+}
+
+export interface PublicQuoteView {
+  id: string;
+  invoiceNumber: string;
+  docType: InvoiceDocType;
+  clientName: string;
+  contactPerson: string;
+  gstin: string;
+  placeOfSupply: string;
+  taxType: InvoiceTaxType;
+  gstRate: number;
+  items: InvoiceLineItem[];
+  subTotal: number;
+  discount: number;
+  taxableAmount: number;
+  cgstAmount: number;
+  sgstAmount: number;
+  igstAmount: number;
+  gstAmount: number;
+  grandTotal: number;
+  amountPaid?: number;
+  tdsDeducted?: number;
+  totalSettled?: number;
+  balanceDue?: number;
+  payments?: InvoicePaymentRecord[];
+  status: InvoiceStatus;
+  daysOverdue?: number;
+  paymentLink: string;
+  dueDate: string;
+  notes: string;
+  publicToken: string;
+  quoteApprovalStatus: 'pending' | 'approved' | 'changes_requested';
+  approvedByName: string;
+  approvedAt: string;
+  convertedToInvoiceId: string;
+  sellerName: string;
+  sellerCity: string;
+  createdAt: string;
+}
+
+export interface InvoiceAgingStats {
+  currentAmount: number;
+  bucket1to15: number;
+  bucket16to30: number;
+  bucket30Plus: number;
 }
 
 export interface InvoiceStats {
   totalCount: number;
   paidCount: number;
+  partialCount?: number;
   pendingCount: number;
   overdueCount: number;
   totalInvoiced: number;
+  totalCollected?: number;
+  totalTdsDeducted?: number;
   paidRevenue: number;
   pendingAmount: number;
   totalGstCollected: number;
+  aging?: InvoiceAgingStats;
+}
+
+export interface Gstr1ExportResponse {
+  filename: string;
+  rowCount: number;
+  csv: string;
 }
 
 export interface CreateInvoicePayload {
@@ -682,7 +785,8 @@ export type GlobalSearchEntityType =
   | 'deal'
   | 'invoice'
   | 'task'
-  | 'ticket';
+  | 'ticket'
+  | 'document';
 
 export interface GlobalSearchItem {
   id: string;
@@ -713,4 +817,149 @@ export interface NotificationItem {
 export interface NotificationsResponse {
   totalCount: number;
   items: NotificationItem[];
+}
+
+// ─── Product & HSN/SAC Catalog ────────────────────────
+export type ProductUnit =
+  | 'pcs'
+  | 'box'
+  | 'set'
+  | 'kg'
+  | 'mtr'
+  | 'service'
+  | 'license';
+
+export interface Product {
+  id: string;
+  tenantId: string;
+  sku: string;
+  name: string;
+  category: string;
+  hsnSac: string;
+  unit: ProductUnit;
+  unitPrice: number;
+  gstRate: number;
+  moq: number;
+  description: string;
+  brochureUrl: string;
+  inStock: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductStats {
+  totalSkus: number;
+  inStockCount: number;
+  categoriesCount: number;
+  avgUnitValue: number;
+}
+
+export interface ProductsListResponse {
+  data: Product[];
+  categories: string[];
+  stats: ProductStats;
+}
+
+export interface CreateProductPayload {
+  sku?: string;
+  name: string;
+  category?: string;
+  hsnSac?: string;
+  unit?: ProductUnit;
+  unitPrice: number;
+  gstRate?: number;
+  moq?: number;
+  description?: string;
+  brochureUrl?: string;
+  inStock?: boolean;
+}
+
+// ─── CSV Bulk Import & Webhook Capture ────────────────
+export interface BulkImportLeadsResponse {
+  importedCount: number;
+  duplicateUpdatedCount: number;
+  skippedCount: number;
+  totalProcessed: number;
+  data: Lead[];
+}
+
+export interface WebhookConfigResponse {
+  webhookKey: string;
+  webhookPath: string;
+  roundRobinIndex: number;
+  recentWebhookLeads: Lead[];
+}
+
+export interface WebhookCaptureResponse {
+  status: 'created' | 'deduplicated';
+  assignedRepName: string;
+  lead: Lead;
+}
+
+// ─── Document Center & Compliance Vault ───────────────
+export type DocumentCategory =
+  | 'gst_certificate'
+  | 'company_profile'
+  | 'brochure'
+  | 'contract'
+  | 'customer_document';
+
+export interface CrmDocument {
+  id: string;
+  tenantId: string;
+  docCode: string;
+  title: string;
+  category: DocumentCategory;
+  description: string;
+  documentNumber: string;
+  linkedCustomerName: string;
+  linkedContactId: string;
+  issueDate: string;
+  expiryDate: string;
+  tags: string[];
+  fileName: string;
+  mimeType: string;
+  fileSizeBytes: number;
+  hasFileData: boolean;
+  fileDataUrl?: string;
+  externalUrl: string;
+  shareToken: string;
+  isVerified: boolean;
+  uploadedByName: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DocumentStats {
+  totalCount: number;
+  gstCount: number;
+  profileCount: number;
+  brochureCount: number;
+  contractCount: number;
+  customerCount: number;
+  expiringSoonCount: number;
+  totalStorageBytes: number;
+}
+
+export interface DocumentsListResponse {
+  data: CrmDocument[];
+  stats: DocumentStats;
+}
+
+export interface CreateCrmDocumentPayload {
+  title: string;
+  category: DocumentCategory;
+  description?: string;
+  documentNumber?: string;
+  linkedCustomerName?: string;
+  linkedContactId?: string;
+  issueDate?: string;
+  expiryDate?: string;
+  tags?: string[];
+  fileName?: string;
+  mimeType?: string;
+  fileSizeBytes?: number;
+  fileDataUrl?: string;
+  externalUrl?: string;
+  isVerified?: boolean;
 }
