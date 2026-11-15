@@ -2201,27 +2201,27 @@ export default function InvoicesPage() {
                       ₹{s.grandTotal.toLocaleString('en-IN')}
                     </div>
                   </div>
-                  <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200">
-                    <div className="text-[10px] font-bold uppercase text-emerald-700">
+                  <div className="p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/35 border border-emerald-200 dark:border-emerald-500/30">
+                    <div className="text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-300">
                       Cash Received
                     </div>
-                    <div className="text-sm font-extrabold text-emerald-700 mt-0.5">
+                    <div className="text-sm font-extrabold text-emerald-700 dark:text-emerald-200 mt-0.5">
                       ₹{s.amountPaid.toLocaleString('en-IN')}
                     </div>
                   </div>
-                  <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-200">
-                    <div className="text-[10px] font-bold uppercase text-indigo-700">
+                  <div className="p-3 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/35 border border-indigo-200 dark:border-indigo-500/30">
+                    <div className="text-[10px] font-bold uppercase text-indigo-700 dark:text-indigo-300">
                       TDS Deducted
                     </div>
-                    <div className="text-sm font-extrabold text-indigo-700 mt-0.5">
+                    <div className="text-sm font-extrabold text-indigo-700 dark:text-indigo-200 mt-0.5">
                       ₹{s.tdsDeducted.toLocaleString('en-IN')}
                     </div>
                   </div>
-                  <div className="p-3 rounded-xl bg-amber-50/80 border border-amber-200">
-                    <div className="text-[10px] font-bold uppercase text-amber-800">
+                  <div className="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/35 border border-amber-200 dark:border-amber-500/30">
+                    <div className="text-[10px] font-bold uppercase text-amber-800 dark:text-amber-300">
                       Balance Due
                     </div>
-                    <div className="text-sm font-extrabold text-amber-800 mt-0.5">
+                    <div className="text-sm font-extrabold text-amber-800 dark:text-amber-200 mt-0.5">
                       ₹{s.balanceDue.toLocaleString('en-IN')}
                     </div>
                   </div>
@@ -2232,28 +2232,28 @@ export default function InvoicesPage() {
                     {/* Milestone & TDS Quick Presets */}
                     <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-200/80 space-y-2.5">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600">
+                        <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                           Quick Indian B2B Milestone Presets
                         </span>
                         <div className="flex flex-wrap items-center gap-1.5">
                           <button
                             type="button"
                             onClick={() => applyMilestonePreset(paymentModalInv, 30, 0)}
-                            className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-brand-blue text-[11px] font-bold text-slate-700"
+                            className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-brand-blue text-[11px] font-bold text-slate-700 dark:text-slate-200 transition-colors"
                           >
                             30% Advance
                           </button>
                           <button
                             type="button"
                             onClick={() => applyMilestonePreset(paymentModalInv, 50, 0)}
-                            className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-brand-blue text-[11px] font-bold text-slate-700"
+                            className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-brand-blue text-[11px] font-bold text-slate-700 dark:text-slate-200 transition-colors"
                           >
                             50% Dispatch
                           </button>
                           <button
                             type="button"
                             onClick={() => applyMilestonePreset(paymentModalInv, 100, 0)}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-[11px] font-bold text-emerald-800"
+                            className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-500/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-[11px] font-bold text-emerald-800 dark:text-emerald-300 transition-colors"
                           >
                             Full Balance
                           </button>
@@ -2261,7 +2261,7 @@ export default function InvoicesPage() {
                       </div>
 
                       <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-slate-200/70">
-                        <span className="text-[11px] font-bold text-indigo-700">
+                        <span className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300">
                           Apply TDS Deduction (on Taxable ₹
                           {paymentModalInv.taxableAmount.toLocaleString('en-IN')}):
                         </span>
@@ -2271,7 +2271,7 @@ export default function InvoicesPage() {
                               key={pct}
                               type="button"
                               onClick={() => applyTdsDeductionHelper(paymentModalInv, pct)}
-                              className="px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-[11px] font-bold text-indigo-800"
+                              className="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-500/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-[11px] font-bold text-indigo-800 dark:text-indigo-300 transition-colors"
                             >
                               {pct === 0
                                 ? 'No TDS (0%)'
@@ -2284,7 +2284,7 @@ export default function InvoicesPage() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                           Amount Paid / Received (₹) *
                         </label>
                         <input
@@ -2293,12 +2293,12 @@ export default function InvoicesPage() {
                           value={payAmountInput}
                           onChange={(e) => setPayAmountInput(e.target.value)}
                           placeholder="e.g. 150000"
-                          className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm font-bold text-brand-navy"
+                          className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-sm font-bold text-brand-navy focus:outline-none focus:border-brand-blue"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                           TDS Deducted by Buyer (₹)
                         </label>
                         <input
@@ -2307,12 +2307,12 @@ export default function InvoicesPage() {
                           value={tdsInput}
                           onChange={(e) => setTdsInput(e.target.value)}
                           placeholder="0"
-                          className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm font-bold text-indigo-700"
+                          className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-sm font-bold text-indigo-700 dark:text-indigo-300 focus:outline-none focus:border-brand-blue"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                           Payment Mode *
                         </label>
                         <select
@@ -2320,7 +2320,7 @@ export default function InvoicesPage() {
                           onChange={(e) =>
                             setPayModeInput(e.target.value as InvoicePaymentMode)
                           }
-                          className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm font-bold bg-white"
+                          className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm font-bold bg-slate-50 text-brand-navy focus:outline-none focus:border-brand-blue"
                         >
                           <option value="NEFT">NEFT (Bank Transfer)</option>
                           <option value="RTGS">RTGS (High-Value RTGS)</option>
@@ -2332,7 +2332,7 @@ export default function InvoicesPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                           UTR Number / Cheque No.
                         </label>
                         <input
@@ -2344,12 +2344,12 @@ export default function InvoicesPage() {
                               ? 'e.g. CHQ #458912 (HDFC)'
                               : 'e.g. UTR431988120945'
                           }
-                          className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm font-mono"
+                          className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm font-mono text-brand-navy focus:outline-none focus:border-brand-blue"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                           Payment Date *
                         </label>
                         <input
@@ -2357,12 +2357,12 @@ export default function InvoicesPage() {
                           required
                           value={payDateInput}
                           onChange={(e) => setPayDateInput(e.target.value)}
-                          className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm"
+                          className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm text-brand-navy focus:outline-none focus:border-brand-blue"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                           Milestone / Ledger Remark
                         </label>
                         <input
@@ -2370,7 +2370,7 @@ export default function InvoicesPage() {
                           value={payNoteInput}
                           onChange={(e) => setPayNoteInput(e.target.value)}
                           placeholder="e.g. 30% Advance, Balance on Delivery"
-                          className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm"
+                          className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm text-brand-navy focus:outline-none focus:border-brand-blue"
                         />
                       </div>
                     </div>
@@ -2379,12 +2379,12 @@ export default function InvoicesPage() {
                     <div
                       className={`rounded-2xl p-4 border space-y-2 ${
                         isOverpay
-                          ? 'bg-rose-50 border-rose-200 text-rose-800'
-                          : 'bg-slate-900 border-slate-800 text-white'
+                          ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-500/30 text-rose-800 dark:text-rose-200'
+                          : 'bg-slate-900 dark:bg-slate-950/70 border-slate-800 dark:border-white/10 text-white'
                       }`}
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                        <span className={isOverpay ? 'text-rose-700' : 'text-slate-300'}>
+                        <span className={isOverpay ? 'text-rose-700 dark:text-rose-300' : 'text-slate-300'}>
                           This Entry Settled (₹{draftCash.toLocaleString('en-IN')} Paid + ₹
                           {draftTds.toLocaleString('en-IN')} TDS):
                         </span>
@@ -2417,7 +2417,7 @@ export default function InvoicesPage() {
                       <button
                         type="button"
                         onClick={() => setPaymentModalInv(null)}
-                        className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600"
+                        className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 transition-colors"
                       >
                         Close
                       </button>
@@ -2443,7 +2443,7 @@ export default function InvoicesPage() {
                     <span className="text-xs font-extrabold text-brand-navy inline-flex items-center gap-1.5">
                       <Landmark className="w-3.5 h-3.5 text-brand-blue" /> Recorded Receipts &amp; TDS History
                     </span>
-                    <span className="text-[11px] font-semibold text-slate-500">
+                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                       {paymentModalInv.payments?.length ?? 0} tranche(s)
                     </span>
                   </div>
@@ -2461,7 +2461,7 @@ export default function InvoicesPage() {
                         >
                           <div>
                             <div className="flex items-center gap-2 font-bold text-brand-navy">
-                              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px]">
+                              <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 text-[10px]">
                                 {p.paymentMode}
                               </span>
                               <span>{p.paymentDate}</span>

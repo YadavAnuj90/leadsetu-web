@@ -22,28 +22,41 @@ import {
   LifeBuoy,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { isFeatureEnabled } from '@/lib/feature-access';
+import type { PlatformFeatureKey } from '@/types/contracts';
 
-const navItems = [
+const navItems: Array<{
+  label: string;
+  href: string;
+  icon: typeof LayoutDashboard;
+  badge?: string;
+  feature?: PlatformFeatureKey;
+}> = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Leads', href: '/leads', icon: Users, badge: 'AI' },
   { label: 'Contacts (B2B)', href: '/contacts', icon: Building2 },
   { label: 'Deals Pipeline', href: '/deals', icon: Kanban },
-  { label: 'WhatsApp Inbox', href: '/inbox', icon: MessageSquare, badge: 'Live' },
-  { label: 'Campaigns', href: '/campaigns', icon: Megaphone },
+  { label: 'WhatsApp Inbox', href: '/inbox', icon: MessageSquare, badge: 'Live', feature: 'whatsappCloud' },
+  { label: 'Campaigns', href: '/campaigns', icon: Megaphone, feature: 'whatsappBroadcasts' },
   { label: 'Tasks', href: '/tasks', icon: CheckSquare },
-  { label: 'SLA Tickets', href: '/tickets', icon: LifeBuoy },
-  { label: 'Workflows', href: '/workflows', icon: Workflow },
+  { label: 'SLA Tickets', href: '/tickets', icon: LifeBuoy, feature: 'slaTickets' },
+  { label: 'Workflows', href: '/workflows', icon: Workflow, feature: 'aiWorkflows' },
   { label: 'Analytics', href: '/analytics', icon: BarChart3 },
   { label: 'Products & HSN', href: '/products', icon: Package },
-  { label: 'Quotations', href: '/quotations', icon: ScrollText, badge: 'PDF' },
-  { label: 'GST Invoices', href: '/invoices', icon: FileText },
-  { label: 'Document Center', href: '/documents', icon: FolderOpen },
+  { label: 'Quotations', href: '/quotations', icon: ScrollText, badge: 'PDF', feature: 'gstBilling' },
+  { label: 'GST Invoices', href: '/invoices', icon: FileText, feature: 'gstBilling' },
+  { label: 'Document Center', href: '/documents', icon: FolderOpen, feature: 'documentVault' },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, tenant, logout } = useAuth();
+  const visibleNavItems = navItems.filter(
+    (item) => !item.feature || isFeatureEnabled(tenant, item.feature),
+  );
+  const aiOn = isFeatureEnabled(tenant, 'aiScoring');
+  const waOn = isFeatureEnabled(tenant, 'whatsappCloud');
 
   return (
     <aside
@@ -72,9 +85,11 @@ export default function Sidebar() {
 
       {/* Independent Scrollable Navigation Links */}
       <nav className="flex-1 overflow-y-auto overscroll-contain px-5 pb-4 space-y-1">
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const Icon = item.icon;
           const active = pathname === item.href || pathname?.startsWith(`${item.href}/`);
+          const badgeText =
+            item.href === '/leads' && !aiOn ? undefined : item.badge;
           return (
             <Link
               key={item.href}
@@ -89,7 +104,7 @@ export default function Sidebar() {
                 <Icon className="w-4 h-4" />
                 <span>{item.label}</span>
               </span>
-              {item.badge && (
+              {badgeText && (
                 <span
                   className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
                     active
@@ -97,7 +112,7 @@ export default function Sidebar() {
                       : 'bg-brand-blue/20 text-brand-sky'
                   }`}
                 >
-                  {item.badge}
+                  {badgeText}
                 </span>
               )}
             </Link>
@@ -110,10 +125,16 @@ export default function Sidebar() {
         <div className="p-3 rounded-xl bg-brand-blue/15 border border-brand-blue/30">
           <div className="flex items-center gap-1.5 text-xs font-bold text-brand-sky">
             <Sparkles className="w-3.5 h-3.5" />
-            <span className="capitalize">{tenant?.plan || 'Growth'} Plan Trial</span>
+            <span className="capitalize">{tenant?.plan || 'Growth'} Plan · {tenant?.status === 'active' ? 'Active' : 'Trial'}</span>
           </div>
           <div className="text-[11px] text-slate-300 mt-0.5">
-            Gemini AI &amp; WhatsApp Active
+            {aiOn && waOn
+              ? 'Gemini AI & WhatsApp Active'
+              : aiOn
+                ? 'Gemini AI Active · WhatsApp Off'
+                : waOn
+                  ? 'WhatsApp Active · AI Paused'
+                  : 'Modules Governed by HQ'}
           </div>
         </div>
 

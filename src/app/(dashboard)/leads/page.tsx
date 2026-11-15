@@ -21,6 +21,8 @@ import {
   Database,
 } from 'lucide-react';
 import { useLeads } from '@/hooks/useLeads';
+import { useAuthStore } from '@/store/auth.store';
+import { isFeatureEnabled } from '@/lib/feature-access';
 import { Upload } from 'lucide-react';
 import BulkCsvImportModal from '@/components/leads/BulkCsvImportModal';
 import LeadForm from '@/components/leads/LeadForm';
@@ -64,6 +66,8 @@ export default function LeadsPage() {
     fetchLeads,
   } = useLeads();
 
+  const tenant = useAuthStore((s) => s.tenant);
+  const aiEnabled = isFeatureEnabled(tenant, 'aiScoring');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [modalOpen, setModalOpen] = useState(false);
   const [csvModalOpen, setCsvModalOpen] = useState(false);
@@ -99,7 +103,8 @@ export default function LeadsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-blue mb-1">
-            <Sparkles className="w-3.5 h-3.5" /> Gemini AI Lead Engine
+            <Sparkles className="w-3.5 h-3.5" />{' '}
+            {aiEnabled ? 'Gemini AI Lead Engine' : 'Lead Pipeline · AI Scoring Paused by HQ'}
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-navy tracking-tight">
             Leads Command Center

@@ -1,5 +1,6 @@
 import { apiClient } from '@/lib/api-client';
 import type {
+  AddTicketCommentPayload,
   CreateTicketPayload,
   Ticket,
   TicketsListResponse,
@@ -8,11 +9,18 @@ import type {
 export async function fetchTicketsApi(params?: {
   status?: string;
   priority?: string;
+  category?: string;
+  slaBreached?: string;
   search?: string;
 }): Promise<TicketsListResponse> {
   const { data } = await apiClient.get<TicketsListResponse>('/tickets', {
     params,
   });
+  return data;
+}
+
+export async function fetchTicketByIdApi(id: string): Promise<Ticket> {
+  const { data } = await apiClient.get<Ticket>(`/tickets/${id}`);
   return data;
 }
 
@@ -31,12 +39,30 @@ export async function updateTicketApi(
   return data;
 }
 
-export async function deleteTicketApi(id: string): Promise<{ success: boolean }> {
-  const { data } = await apiClient.delete<{ success: boolean }>(`/tickets/${id}`);
+export async function addTicketCommentApi(
+  id: string,
+  payload: AddTicketCommentPayload,
+): Promise<Ticket> {
+  const { data } = await apiClient.post<Ticket>(
+    `/tickets/${id}/comments`,
+    payload,
+  );
   return data;
 }
 
-export async function seedTicketsApi(): Promise<{ count: number; data: Ticket[] }> {
+export async function deleteTicketApi(
+  id: string,
+): Promise<{ success: boolean }> {
+  const { data } = await apiClient.delete<{ success: boolean }>(
+    `/tickets/${id}`,
+  );
+  return data;
+}
+
+export async function seedTicketsApi(): Promise<{
+  count: number;
+  data: Ticket[];
+}> {
   const { data } = await apiClient.post<{ count: number; data: Ticket[] }>(
     '/tickets/seed',
   );

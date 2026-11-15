@@ -230,8 +230,12 @@ export interface AuthUser {
   name: string;
   email: string;
   phone?: string;
-  role: 'owner' | 'admin' | 'manager' | 'agent';
+  role: 'super_admin' | 'owner' | 'admin' | 'manager' | 'agent';
+  departmentPreset?: string;
+  permissions?: string[];
   maskPhones?: boolean;
+  isImpersonation?: boolean;
+  impersonatorEmail?: string;
 }
 
 export interface TenantInfo {
@@ -243,8 +247,71 @@ export interface TenantInfo {
   plan: 'starter' | 'growth' | 'enterprise';
   status: 'trial' | 'active' | 'suspended';
   city?: string;
+  gstin?: string;
+  state?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
   maskPhoneForAgents?: boolean;
   blockAgentExport?: boolean;
+  subscriptionInvoices?: SubscriptionInvoice[];
+  effectiveFeatures?: Partial<Record<PlatformFeatureKey, boolean>>;
+  effectiveFeatureDetails?: Partial<
+    Record<
+      PlatformFeatureKey,
+      { enabled: boolean; source: 'plan' | 'override_on' | 'override_off' | 'kill_switch' }
+    >
+  >;
+  globalKillSwitches?: GlobalKillSwitches;
+  maintenanceMode?: boolean;
+}
+
+export interface SubscriptionInvoice {
+  id: string;
+  invoiceNumber: string;
+  plan: 'starter' | 'growth' | 'enterprise';
+  planName: string;
+  billingCycle: 'monthly' | 'annual';
+  seatsIncluded: number;
+  baseAmount: number;
+  gstRate: number;
+  cgstAmount: number;
+  sgstAmount: number;
+  igstAmount: number;
+  totalAmount: number;
+  status: 'paid' | 'trial_complimentary' | 'complimentary_grant' | 'refunded' | 'voided';
+  discountAmount?: number;
+  couponCode?: string;
+  partnerCode?: string;
+  tdsDeducted?: number;
+  refundReason?: string;
+  refundedAt?: string;
+  issuedByEmail?: string;
+  paymentMode: string;
+  paymentReference: string;
+  issuedAt: string;
+  periodStart: string;
+  periodEnd: string;
+  sacCode: string;
+  greetingNote: string;
+  buyerCompany: string;
+  buyerGstin: string;
+  buyerState: string;
+  buyerAddress: string;
+  buyerEmail: string;
+  sellerCompany: string;
+  sellerGstin: string;
+  sellerAddress: string;
+  sellerEmail: string;
+}
+
+export interface SubscriptionPlanSpec {
+  id: 'starter' | 'growth' | 'enterprise';
+  name: string;
+  monthlyPrice: number;
+  annualPrice: number;
+  seatLimit: number;
+  highlights: string[];
 }
 
 export interface AuthResponse {
@@ -725,6 +792,7 @@ export type TicketCategory =
   | 'warranty'
   | 'gst_correction'
   | 'installation'
+  | 'amc_service'
   | 'general';
 export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type TicketStatus =
@@ -733,6 +801,15 @@ export type TicketStatus =
   | 'waiting_client'
   | 'resolved'
   | 'closed';
+
+export interface TicketComment {
+  id: string;
+  authorName: string;
+  authorRole: 'agent' | 'engineer' | 'customer' | 'system';
+  message: string;
+  isInternal: boolean;
+  createdAt: string;
+}
 
 export interface Ticket {
   id: string;
@@ -746,10 +823,21 @@ export interface Ticket {
   customerName: string;
   company: string;
   phone: string;
+  email?: string;
+  siteAddress?: string;
+  linkedContactId?: string;
+  linkedInvoiceNumber: string;
+  productSerialOrSku?: string;
+  assignedToName?: string;
+  assignedToPhone?: string;
   slaDueAt: string;
   isSlaBreached: boolean;
+  slaRemainingHours?: number;
+  resolvedAt?: string;
+  resolutionSummary?: string;
+  csatRating?: number;
   notes: string;
-  linkedInvoiceNumber: string;
+  comments?: TicketComment[];
   createdAt: string;
   updatedAt: string;
 }
@@ -759,9 +847,12 @@ export interface TicketsListResponse {
   stats: {
     total: number;
     openCount: number;
+    inProgressCount?: number;
+    waitingClientCount?: number;
     urgentCount: number;
     resolvedCount: number;
     slaBreachedCount: number;
+    avgCsat?: number;
   };
 }
 
@@ -773,9 +864,26 @@ export interface CreateTicketPayload {
   customerName?: string;
   company?: string;
   phone?: string;
-  slaDueAt?: string;
-  notes?: string;
+  email?: string;
+  siteAddress?: string;
+  linkedContactId?: string;
   linkedInvoiceNumber?: string;
+  productSerialOrSku?: string;
+  assignedToName?: string;
+  assignedToPhone?: string;
+  slaDueAt?: string;
+  resolutionSummary?: string;
+  csatRating?: number;
+  notes?: string;
+}
+
+export interface AddTicketCommentPayload {
+  message: string;
+  isInternal?: boolean;
+  authorRole?: 'agent' | 'engineer' | 'customer' | 'system';
+  authorName?: string;
+  nextStatus?: TicketStatus;
+  resolutionSummary?: string;
 }
 
 // ─── Global Ctrl+K Command Search & Notifications ─────
@@ -962,4 +1070,328 @@ export interface CreateCrmDocumentPayload {
   fileDataUrl?: string;
   externalUrl?: string;
   isVerified?: boolean;
+}
+
+// ─── Super Admin Platform Authority & Governance ────────────────────────────
+export type PlatformFeatureKey =
+  | 'aiScoring'
+  | 'whatsappCloud'
+  | 'whatsappBroadcasts'
+  | 'gstBilling'
+  | 'aiWorkflows'
+  | 'slaTickets'
+  | 'documentVault'
+  | 'apiWebhooks'
+  | 'customRbac'
+  | 'auditShield';
+
+export interface PlatformFeatureSpec {
+  key: PlatformFeatureKey;
+  label: string;
+  category: 'AI & Automation' | 'Omnichannel' | 'Revenue & GST' | 'Security & RBAC';
+  description: string;
+}
+
+export interface PlanEntitlementSpec {
+  plan: 'starter' | 'growth' | 'enterprise';
+  name: string;
+  monthlyPrice: number;
+  annualPrice: number;
+  seatLimit: number;
+  maxMonthlyAiCalls: number;
+  maxMonthlyWhatsapp: number;
+  maxStorageMb: number;
+  features: Record<PlatformFeatureKey, boolean>;
+}
+
+export interface GlobalKillSwitches {
+  geminiAiEnabled: boolean;
+  whatsappCloudEnabled: boolean;
+  webhooksEnabled: boolean;
+  bulkExportsEnabled: boolean;
+  impersonationEnabled: boolean;
+}
+
+export interface GlobalSecurityPolicies {
+  minPasswordLength: number;
+  enforceMfaNotice: boolean;
+  impersonationMaxMinutes: number;
+  lockTenantOnSuspiciousActivity: boolean;
+  dpdpRetentionDays: number;
+  requireReasonForGovernance: boolean;
+}
+
+export interface PlatformConfigData {
+  maintenanceMode: boolean;
+  maintenanceBanner: string;
+  allowNewSignups: boolean;
+  defaultTrialDays: number;
+  planMatrix: Record<'starter' | 'growth' | 'enterprise', PlanEntitlementSpec>;
+  globalKillSwitches: GlobalKillSwitches;
+  securityPolicies: GlobalSecurityPolicies;
+  updatedByEmail: string;
+}
+
+export interface PlatformAuditLogItem {
+  id: string;
+  actorName: string;
+  actorEmail: string;
+  action: string;
+  severity: 'info' | 'warning' | 'critical';
+  targetTenantId?: string;
+  targetTenantName?: string;
+  targetAccountId?: string;
+  summary: string;
+  reason?: string;
+  ipAddress?: string;
+  createdAt: string;
+}
+
+export interface SuperAdminOverviewResponse {
+  kpis: {
+    totalTenants: number;
+    activeTenants: number;
+    trialTenants: number;
+    suspendedTenants: number;
+    totalUsers: number;
+    activeUsers: number;
+    totalLeads: number;
+    totalDeals: number;
+    totalInvoices: number;
+    totalTickets: number;
+    monthlyRecurringInr: number;
+    annualRunRateInr: number;
+    totalSubscriptionBilledInr: number;
+    totalGstCollectedInr: number;
+  };
+  planBreakdown: { starter: number; growth: number; enterprise: number };
+  topCities: Array<{ city: string; count: number }>;
+  quotaWatchlist: Array<{
+    id: string;
+    accountId: string;
+    name: string;
+    plan: 'starter' | 'growth' | 'enterprise';
+    status: 'trial' | 'active' | 'suspended';
+    seatsUsed: number;
+    seatLimit: number;
+    seatPct: number;
+    aiPct: number;
+    overrideCount: number;
+  }>;
+  recentTenants: Array<{
+    id: string;
+    accountId: string;
+    name: string;
+    plan: 'starter' | 'growth' | 'enterprise';
+    status: 'trial' | 'active' | 'suspended';
+    city: string;
+    seatsUsed: number;
+    seatLimit: number;
+    createdAt: string | null;
+  }>;
+  recentAudits: PlatformAuditLogItem[];
+  platformStatus: {
+    maintenanceMode: boolean;
+    allowNewSignups: boolean;
+    globalKillSwitches: GlobalKillSwitches;
+  };
+}
+
+export interface SuperAdminTenantItem {
+  id: string;
+  accountId: string;
+  name: string;
+  slug: string;
+  plan: 'starter' | 'growth' | 'enterprise';
+  status: 'trial' | 'active' | 'suspended';
+  city: string;
+  gstin: string;
+  email: string;
+  phone: string;
+  seatsUsed: number;
+  activeUsers: number;
+  seatLimit: number;
+  seatLimitOverride: number | null;
+  leadsCount: number;
+  dealsCount: number;
+  wonRevenueInr: number;
+  overrideCount: number;
+  maskPhoneForAgents: boolean;
+  blockAgentExport: boolean;
+  trialEndsAt: string;
+  suspensionReason: string;
+  createdAt: string | null;
+}
+
+export interface SuperAdminTenantMember {
+  id: string;
+  userCode: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: 'owner' | 'admin' | 'manager' | 'agent';
+  departmentPreset: string;
+  permissions: string[];
+  isActive: boolean;
+  territory: string;
+  monthlyTarget: number;
+  maskPhones: boolean;
+  lastLoginAt: string | null;
+  createdAt: string | null;
+}
+
+export interface SuperAdminTenantDetailResponse {
+  tenant: {
+    id: string;
+    accountId: string;
+    name: string;
+    slug: string;
+    plan: 'starter' | 'growth' | 'enterprise';
+    status: 'trial' | 'active' | 'suspended';
+    city: string;
+    gstin: string;
+    state: string;
+    email: string;
+    phone: string;
+    address: string;
+    seatLimit: number;
+    seatLimitOverride: number | null;
+    trialEndsAt: string;
+    assignedManagerNote: string;
+    maskPhoneForAgents: boolean;
+    blockAgentExport: boolean;
+    featureOverrides: Record<string, boolean>;
+    effectiveFeatures: Record<
+      PlatformFeatureKey,
+      { enabled: boolean; source: 'plan' | 'override_on' | 'override_off' | 'kill_switch' }
+    >;
+    quotas: {
+      maxMonthlyAiCalls: number;
+      maxMonthlyWhatsapp: number;
+      aiCallsUsed: number;
+      whatsappUsed: number;
+      maxStorageMb: number;
+    };
+    securityPolicy: {
+      enforcePhoneMasking: boolean;
+      lockAgentExport: boolean;
+      requireStrongPassword: boolean;
+      sessionTtlHours: number;
+      allowImpersonation: boolean;
+      ipAllowlist: string[];
+      suspensionReason: string;
+      suspendedAt: string;
+    };
+    subscriptionInvoices: SubscriptionInvoice[];
+    createdAt: string | null;
+  };
+  usage: {
+    seatsUsed: number;
+    activeUsers: number;
+    leadsCount: number;
+    dealsCount: number;
+    invoicesCount: number;
+    ticketsCount: number;
+  };
+  members: SuperAdminTenantMember[];
+  featureCatalog: PlatformFeatureSpec[];
+}
+
+export interface SaasCouponItem {
+  id: string;
+  code: string;
+  discountType: 'percent' | 'flat_inr';
+  discountValue: number;
+  applicablePlans: Array<'starter' | 'growth' | 'enterprise'>;
+  billingCycle: 'all' | 'monthly' | 'annual';
+  maxRedemptions: number;
+  redemptionsCount: number;
+  totalDiscountGivenInr: number;
+  expiresAt: string;
+  isActive: boolean;
+  description: string;
+}
+
+export interface SaasPartnerItem {
+  id: string;
+  partnerCode: string;
+  name: string;
+  email: string;
+  phone: string;
+  city: string;
+  commissionRatePct: number;
+  totalAttributedRevenueInr: number;
+  totalCommissionEarnedInr: number;
+  totalCommissionPaidInr: number;
+  pendingPayoutInr: number;
+  referredTenantsCount: number;
+  isActive: boolean;
+}
+
+export interface DunningPolicyConfig {
+  autoRemindersEnabled: boolean;
+  reminderDaysBeforeExpiry: number[];
+  gracePeriodDays: number;
+  autoActionOnExpiry: 'downgrade_starter' | 'pause_writes' | 'suspend' | 'notify_only';
+  whatsappTemplateEnabled: boolean;
+  emailReminderEnabled: boolean;
+  reminderMessageTemplate: string;
+  lastRunAt?: string;
+  lastRunSummary?: string;
+}
+
+export interface TrialWatchlistItem {
+  tenantId: string;
+  accountId: string;
+  tenantName: string;
+  plan: 'starter' | 'growth' | 'enterprise';
+  email: string;
+  phone: string;
+  trialEndsAt: string;
+  daysRemaining: number;
+  health: 'healthy' | 'expiring_soon' | 'in_grace' | 'overdue';
+  autoAction: 'downgrade_starter' | 'pause_writes' | 'suspend' | 'notify_only';
+}
+
+export interface SuperAdminBillingResponse {
+  monthFilter?: string;
+  summary: {
+    paidRevenueInr: number;
+    totalGstInr: number;
+    cgstTotalInr?: number;
+    sgstTotalInr?: number;
+    igstTotalInr?: number;
+    tdsTotalInr?: number;
+    refundedInr?: number;
+    paidCount: number;
+    trialCount: number;
+    complimentaryCount?: number;
+    totalInvoices: number;
+    pendingPartnerPayoutInr?: number;
+    b2bRegisteredCount?: number;
+    b2cCount?: number;
+  };
+  data: Array<
+    SubscriptionInvoice & {
+      tenantId: string;
+      accountId: string;
+      tenantName: string;
+    }
+  >;
+  coupons?: SaasCouponItem[];
+  partners?: SaasPartnerItem[];
+  dunningPolicy?: DunningPolicyConfig;
+  trialWatchlist?: TrialWatchlistItem[];
+}
+
+export interface SuperAdminOperatorItem {
+  id: string;
+  userCode: string;
+  name: string;
+  email: string;
+  phone: string;
+  territory: string;
+  isActive: boolean;
+  lastLoginAt: string | null;
+  createdAt: string | null;
 }

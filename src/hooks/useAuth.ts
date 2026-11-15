@@ -36,7 +36,7 @@ export function useAuth() {
           tenant: res.tenant,
           accessToken: res.accessToken,
         });
-        router.push('/dashboard');
+        router.push(res.user.role === 'super_admin' ? '/super-admin' : '/dashboard');
         return res;
       } catch (err) {
         const message = getErrorMessage(err);
