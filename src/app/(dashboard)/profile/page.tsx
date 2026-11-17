@@ -7,6 +7,7 @@ import {
   User,
   Mail,
   Phone,
+  PhoneCall,
   MapPin,
   BadgeCheck,
   Copy,
@@ -42,6 +43,12 @@ import {
   type MyPerformanceResponse,
   type MyTeamResponse,
 } from '@/lib/team-api';
+import {
+  fetchUserCallAnalyticsApi,
+  type UserCallAnalyticsItem,
+} from '@/lib/calls-api';
+import { formatCallDuration } from '@/store/call-ui.store';
+import RoundCallMetricRing from '@/components/calling/RoundCallMetricRing';
 import {
   USER_FEATURE_CATALOG,
   isFeatureEnabled,
@@ -162,6 +169,12 @@ export default function ProfilePage() {
   const [myPerf, setMyPerf] = useState<MyPerformanceResponse | null>(null);
   const [todayTasks, setTodayTasks] = useState<Task[]>([]);
   const [myTeam, setMyTeam] = useState<MyTeamResponse | null>(null);
+  const [myCallStats, setMyCallStats] = useState<UserCallAnalyticsItem | null>(
+    null,
+  );
+  const [teamCallAnalytics, setTeamCallAnalytics] = useState<
+    UserCallAnalyticsItem[]
+  >([]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -169,6 +182,14 @@ export default function ProfilePage() {
     fetchMyPerformanceApi()
       .then((res) => {
         if (!cancelled) setMyPerf(res);
+      })
+      .catch(() => {});
+    fetchUserCallAnalyticsApi()
+      .then((res) => {
+        if (!cancelled) {
+          setMyCallStats(res.myStats);
+          setTeamCallAnalytics(res.isAdminView ? res.users || [] : []);
+        }
       })
       .catch(() => {});
     apiClient
@@ -1057,6 +1078,102 @@ export default function ProfilePage() {
                     <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-brand-blue shrink-0 mt-0.5" />
                   </Link>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* My CRM Call Analytics (Small Round Shape per User) */}
+          <div className="card-surface p-6 space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 className="text-base font-extrabold text-brand-navy flex items-center gap-2">
+                  <PhoneCall className="w-4 h-4 text-emerald-500" />
+                  My Calling Analytics
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Personal Total, Answered, and Missed CRM voice calls
+                </p>
+              </div>
+              <Link
+                href="/calls"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-brand-light dark:bg-brand-blue/15 text-brand-blue dark:text-sky-300 text-xs font-extrabold hover:opacity-90 transition-opacity"
+              >
+                Open CRM Phone <ArrowUpRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            <div className="rounded-2xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 p-4 flex flex-wrap items-center justify-around gap-4">
+              <RoundCallMetricRing
+                label="Total Calls"
+                value={myCallStats?.totalCalls ?? 0}
+                tone="blue"
+              />
+              <RoundCallMetricRing
+                label="Answered"
+                value={myCallStats?.answeredCalls ?? 0}
+                total={myCallStats?.totalCalls ?? 0}
+                tone="emerald"
+              />
+              <RoundCallMetricRing
+                label="Missed"
+                value={myCallStats?.missedCalls ?? 0}
+                total={myCallStats?.totalCalls ?? 0}
+                tone="rose"
+              />
+              <RoundCallMetricRing
+                label="Talk Time"
+                value={(myCallStats?.totalDurationSeconds ?? 0) > 0 ? 1 : 0}
+                displayText={formatCallDuration(
+                  myCallStats?.totalDurationSeconds ?? 0,
+                )}
+                tone="indigo"
+              />
+            </div>
+
+            {teamCallAnalytics.length > 1 && (
+              <div className="space-y-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="text-xs font-extrabold uppercase tracking-wider text-slate-400">
+                  Team User-Wise Call Analytics
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {teamCallAnalytics.map((rep) => (
+                    <div
+                      key={rep.userId}
+                      className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-2.5"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-extrabold text-brand-navy dark:text-white truncate">
+                          {rep.name}
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400">
+                          {rep.answerRatePct}% Ans
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-around">
+                        <RoundCallMetricRing
+                          label="Total"
+                          value={rep.totalCalls}
+                          tone="blue"
+                          size="sm"
+                        />
+                        <RoundCallMetricRing
+                          label="Answered"
+                          value={rep.answeredCalls}
+                          total={rep.totalCalls}
+                          tone="emerald"
+                          size="sm"
+                        />
+                        <RoundCallMetricRing
+                          label="Missed"
+                          value={rep.missedCalls}
+                          total={rep.totalCalls}
+                          tone="rose"
+                          size="sm"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

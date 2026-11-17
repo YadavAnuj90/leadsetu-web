@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Sidebar from '@/components/shared/Sidebar';
 import Header from '@/components/shared/Header';
+import CrmCallingOverlay from '@/components/calling/CrmCallingOverlay';
 import { useAuth } from '@/hooks/useAuth';
 import { getRouteFeatureRestriction, isWorkspaceAdminRole } from '@/lib/feature-access';
 import { Loader2, ShieldAlert, Lock, ArrowLeft, UserCircle } from 'lucide-react';
@@ -151,6 +152,7 @@ export default function DashboardLayout({
           )}
         </main>
       </div>
+      <CrmCallingOverlay />
     </div>
   );
 }

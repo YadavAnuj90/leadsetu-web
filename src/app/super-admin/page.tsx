@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   MapPin,
+  PhoneCall,
   Receipt,
   RefreshCw,
   Shield,
@@ -28,6 +29,7 @@ import TenantsGovernanceSection from '@/components/super-admin/TenantsGovernance
 import PoliciesMatrixSection from '@/components/super-admin/PoliciesMatrixSection';
 import TopupRequestsSection from '@/components/super-admin/TopupRequestsSection';
 import TerritoryAnalyticsSection from '@/components/super-admin/TerritoryAnalyticsSection';
+import CallingAnalyticsSection from '@/components/super-admin/CallingAnalyticsSection';
 import {
   AuditLogsView,
   BillingLedgerView,
@@ -60,6 +62,7 @@ type SuperAdminTab =
   | 'tenants'
   | 'topups'
   | 'territories'
+  | 'calling'
   | 'policies'
   | 'billing'
   | 'audit'
@@ -94,6 +97,12 @@ const NAV_ITEMS: Array<{
     label: 'Territory Clusters',
     subtitle: 'Industrial cluster heatmaps, MRR & company health scores',
     icon: MapPin,
+  },
+  {
+    id: 'calling',
+    label: 'Calling Analytics',
+    subtitle: 'WebRTC connection success, setup speed, TURN relay % & RTT telemetry',
+    icon: PhoneCall,
   },
   {
     id: 'policies',
@@ -594,6 +603,8 @@ export default function SuperAdminDashboardPage() {
                   }}
                 />
               )}
+
+              {activeTab === 'calling' && <CallingAnalyticsSection />}
 
               {activeTab === 'policies' && policiesConfig && (
                 <PoliciesMatrixSection

@@ -44,6 +44,12 @@ import {
   removeTeamMember,
 } from '@/lib/team-api';
 import FeatureToggleMatrix from '@/components/team/FeatureToggleMatrix';
+import RoundCallMetricRing from '@/components/calling/RoundCallMetricRing';
+import {
+  fetchUserCallAnalyticsApi,
+  type UserCallAnalyticsItem,
+} from '@/lib/calls-api';
+import { formatCallDuration } from '@/store/call-ui.store';
 import {
   DEFAULT_USER_FEATURE_MAP,
   getRoleDefaultFeatures,
@@ -139,6 +145,7 @@ export default function TeamSettingsPage() {
   });
   const [mAiDailyLimit, setMAiDailyLimit] = useState('0');
   const [leaderSort, setLeaderSort] = useState<'revenue' | 'target' | 'leads'>('revenue');
+  const [callAnalytics, setCallAnalytics] = useState<UserCallAnalyticsItem[]>([]);
 
   // Edit member modal
   const [editing, setEditing] = useState<TeamMember | null>(null);
@@ -162,15 +169,21 @@ export default function TeamSettingsPage() {
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const res = await fetchTeam({
-        search: search.trim() || undefined,
-        role: roleFilter,
-        status: statusFilter,
-      });
+      const [res, callRes] = await Promise.all([
+        fetchTeam({
+          search: search.trim() || undefined,
+          role: roleFilter,
+          status: statusFilter,
+        }),
+        fetchUserCallAnalyticsApi().catch(() => null),
+      ]);
       setMembers(res.data || []);
       setAccount(res.account);
       setViewer(res.viewer);
       setStats(res.stats);
+      if (callRes?.users) {
+        setCallAnalytics(callRes.users);
+      }
     } catch (err) {
       setErrorMsg(getErrorMessage(err));
     } finally {
@@ -683,6 +696,79 @@ export default function TeamSettingsPage() {
                   </div>
                 </div>
               ))}
+          </div>
+        </div>
+      )}
+
+      {/* User-Wise Call Analytics (Small Round Shape Rings) */}
+      {callAnalytics.length > 0 && (
+        <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm sm:text-base font-extrabold text-brand-navy flex items-center gap-2">
+                <Phone className="w-4 h-4 text-emerald-500" />
+                <span>User-Wise Call Analytics</span>
+              </h2>
+              <p className="text-xs text-slate-500">
+                Per-user Total, Answered &amp; Missed CRM voice calls across your workspace.
+              </p>
+            </div>
+            <Link
+              href="/calls"
+              className="px-3 py-1.5 rounded-xl bg-brand-light text-brand-blue text-xs font-extrabold hover:opacity-90 transition-opacity"
+            >
+              Open CRM Phone →
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {callAnalytics.map((ca) => (
+              <div
+                key={ca.userId}
+                className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/80 space-y-3"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-extrabold text-xs text-brand-navy truncate">
+                      {ca.name}
+                    </div>
+                    <div className="text-[11px] text-slate-500 capitalize truncate">
+                      {ca.role === 'agent' ? 'Sales User' : ca.role} · UID #{ca.userCode}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-xs font-mono font-extrabold text-emerald-600">
+                      {ca.answerRatePct}% Ans
+                    </div>
+                    <div className="text-[10px] font-mono text-slate-400">
+                      {formatCallDuration(ca.totalDurationSeconds)}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-around pt-2.5 border-t border-slate-200/70">
+                  <RoundCallMetricRing
+                    label="Total"
+                    value={ca.totalCalls}
+                    tone="blue"
+                    size="sm"
+                  />
+                  <RoundCallMetricRing
+                    label="Answered"
+                    value={ca.answeredCalls}
+                    total={ca.totalCalls}
+                    tone="emerald"
+                    size="sm"
+                  />
+                  <RoundCallMetricRing
+                    label="Missed"
+                    value={ca.missedCalls}
+                    total={ca.totalCalls}
+                    tone="rose"
+                    size="sm"
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

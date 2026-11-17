@@ -23,10 +23,12 @@ import {
   ArrowRight,
   Command,
   FolderOpen,
+  Phone,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import ThemeToggle from '@/components/shared/ThemeToggle';
 import AskAiCopilotDrawer from '@/components/ai/AskAiCopilotDrawer';
+import { useCallUiStore } from '@/store/call-ui.store';
 import { fetchNotificationsApi, globalSearchApi } from '@/lib/command-api';
 import {
   getRouteFeatureRestriction,
@@ -104,6 +106,11 @@ export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, tenant, logout } = useAuth();
+  const {
+    myStatus: callPresence,
+    callState,
+    setDialerDrawerOpen,
+  } = useCallUiStore();
 
   const showBackButton = pathname && pathname !== '/dashboard';
 
@@ -332,6 +339,37 @@ export default function Header() {
           </span>
 
           <ThemeToggle />
+
+          {/* CRM Voice Softphone Trigger */}
+          <button
+            type="button"
+            onClick={() => {
+              setNotifOpen(false);
+              setDialerDrawerOpen(true);
+            }}
+            className={`relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold border transition-all ${
+              callState !== 'idle'
+                ? 'border-emerald-400 bg-emerald-500 text-white shadow-sm'
+                : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-brand-navy dark:text-slate-100 hover:border-emerald-500 hover:text-emerald-600'
+            }`}
+            title="Open CRM Voice Softphone"
+          >
+            <span className="relative flex items-center justify-center">
+              <Phone className="w-3.5 h-3.5" />
+              <span
+                className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ring-1 ring-white dark:ring-slate-900 ${
+                  callPresence === 'online'
+                    ? 'bg-emerald-500'
+                    : callPresence === 'busy'
+                      ? 'bg-amber-500'
+                      : 'bg-slate-400'
+                }`}
+              />
+            </span>
+            <span className="hidden md:inline">
+              {callState === 'connected' ? 'On Call' : 'Phone'}
+            </span>
+          </button>
 
           {isFeatureEnabled(tenant, 'aiScoring', user) &&
             isFeatureEnabled(tenant, 'aiCopilot', user) && (

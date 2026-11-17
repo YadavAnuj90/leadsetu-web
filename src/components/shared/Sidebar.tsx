@@ -22,6 +22,7 @@ import {
   LifeBuoy,
   UserCircle,
   Hash,
+  PhoneCall,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -45,6 +46,7 @@ const navItems: Array<{
   { label: 'Contacts (B2B)', href: '/contacts', icon: Building2, feature: 'contacts' },
   { label: 'Deals Pipeline', href: '/deals', icon: Kanban, feature: 'deals' },
   { label: 'WhatsApp Inbox', href: '/inbox', icon: MessageSquare, badge: 'Live', feature: 'whatsappCloud' },
+  { label: 'CRM Phone', href: '/calls', icon: PhoneCall, badge: 'Voice' },
   { label: 'Campaigns', href: '/campaigns', icon: Megaphone, feature: 'whatsappBroadcasts' },
   { label: 'Tasks', href: '/tasks', icon: CheckSquare, feature: 'tasks' },
   { label: 'SLA Tickets', href: '/tickets', icon: LifeBuoy, feature: 'slaTickets' },
