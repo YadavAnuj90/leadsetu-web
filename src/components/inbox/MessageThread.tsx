@@ -120,7 +120,7 @@ export default function MessageThread({
         </div>
       </div>
 
-      {/* Gemini AI Context Banner */}
+      {/* SetuAI Context Banner */}
       {conversation.aiSummary && (
         <div
           className="px-6 py-2.5 text-xs text-white flex items-center justify-between gap-4"
@@ -130,7 +130,7 @@ export default function MessageThread({
         >
           <div className="flex items-center gap-2 truncate">
             <Sparkles className="w-4 h-4 text-brand-sky flex-shrink-0" />
-            <span className="font-semibold text-brand-sky">Gemini AI Summary:</span>
+            <span className="font-semibold text-brand-sky">SetuAI Summary:</span>
             <span className="text-slate-200 truncate">{conversation.aiSummary}</span>
           </div>
           <span className="font-extrabold text-emerald-400 whitespace-nowrap">
@@ -159,7 +159,7 @@ export default function MessageThread({
               >
                 {msg.isAiDrafted && (
                   <div className="text-[10px] font-bold text-blue-100 mb-1 flex items-center gap-1">
-                    <Sparkles className="w-3 h-3" /> Gemini AI Smart Reply
+                    <Sparkles className="w-3 h-3" /> SetuAI Smart Reply
                   </div>
                 )}
                 <div>{msg.content}</div>

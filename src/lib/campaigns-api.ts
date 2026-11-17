@@ -41,13 +41,3 @@ export async function deleteCampaign(
   );
   return data;
 }
-
-export async function seedCampaigns(): Promise<{
-  count: number;
-  data: Campaign[];
-}> {
-  const { data } = await apiClient.post<{ count: number; data: Campaign[] }>(
-    '/campaigns/seed',
-  );
-  return data;
-}

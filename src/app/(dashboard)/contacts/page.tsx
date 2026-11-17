@@ -12,7 +12,6 @@ import {
   MessageSquare,
   Mail,
   MapPin,
-  Database,
   Trash2,
   ArrowUpRight,
   Loader2,
@@ -104,16 +103,6 @@ export default function ContactsPage() {
     }
   };
 
-  const handleSeed = async () => {
-    setIsMutating(true);
-    try {
-      await apiClient.post('/contacts/seed');
-      await fetchContacts();
-    } finally {
-      setIsMutating(false);
-    }
-  };
-
   const handleDelete = async (id: string) => {
     await apiClient.delete(`/contacts/${id}`);
     await fetchContacts();
@@ -161,17 +150,6 @@ export default function ContactsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          {stats.total === 0 && (
-            <button
-              type="button"
-              onClick={handleSeed}
-              disabled={isMutating}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border border-brand-blue/30 bg-brand-light text-brand-blue hover:bg-brand-blue hover:text-white transition-all"
-            >
-              <Database className="w-4 h-4" />
-              <span>Load 4 Sample B2B Contacts</span>
-            </button>
-          )}
           <button
             type="button"
             onClick={() => setModalOpen(true)}
@@ -297,10 +275,10 @@ export default function ContactsPage() {
           </p>
           <button
             type="button"
-            onClick={handleSeed}
+            onClick={() => setModalOpen(true)}
             className="btn-primary-brand px-5 py-2.5 rounded-xl text-xs font-semibold text-white inline-flex items-center gap-2"
           >
-            <Database className="w-4 h-4" /> Load 4 Sample B2B Contacts
+            <Plus className="w-4 h-4" /> Add First Contact
           </button>
         </div>
       ) : (

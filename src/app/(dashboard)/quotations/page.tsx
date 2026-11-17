@@ -15,7 +15,6 @@ import {
   ArrowRightLeft,
   ShieldCheck,
   Search,
-  Database,
   Trash2,
   Eye,
   MessageSquare,
@@ -352,79 +351,6 @@ export default function QuotationsPage() {
     }
   };
 
-  const handleSeedSampleQuotes = async () => {
-    setIsMutating(true);
-    setErrorMsg(null);
-    try {
-      const samples = [
-        {
-          clientName: 'Apex Auto Components Ltd.',
-          contactPerson: 'Vikramjit Singh',
-          phone: '+91 99104 88712',
-          email: 'vikram@apexauto.in',
-          gstin: '06AABCA9012H1Z8',
-          placeOfSupply: '06 - Haryana',
-          taxType: 'igst' as const,
-          gstRate: 18,
-          discount: 25000,
-          dueDate: new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10),
-          notes:
-            'B2B Proposal valid for 15 days. Includes special 4% corporate discount. 50% advance with PO to release dispatch from Noida Sector 62.',
-          items: [
-            {
-              description: 'Annual Enterprise AMC + IoT Energy Telemetry Sensors',
-              hsnSac: '998313',
-              quantity: 4,
-              unitPrice: 155000,
-            },
-          ],
-        },
-        {
-          clientName: 'Shree Ganesh Cold Storage & Logistics',
-          contactPerson: 'Ankit Aggarwal',
-          phone: '+91 98107 33421',
-          email: 'ankit@ganeshcoldstorage.in',
-          gstin: '09AABCS4412M1Z4',
-          placeOfSupply: '09 - Uttar Pradesh',
-          taxType: 'cgst_sgst' as const,
-          gstRate: 18,
-          discount: 18000,
-          dueDate: new Date(Date.now() + 10 * 86400000).toISOString().slice(0, 10),
-          notes:
-            'Intra-state Uttar Pradesh supply (9% CGST + 9% SGST). Includes 5-year warranty & Noida on-site commissioning.',
-          items: [
-            {
-              description: '200 KVA Three-Phase Oil Cooled Servo Voltage Stabilizer',
-              hsnSac: '850440',
-              quantity: 1,
-              unitPrice: 320000,
-            },
-            {
-              description: 'Automatic Phase Sequence Corrector & APFC Panel',
-              hsnSac: '853710',
-              quantity: 1,
-              unitPrice: 85000,
-            },
-          ],
-        },
-      ];
-      for (const s of samples) {
-        await createInvoice({
-          ...s,
-          docType: 'proforma_quote',
-          status: 'sent',
-        });
-      }
-      await loadQuotations();
-      setToastMsg('Seeded 2 sample Delhi-NCR B2B Quotations with discounts & GST!');
-      setTimeout(() => setToastMsg(null), 3500);
-    } catch (err) {
-      setErrorMsg(getErrorMessage(err));
-    } finally {
-      setIsMutating(false);
-    }
-  };
-
   const handleConvertToInvoice = async (quote: Invoice) => {
     setIsMutating(true);
     setErrorMsg(null);
@@ -485,7 +411,7 @@ export default function QuotationsPage() {
         ? `\n• Special Discount: - ₹${quote.discount.toLocaleString('en-IN')}`
         : '';
     const text = encodeURIComponent(
-      `Namaste ${quote.contactPerson || quote.clientName},\n\nPlease find your B2B Commercial Quotation *${quote.invoiceNumber}* from *${tenant?.name || 'Leadsetu Technologies'}*.\n\n• Sub-Total: ₹${quote.subTotal.toLocaleString('en-IN')}${discountLine}\n• Taxable Value: ₹${quote.taxableAmount.toLocaleString('en-IN')}\n• GST (${quote.gstRate}%): ₹${quote.gstAmount.toLocaleString('en-IN')}\n• *Net Proposal Total: ₹${quote.grandTotal.toLocaleString('en-IN')}*\n• Valid Till: ${quote.dueDate || '15 Days'}${
+      `Namaste ${quote.contactPerson || quote.clientName},\n\nPlease find your B2B Commercial Quotation *${quote.invoiceNumber}* from *${tenant?.companyName?.trim() || 'Leadsetu Technologies'}*.\n\n• Sub-Total: ₹${quote.subTotal.toLocaleString('en-IN')}${discountLine}\n• Taxable Value: ₹${quote.taxableAmount.toLocaleString('en-IN')}\n• GST (${quote.gstRate}%): ₹${quote.gstAmount.toLocaleString('en-IN')}\n• *Net Proposal Total: ₹${quote.grandTotal.toLocaleString('en-IN')}*\n• Valid Till: ${quote.dueDate || '15 Days'}${
         publicUrl ? `\n\nReview & Approve Quotation Online:\n${publicUrl}` : ''
       }`,
     );
@@ -526,20 +452,6 @@ export default function QuotationsPage() {
             <FileText className="w-4 h-4 text-brand-blue" />
             View GST Tax Invoices
           </Link>
-
-          <button
-            type="button"
-            onClick={handleSeedSampleQuotes}
-            disabled={isMutating}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 transition-all"
-          >
-            {isMutating ? (
-              <Loader2 className="w-4 h-4 animate-spin text-brand-blue" />
-            ) : (
-              <Database className="w-4 h-4 text-brand-blue" />
-            )}
-            Seed Sample Quotes
-          </button>
 
           <button
             type="button"
@@ -694,17 +606,10 @@ export default function QuotationsPage() {
                 No Quotations Found
               </h3>
               <p className="text-xs text-slate-500 mt-1">
-                Create a customized B2B quotation with discounts &amp; GST calculations, or seed sample Delhi-NCR proposals.
+                Create a customized B2B quotation with discounts, HSN/SAC codes &amp; 18% GST calculations.
               </p>
             </div>
             <div className="flex items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={handleSeedSampleQuotes}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50"
-              >
-                Seed Sample Quotations
-              </button>
               <button
                 type="button"
                 onClick={() => setCreateOpen(true)}

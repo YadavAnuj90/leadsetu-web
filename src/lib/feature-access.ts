@@ -9,7 +9,7 @@ export const FEATURE_META: Record<
   PlatformFeatureKey,
   { label: string; category: string }
 > = {
-  aiScoring: { label: 'Gemini AI Lead Scoring', category: 'AI & Automation' },
+  aiScoring: { label: 'SetuAI Lead Scoring', category: 'AI & Automation' },
   aiWorkflows: { label: 'Zero-Code AI Workflows', category: 'AI & Automation' },
   whatsappCloud: { label: 'Unified WhatsApp Cloud Inbox', category: 'Omnichannel' },
   whatsappBroadcasts: { label: 'WhatsApp Broadcast Campaigns', category: 'Omnichannel' },
@@ -43,7 +43,7 @@ export const USER_FEATURE_CATALOG: AssignableFeatureMeta[] = [
   },
   {
     key: 'aiScoring',
-    label: 'Gemini AI Scoring & Drafts',
+    label: 'SetuAI Scoring & Drafts',
     category: 'Omnichannel & AI',
     href: '/leads',
     description: 'AI 1-100 lead scoring & Hinglish smart replies',

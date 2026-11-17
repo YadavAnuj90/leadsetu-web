@@ -25,7 +25,7 @@ const steps = [
   {
     step: '02',
     badge: 'Instant AI Action',
-    title: 'Gemini AI Replies & Scores 1–100',
+    title: 'SetuAI Replies & Scores 1–100',
     description:
       'Within 15 seconds, our AI greets the buyer on WhatsApp, asks qualifying questions in Hinglish or English, and assigns a priority score.',
     icon: BrainCircuit,
@@ -182,7 +182,7 @@ export default function HowItWorks() {
             <ul className="space-y-3 text-sm text-slate-200">
               <li className="flex items-start gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                <span>100% leads auto-captured &amp; scored by Gemini AI in real time</span>
+                <span>100% leads auto-captured &amp; scored by SetuAI in real time</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />

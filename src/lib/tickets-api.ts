@@ -58,13 +58,3 @@ export async function deleteTicketApi(
   );
   return data;
 }
-
-export async function seedTicketsApi(): Promise<{
-  count: number;
-  data: Ticket[];
-}> {
-  const { data } = await apiClient.post<{ count: number; data: Ticket[] }>(
-    '/tickets/seed',
-  );
-  return data;
-}

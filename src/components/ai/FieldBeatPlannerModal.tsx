@@ -26,55 +26,12 @@ interface FieldBeatPlannerModalProps {
   onTasksCreated?: () => Promise<void> | void;
 }
 
-const DEFAULT_STOPS: BeatStopInput[] = [
-  {
-    id: 'stop-1',
-    dealerName: 'Bansal Steel & Infra Projects',
-    areaCluster: 'Okhla Phase II',
-    overdueInr: 448400,
-    overdueDays: 18,
-    openDealValueInr: 225000,
-    daysSinceLastVisit: 14,
-    urgentIssue: false,
-  },
-  {
-    id: 'stop-2',
-    dealerName: 'Apex Auto Components Ltd.',
-    areaCluster: 'Gurugram Udyog Vihar',
-    overdueInr: 0,
-    overdueDays: 0,
-    openDealValueInr: 708000,
-    daysSinceLastVisit: 9,
-    urgentIssue: true,
-  },
-  {
-    id: 'stop-3',
-    dealerName: 'RS Electricals & Switchgear',
-    areaCluster: 'Noida Sector 62',
-    overdueInr: 372000,
-    overdueDays: 22,
-    openDealValueInr: 180000,
-    daysSinceLastVisit: 16,
-    urgentIssue: false,
-  },
-  {
-    id: 'stop-4',
-    dealerName: 'Malhotra Modular Hardware',
-    areaCluster: 'Noida Sector 62',
-    overdueInr: 95000,
-    overdueDays: 6,
-    openDealValueInr: 315000,
-    daysSinceLastVisit: 7,
-    urgentIssue: false,
-  },
-];
-
 export default function FieldBeatPlannerModal({
   open,
   onClose,
   onTasksCreated,
 }: FieldBeatPlannerModalProps) {
-  const [stops, setStops] = useState<BeatStopInput[]>(DEFAULT_STOPS);
+  const [stops, setStops] = useState<BeatStopInput[]>([]);
   const [dateLabel, setDateLabel] = useState(
     () => new Date().toISOString().slice(0, 10),
   );
@@ -101,11 +58,11 @@ export default function FieldBeatPlannerModal({
       {
         id: `stop-${Date.now()}`,
         dealerName: '',
-        areaCluster: 'Noida Sector 63',
+        areaCluster: '',
         overdueInr: 0,
         overdueDays: 0,
-        openDealValueInr: 150000,
-        daysSinceLastVisit: 5,
+        openDealValueInr: 0,
+        daysSinceLastVisit: 0,
         urgentIssue: false,
       },
     ]);
@@ -240,7 +197,20 @@ export default function FieldBeatPlannerModal({
 
         {/* Editable Dealer Stops */}
         <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-          {stops.map((stop, idx) => (
+          {stops.length === 0 ? (
+            <div className="p-6 rounded-2xl border border-dashed border-slate-300 dark:border-white/15 text-center space-y-2">
+              <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                No dealer stops added yet. Add live dealer accounts to compute an optimal cluster beat route.
+              </p>
+              <button
+                type="button"
+                onClick={addStop}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border border-brand-blue/30 bg-brand-light text-brand-blue hover:bg-brand-blue hover:text-white transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add First Dealer Stop
+              </button>
+            </div>
+          ) : stops.map((stop, idx) => (
             <div
               key={stop.id}
               className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center p-3 rounded-2xl border border-slate-200 dark:border-white/12 bg-slate-50/70 dark:bg-[#111D33]/80"

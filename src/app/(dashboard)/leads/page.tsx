@@ -18,7 +18,6 @@ import {
   Trash2,
   ArrowUpRight,
   Loader2,
-  Database,
 } from 'lucide-react';
 import { useLeads } from '@/hooks/useLeads';
 import { useAuthStore } from '@/store/auth.store';
@@ -63,7 +62,6 @@ export default function LeadsPage() {
     createLead,
     updateLead,
     deleteLead,
-    seedSamples,
     fetchLeads,
   } = useLeads();
 
@@ -108,7 +106,7 @@ export default function LeadsPage() {
         <div>
           <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-blue mb-1">
             <Sparkles className="w-3.5 h-3.5" />{' '}
-            {aiEnabled ? 'Gemini AI Lead Engine' : 'Lead Pipeline · AI Scoring Paused'}
+            {aiEnabled ? 'SetuAI Lead Engine' : 'Lead Pipeline · AI Scoring Paused'}
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-navy tracking-tight">
             Leads Command Center
@@ -119,18 +117,6 @@ export default function LeadsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          {stats.total === 0 && (
-            <button
-              type="button"
-              onClick={seedSamples}
-              disabled={isMutating}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border border-brand-blue/30 bg-brand-light text-brand-blue hover:bg-brand-blue hover:text-white transition-all"
-            >
-              <Database className="w-4 h-4" />
-              <span>Load 5 Sample Delhi-NCR Leads</span>
-            </button>
-          )}
-
           {voiceCrmEnabled && (
             <button
               type="button"
@@ -352,7 +338,7 @@ export default function LeadsPage() {
         <div className="bg-white rounded-3xl p-16 border border-slate-200/80 flex flex-col items-center justify-center gap-3">
           <Loader2 className="w-7 h-7 animate-spin text-brand-blue" />
           <span className="text-sm font-semibold text-slate-600">
-            Fetching &amp; scoring leads from MongoDB Atlas...
+            Fetching &amp; scoring leads from Leadsetu Cloud...
           </span>
         </div>
       ) : leads.length === 0 ? (
@@ -364,8 +350,7 @@ export default function LeadsPage() {
             No leads match your current view
           </h3>
           <p className="text-sm text-slate-500">
-            Add your first buyer inquiry manually or load 5 realistic Delhi-NCR sample leads to
-            test AI Lead Scoring &amp; WhatsApp actions immediately.
+            Add your first buyer inquiry manually, import a CSV list, or capture leads automatically via IndiaMART, WhatsApp, and website webhooks.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <button
@@ -377,11 +362,10 @@ export default function LeadsPage() {
             </button>
             <button
               type="button"
-              onClick={seedSamples}
-              disabled={isMutating}
-              className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border border-brand-blue/30 bg-brand-light text-brand-blue hover:bg-brand-blue hover:text-white transition-all inline-flex items-center gap-2"
+              onClick={() => setCsvModalOpen(true)}
+              className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border border-slate-200 bg-white text-brand-navy hover:bg-slate-50 transition-all inline-flex items-center gap-2"
             >
-              <Database className="w-4 h-4" /> Load 5 Sample Leads
+              <Upload className="w-4 h-4 text-brand-blue" /> Import CSV
             </button>
           </div>
         </div>
@@ -405,7 +389,7 @@ export default function LeadsPage() {
                 <tr className="border-b border-slate-100 bg-slate-50/70 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                   <th className="py-3.5 px-5">Lead &amp; Company</th>
                   <th className="py-3.5 px-4">Source &amp; City</th>
-                  <th className="py-3.5 px-4">Gemini AI Score</th>
+                  <th className="py-3.5 px-4">SetuAI Score</th>
                   <th className="py-3.5 px-4">Est. Deal Value</th>
                   <th className="py-3.5 px-4">Stage</th>
                   <th className="py-3.5 px-5 text-right">Quick Actions</th>

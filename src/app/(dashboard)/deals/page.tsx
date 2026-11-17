@@ -8,7 +8,6 @@ import {
   TrendingUp,
   Trophy,
   Kanban,
-  Database,
   Loader2,
   X,
   Sparkles,
@@ -29,7 +28,6 @@ export default function DealsPage() {
     createDeal,
     moveStage,
     deleteDeal,
-    seedDeals,
   } = useDeals();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -81,17 +79,6 @@ export default function DealsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          {stats.totalDeals === 0 && (
-            <button
-              type="button"
-              onClick={seedDeals}
-              disabled={isMutating}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border border-brand-blue/30 bg-brand-light text-brand-blue hover:bg-brand-blue hover:text-white transition-all"
-            >
-              <Database className="w-4 h-4" />
-              <span>Load 5 Sample Delhi-NCR Deals</span>
-            </button>
-          )}
           <button
             type="button"
             onClick={() => setModalOpen(true)}
@@ -197,7 +184,7 @@ export default function DealsPage() {
         <div className="bg-white rounded-3xl p-16 border border-slate-200/80 flex flex-col items-center justify-center gap-3">
           <Loader2 className="w-7 h-7 animate-spin text-brand-blue" />
           <span className="text-sm font-semibold text-slate-600">
-            Loading Kanban pipeline from MongoDB Atlas...
+            Loading Kanban pipeline from Leadsetu Cloud...
           </span>
         </div>
       ) : (

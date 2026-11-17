@@ -211,7 +211,7 @@ export default function IntegrationsSettingsPage() {
           Channels, Webhooks &amp; Integrations
         </h1>
         <p className="text-sm text-slate-500 mt-1">
-          Capture inbound inquiries live in MongoDB with automatic +91 deduplication, AI Lead Scoring, and Round-Robin sales assignment.
+          Capture inbound inquiries live in Leadsetu Cloud with automatic +91 deduplication, SetuAI Lead Scoring, and Round-Robin sales assignment.
         </p>
       </div>
 

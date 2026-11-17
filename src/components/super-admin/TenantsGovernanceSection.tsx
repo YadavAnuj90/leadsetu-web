@@ -1278,7 +1278,7 @@ export default function TenantsGovernanceSection({
                             AI Feature &amp; 4-Pillar Authority (Assign / Edit / Remove)
                           </div>
                           <p className="text-[11px] text-slate-600 dark:text-slate-300">
-                            Assign or remove Gemini AI Scoring, 3 B2B Pillars, RAG Copilot &amp; AI Workflows for {detail.tenant.name}.
+                            Assign or remove SetuAI Scoring, 3 B2B Pillars, RAG Copilot &amp; AI Workflows for {detail.tenant.name}.
                           </p>
                         </div>
                         <div className="flex flex-wrap items-center gap-1.5 shrink-0">
@@ -1542,7 +1542,7 @@ export default function TenantsGovernanceSection({
                             </div>
                           </div>
                           <div>
-                            <div className="text-slate-400 font-bold uppercase text-[9px]">Gemini AI Cost</div>
+                            <div className="text-slate-400 font-bold uppercase text-[9px]">SetuAI Cost</div>
                             <div className="font-black text-slate-900 dark:text-white">
                               ₹{detail.tenant.costTelemetry.estimatedAiCostInr} ({detail.tenant.costTelemetry.aiPct}%)
                             </div>

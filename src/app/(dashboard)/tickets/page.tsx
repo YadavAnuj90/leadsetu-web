@@ -36,7 +36,6 @@ import {
   updateTicketApi,
   addTicketCommentApi,
   deleteTicketApi,
-  seedTicketsApi,
 } from '@/lib/tickets-api';
 import { fetchInvoices } from '@/lib/invoices-api';
 import { fetchProductsApi } from '@/lib/products-api';
@@ -84,13 +83,6 @@ const CATEGORY_LABELS: Record<TicketCategory, string> = {
   general: 'General Support',
 };
 
-const ENGINEER_PRESETS = [
-  { name: 'Er. Pradeep Verma (Senior Field Engineer)', phone: '+91 98109 44120' },
-  { name: 'Deepak Tyagi (Noida Dispatch Desk)', phone: '+91 98184 22190' },
-  { name: 'Neha Gupta (GST & Accounts Desk)', phone: '+91 98110 77812' },
-  { name: 'Rohit Chauhan (Gurugram AMC Lead)', phone: '+91 99103 55410' },
-];
-
 export default function TicketsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -105,7 +97,7 @@ export default function TicketsPage() {
     urgentCount: 0,
     resolvedCount: 0,
     slaBreachedCount: 0,
-    avgCsat: 4.8,
+    avgCsat: 0,
   });
 
   const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
@@ -115,7 +107,6 @@ export default function TicketsPage() {
   const [slaBreachedOnly, setSlaBreachedOnly] = useState(false);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [isSeeding, setIsSeeding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
@@ -138,8 +129,8 @@ export default function TicketsPage() {
   const [linkedContactId, setLinkedContactId] = useState('');
   const [linkedInvoiceNumber, setLinkedInvoiceNumber] = useState('');
   const [productSerialOrSku, setProductSerialOrSku] = useState('');
-  const [assignedToName, setAssignedToName] = useState(ENGINEER_PRESETS[0].name);
-  const [assignedToPhone, setAssignedToPhone] = useState(ENGINEER_PRESETS[0].phone);
+  const [assignedToName, setAssignedToName] = useState('');
+  const [assignedToPhone, setAssignedToPhone] = useState('');
   const [slaDueAt, setSlaDueAt] = useState(
     new Date(Date.now() + 86400000).toISOString().slice(0, 10),
   );
@@ -292,21 +283,6 @@ export default function TicketsPage() {
     }
   };
 
-  const handleSeed = async () => {
-    setIsSeeding(true);
-    setError(null);
-    try {
-      await seedTicketsApi();
-      await loadTickets();
-      setToastMsg('Seeded 4 realistic Delhi-NCR B2B SLA support & field service tickets!');
-      setTimeout(() => setToastMsg(null), 3500);
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setIsSeeding(false);
-    }
-  };
-
   const handleStatusChange = async (id: string, status: TicketStatus) => {
     try {
       const updated = await updateTicketApi(id, { status });
@@ -406,7 +382,7 @@ export default function TicketsPage() {
     const waPhone =
       digits.length === 10 ? `91${digits}` : digits.length >= 11 ? digits : '';
     const msg = encodeURIComponent(
-      `Namaste ${t.customerName || t.company || 'Sir/Madam'},\n\nSupport update from *${tenant?.name || 'Leadsetu Service Desk'}* regarding Ticket *${t.ticketNumber}*:\n\n• Subject: ${t.subject}\n• Current Status: *${STATUS_LABELS[t.status].toUpperCase()}*\n• Assigned Engineer: ${t.assignedToName || 'Support Team'}${t.assignedToPhone ? ` (${t.assignedToPhone})` : ''}\n• Target SLA: ${t.slaDueAt || 'Priority'}${
+      `Namaste ${t.customerName || t.company || 'Sir/Madam'},\n\nSupport update from *${tenant?.companyName?.trim() || 'Leadsetu Service Desk'}* regarding Ticket *${t.ticketNumber}*:\n\n• Subject: ${t.subject}\n• Current Status: *${STATUS_LABELS[t.status].toUpperCase()}*\n• Assigned Engineer: ${t.assignedToName || 'Support Team'}${t.assignedToPhone ? ` (${t.assignedToPhone})` : ''}\n• Target SLA: ${t.slaDueAt || 'Priority'}${
         t.resolutionSummary ? `\n• Resolution Note: ${t.resolutionSummary}` : ''
       }\n\nReply here if you need any immediate assistance.`,
     );
@@ -487,20 +463,6 @@ export default function TicketsPage() {
               <Kanban className="w-3.5 h-3.5" /> SLA Board
             </button>
           </div>
-
-          <button
-            type="button"
-            onClick={handleSeed}
-            disabled={isSeeding}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-brand-navy hover:border-brand-blue transition-colors"
-          >
-            {isSeeding ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-blue" />
-            ) : (
-              <Sparkles className="w-3.5 h-3.5 text-brand-blue" />
-            )}
-            Seed 4 NCR Tickets
-          </button>
 
           <button
             type="button"
@@ -707,16 +669,9 @@ export default function TicketsPage() {
             No SLA Tickets Match Your Filter
           </div>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
-            Create a dispatch, warranty, or GST support ticket, or seed 4 realistic Delhi-NCR B2B service tickets.
+            Create a dispatch, warranty, GST billing, or AMC field service ticket to start tracking SLAs.
           </p>
           <div className="flex items-center justify-center gap-3 pt-1">
-            <button
-              type="button"
-              onClick={handleSeed}
-              className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50"
-            >
-              Seed 4 Sample Tickets
-            </button>
             <button
               type="button"
               onClick={() => setModalOpen(true)}
@@ -1155,21 +1110,6 @@ export default function TicketsPage() {
                   <label className="text-xs font-extrabold text-indigo-950">
                     Assign Field Engineer / Support Owner
                   </label>
-                  <div className="flex flex-wrap gap-1">
-                    {ENGINEER_PRESETS.map((eng) => (
-                      <button
-                        key={eng.name}
-                        type="button"
-                        onClick={() => {
-                          setAssignedToName(eng.name);
-                          setAssignedToPhone(eng.phone);
-                        }}
-                        className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-100"
-                      >
-                        {eng.name.split('(')[0].trim()}
-                      </button>
-                    ))}
-                  </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <input

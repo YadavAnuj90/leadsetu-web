@@ -47,13 +47,3 @@ export async function deleteDocumentApi(
   );
   return data;
 }
-
-export async function seedDocumentsApi(): Promise<{
-  count: number;
-  data: CrmDocument[];
-}> {
-  const { data } = await apiClient.post<{ count: number; data: CrmDocument[] }>(
-    '/documents/seed',
-  );
-  return data;
-}

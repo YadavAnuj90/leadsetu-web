@@ -412,8 +412,16 @@ export default function TeamSettingsPage() {
     }
   };
 
+  const inviteOrgLabel =
+    credentials?.organizationName ||
+    credentials?.companyName?.trim() ||
+    account?.companyName?.trim() ||
+    tenant?.companyName?.trim() ||
+    user?.name ||
+    'Leadsetu CRM';
+
   const credentialsText = credentials
-    ? `Leadsetu CRM invite for ${credentials.name}\n` +
+    ? `You're invited to ${inviteOrgLabel} on Leadsetu CRM (${credentials.name})\n` +
       `Workspace Account ID: ${credentials.accountId}\n` +
       `Your User ID: ${credentials.userCode}\n` +
       `Login Email: ${credentials.loginEmail}\n` +
@@ -516,7 +524,11 @@ export default function TeamSettingsPage() {
             )}
           </div>
           <div className="mt-3 text-xs text-slate-300 space-y-0.5">
-            <div className="font-bold text-white">{account?.name || tenant?.name}</div>
+            <div className="font-bold text-white">
+              {account?.companyName?.trim() ||
+                tenant?.companyName?.trim() ||
+                'Leadsetu Workspace'}
+            </div>
             <div className="capitalize">
               {account?.plan} plan · {account?.status} · {account?.city}
             </div>

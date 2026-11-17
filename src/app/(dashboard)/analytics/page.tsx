@@ -237,7 +237,7 @@ export default function AnalyticsPage() {
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-[11px] font-bold uppercase tracking-wider text-sky-300">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Real-Time MongoDB Revenue &amp; Attribution Intelligence</span>
+              <span>Real-Time Cloud Revenue &amp; Attribution Intelligence</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               Executive CRM, GST &amp; Pipeline Analytics
@@ -319,7 +319,7 @@ export default function AnalyticsPage() {
         <div className="bg-white rounded-3xl p-16 border border-slate-200/80 flex flex-col items-center justify-center gap-3 text-slate-400">
           <Loader2 className="w-7 h-7 animate-spin text-brand-blue" />
           <p className="text-xs font-semibold">
-            Aggregating live metrics across 10 MongoDB collections...
+            Aggregating live metrics across 10 workspace data streams...
           </p>
         </div>
       ) : (
@@ -390,7 +390,7 @@ export default function AnalyticsPage() {
                 </span>
               </div>
               <div className="text-xs text-slate-500 mt-1.5 flex items-center justify-between">
-                <span>Avg Gemini Score: {s?.avgAiScore || 0}/100</span>
+                <span>Avg SetuAI Score: {s?.avgAiScore || 0}/100</span>
                 <span className="font-bold text-brand-blue">
                   {s?.convertedLeads || 0} Won
                 </span>
@@ -432,7 +432,7 @@ export default function AnalyticsPage() {
                       <span>6-Month Pipeline vs. Invoiced &amp; Collected Velocity</span>
                     </h2>
                     <p className="text-xs text-slate-400">
-                      Hover any month column to inspect real MongoDB totals
+                      Hover any month column to inspect real live workspace totals
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-3 text-[11px] font-bold">

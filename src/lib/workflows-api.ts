@@ -50,14 +50,3 @@ export async function deleteWorkflow(
   );
   return data;
 }
-
-export async function seedWorkflows(): Promise<{
-  count: number;
-  data: WorkflowRule[];
-}> {
-  const { data } = await apiClient.post<{
-    count: number;
-    data: WorkflowRule[];
-  }>('/workflows/seed');
-  return data;
-}

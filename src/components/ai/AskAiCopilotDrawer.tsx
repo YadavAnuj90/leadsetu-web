@@ -70,7 +70,7 @@ export default function AskAiCopilotDrawer({
           role: 'assistant',
           text: env.result,
           sources: env.sources || [],
-          meta: `${env.provider || 'ai'} · ${env.model} · ${env.tokensUsed} tokens (${env.durationMs}ms)`,
+          meta: `SetuAI Neural Core · ${env.tokensUsed} tokens (${env.durationMs}ms)`,
         },
       ]);
     } catch (err) {

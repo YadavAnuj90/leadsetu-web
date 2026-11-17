@@ -19,6 +19,7 @@ import {
   FolderOpen,
   Globe,
   HeartHandshake,
+  ImagePlus,
   Kanban,
   Loader2,
   Lock,
@@ -31,10 +32,12 @@ import {
   ShieldCheck,
   Sparkles,
   Sun,
+  Trash2,
   Users,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { isFeatureEnabled } from '@/lib/feature-access';
+import { prepareOrganizationLogoDataUrl } from '@/lib/logo-upload';
 import {
   fetchCurrentTenantApi,
   updateCurrentTenantApi,
@@ -114,7 +117,9 @@ export default function SettingsPage() {
   const [isLoadingMeta, setIsLoadingMeta] = useState(true);
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [nameInput, setNameInput] = useState(tenant?.name || '');
+  const [nameInput, setNameInput] = useState(tenant?.companyName || '');
+  const [logoUrlInput, setLogoUrlInput] = useState(tenant?.logoUrl || '');
+  const [logoError, setLogoError] = useState<string | null>(null);
   const [cityInput, setCityInput] = useState(tenant?.city || 'Delhi-NCR');
   const [gstinInput, setGstinInput] = useState(tenant?.gstin || '');
   const [stateInput, setStateInput] = useState(tenant?.state || 'Delhi (07)');
@@ -217,7 +222,8 @@ export default function SettingsPage() {
           updateProfile({ user: currentUser, tenant: tenantRes.tenant });
         }
         setUsage(tenantRes.usage);
-        setNameInput(tenantRes.tenant.name || '');
+        setNameInput(tenantRes.tenant.companyName || '');
+        setLogoUrlInput(tenantRes.tenant.logoUrl || '');
         setCityInput(tenantRes.tenant.city || 'Delhi-NCR');
         setGstinInput(tenantRes.tenant.gstin || '');
         setStateInput(tenantRes.tenant.state || 'Delhi (07)');
@@ -239,17 +245,25 @@ export default function SettingsPage() {
     void loadWorkspaceData();
   }, [loadWorkspaceData]);
 
+  const handleLogoPick = async (file?: File | null) => {
+    if (!file) return;
+    setLogoError(null);
+    try {
+      const prepared = await prepareOrganizationLogoDataUrl(file);
+      setLogoUrlInput(prepared);
+    } catch (err) {
+      setLogoError(err instanceof Error ? err.message : 'Unable to load logo.');
+    }
+  };
+
   const handleSaveWorkspace = async (e: FormEvent) => {
     e.preventDefault();
-    if (!nameInput.trim()) {
-      setError('Workspace name is required.');
-      return;
-    }
     setIsSavingProfile(true);
     setError(null);
     try {
       const res = await updateCurrentTenantApi({
-        name: nameInput.trim(),
+        companyName: nameInput.trim(),
+        logoUrl: logoUrlInput,
         city: cityInput.trim() || 'Delhi-NCR',
         gstin: gstinInput.trim().toUpperCase(),
         state: stateInput.trim(),
@@ -261,8 +275,10 @@ export default function SettingsPage() {
         updateProfile({ user, tenant: res.tenant });
       }
       setUsage(res.usage);
+      setNameInput(res.tenant.companyName || '');
+      setLogoUrlInput(res.tenant.logoUrl || '');
       setIsEditingProfile(false);
-      showToast('Workspace profile & GST identity saved cleanly.');
+      showToast('Organization profile & GST identity saved cleanly.');
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -323,6 +339,7 @@ export default function SettingsPage() {
   const documentVaultEnabled = isFeatureEnabled(tenant, 'documentVault');
   const aiScoringEnabled = isFeatureEnabled(tenant, 'aiScoring');
   const customRbacEnabled = isFeatureEnabled(tenant, 'customRbac');
+  const companyDisplay = (tenant?.companyName || '').trim();
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-8">
@@ -381,13 +398,24 @@ export default function SettingsPage() {
           <div className="flex items-start sm:items-center gap-5">
             <div className="relative shrink-0">
               <div
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center font-extrabold text-2xl sm:text-3xl text-white shadow-lg ring-2 ring-white/25"
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center font-extrabold text-2xl sm:text-3xl text-white shadow-lg ring-2 ring-white/25 overflow-hidden"
                 style={{
-                  background:
-                    'linear-gradient(135deg, #3978EA 0%, #06B6D4 100%)',
+                  background: tenant?.logoUrl
+                    ? '#ffffff'
+                    : 'linear-gradient(135deg, #3978EA 0%, #06B6D4 100%)',
                 }}
               >
-                {(tenant?.name?.[0] || 'L').toUpperCase()}
+                {tenant?.logoUrl ? (
+                  <img
+                    src={tenant.logoUrl}
+                    alt={companyDisplay || 'Organization Logo'}
+                    className="w-full h-full object-cover"
+                  />
+                ) : companyDisplay ? (
+                  companyDisplay[0].toUpperCase()
+                ) : (
+                  <Building2 className="w-8 h-8 sm:w-9 sm:h-9 text-white/95" />
+                )}
               </div>
               <span
                 title="Workspace Active"
@@ -405,9 +433,7 @@ export default function SettingsPage() {
 
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white truncate">
-                  {tenant?.name === 'Leadsetu Platform HQ'
-                    ? 'Leadsetu Workspace'
-                    : tenant?.name || 'Leadsetu Workspace'}
+                  {companyDisplay || 'Leadsetu Workspace'}
                 </h1>
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-400/20 border border-emerald-300/40 text-[11px] font-extrabold text-emerald-200 capitalize">
                   {tenant?.plan || 'Growth'} Plan ·{' '}
@@ -417,7 +443,7 @@ export default function SettingsPage() {
 
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-200/90">
                 <span>
-                  Owner:{' '}
+                  {companyDisplay ? 'Owner:' : 'Admin:'}{' '}
                   <strong className="text-white">{user?.name || 'Admin'}</strong>{' '}
                   <span className="text-slate-300">({user?.email})</span>
                 </span>
@@ -560,17 +586,72 @@ export default function SettingsPage() {
 
           {isEditingProfile ? (
             <form onSubmit={handleSaveWorkspace} className="space-y-4">
+              {/* Optional Organization Logo Upload */}
+              <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/80 dark:bg-white/[0.03] p-3.5 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+                    {logoUrlInput ? (
+                      <img
+                        src={logoUrlInput}
+                        alt="Organization Logo Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <ImagePlus className="w-5 h-5 text-slate-400" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-brand-navy dark:text-slate-100">
+                      Organization Logo{' '}
+                      <span className="font-normal text-slate-400">(Optional)</span>
+                    </div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                      PNG, JPG, WEBP or SVG · Shown on workspace header, sidebar &amp; invites
+                    </div>
+                    {logoError && (
+                      <div className="text-[11px] font-semibold text-rose-600 mt-0.5">
+                        {logoError}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <label className="cursor-pointer px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-brand-blue text-xs font-bold text-brand-navy dark:text-slate-200 inline-flex items-center gap-1.5 transition-colors">
+                    <ImagePlus className="w-3.5 h-3.5 text-brand-blue" />
+                    <span>{logoUrlInput ? 'Change Logo' : 'Upload Logo'}</span>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      className="hidden"
+                      onChange={(e) => void handleLogoPick(e.target.files?.[0])}
+                    />
+                  </label>
+                  {logoUrlInput && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLogoUrlInput('');
+                        setLogoError(null);
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-200 dark:border-rose-800/60 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
-                    Workspace / Company Name *
+                    Company / Organization Name{' '}
+                    <span className="font-normal normal-case text-slate-400">(Optional)</span>
                   </label>
                   <input
                     type="text"
-                    required
                     value={nameInput}
                     onChange={(e) => setNameInput(e.target.value)}
-                    placeholder="e.g. Anujalite Technologies Pvt. Ltd."
+                    placeholder="e.g. Anujalite Technologies Pvt. Ltd. (Optional)"
                     className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm font-bold text-brand-navy focus:outline-none focus:border-brand-blue"
                   />
                 </div>
@@ -683,13 +764,22 @@ export default function SettingsPage() {
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                   Registered Organization
                 </span>
-                <span className="text-sm font-extrabold text-brand-navy mt-1 block">
-                  {tenant?.name === 'Leadsetu Platform HQ'
-                    ? 'Leadsetu Workspace'
-                    : tenant?.name || 'Leadsetu Workspace'}
-                </span>
-                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                  slug: {tenant?.slug || 'workspace'}
+                <div className="flex items-center gap-2.5 mt-1">
+                  {tenant?.logoUrl && (
+                    <img
+                      src={tenant.logoUrl}
+                      alt={companyDisplay || 'Organization Logo'}
+                      className="w-7 h-7 rounded-lg object-cover border border-slate-200 dark:border-slate-700 bg-white shrink-0"
+                    />
+                  )}
+                  <span className="text-sm font-extrabold text-brand-navy block truncate">
+                    {companyDisplay || 'Not set (Optional)'}
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono block mt-0.5">
+                  {companyDisplay
+                    ? `slug: ${tenant?.slug || 'workspace'}`
+                    : 'Click Edit Details to set company name & logo'}
                 </span>
               </div>
 
@@ -1136,7 +1226,7 @@ export default function SettingsPage() {
                 18% GST ITC Eligible
               </span>
               <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300">
-                {aiScoringEnabled ? 'Gemini AI Included' : 'Gemini AI Paused'}
+                {aiScoringEnabled ? 'SetuAI Included' : 'SetuAI Paused'}
               </span>
               {customRbacEnabled && (
                 <span className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/50 text-brand-blue dark:text-sky-300">

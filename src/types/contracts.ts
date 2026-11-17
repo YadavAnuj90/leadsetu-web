@@ -265,6 +265,8 @@ export interface TenantInfo {
   /** Unique 5-digit workspace / admin account ID */
   accountId?: string;
   name: string;
+  companyName?: string;
+  logoUrl?: string;
   slug: string;
   plan: 'starter' | 'growth' | 'enterprise';
   status: 'trial' | 'active' | 'suspended';
@@ -367,6 +369,7 @@ export interface RegisterPayload {
   phone?: string;
   password: string;
   companyName?: string;
+  logoUrl?: string;
   city?: string;
 }
 
@@ -792,6 +795,9 @@ export interface InviteInfoResponse {
   territory: string;
   inviteStatus: 'active' | 'pending' | 'accepted';
   workspaceName: string;
+  companyName?: string;
+  logoUrl?: string;
+  invitedByDisplay?: string;
   accountId: string;
   featureAccess: Record<UserFeatureKey, boolean>;
 }
@@ -837,6 +843,8 @@ export interface TeamAccountInfo {
   /** Unique 5-digit workspace account ID */
   accountId: string;
   name: string;
+  companyName?: string;
+  logoUrl?: string;
   plan: string;
   status: string;
   city: string;
@@ -875,6 +883,8 @@ export interface TeamListResponse {
 
 export interface MemberCredentials {
   accountId: string;
+  companyName?: string;
+  organizationName?: string;
   userCode: string;
   loginEmail: string;
   /** Only present when the server generated it — shown once, never retrievable again */

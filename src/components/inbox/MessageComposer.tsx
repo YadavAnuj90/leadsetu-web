@@ -47,13 +47,13 @@ export default function MessageComposer({
 
   return (
     <div className="p-4 bg-white dark:bg-[#0D1628] border-t border-slate-200/80 dark:border-white/10 space-y-3">
-      {/* Gemini AI Suggested Reply Banner */}
+      {/* SetuAI Suggested Reply Banner */}
       {aiSuggestedReply && (
         <div className="p-3 rounded-2xl bg-brand-light/80 dark:bg-indigo-950/60 border border-brand-blue/25 dark:border-indigo-400/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-start gap-2 text-xs text-brand-navy dark:text-slate-100">
             <Sparkles className="w-4 h-4 text-brand-blue dark:text-indigo-300 flex-shrink-0 mt-0.5" />
             <div>
-              <span className="font-bold text-brand-blue dark:text-indigo-300">Gemini AI Draft: </span>
+              <span className="font-bold text-brand-blue dark:text-indigo-300">SetuAI Draft: </span>
               <span>{aiSuggestedReply}</span>
             </div>
           </div>

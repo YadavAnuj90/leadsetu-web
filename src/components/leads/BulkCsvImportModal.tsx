@@ -23,10 +23,8 @@ interface BulkCsvImportModalProps {
   onImported: () => Promise<void> | void;
 }
 
-const SAMPLE_CSV = `Name,Company,Phone,Email,City,Source,EstimatedValue,Notes
-Rajesh Aggarwal,VardhmanPackaging Pvt Ltd,+91 98114 22310,rajesh@vardhmanpack.in,Noida,indiamart,185000,Requires 5000 corrugated boxes monthly
-Meenakshi Verma,Kaveri Precision Tools,9871190432,meenakshi@kaveritools.com,Gurgaon,website,340000,CNC spares annual rate contract inquiry
-Harpreet Singh,Doaba Agro Cold Chain,+91 98180 55411,harpreet@doabacold.in,Delhi,referral,420000,Cold storage stabilizer 150 KVA requirement`;
+const CSV_HEADER_TEMPLATE =
+  'Name,Company,Phone,Email,City,Source,EstimatedValue,Notes\n';
 
 function parseCsvLine(line: string): string[] {
   const result: string[] = [];
@@ -154,12 +152,12 @@ export default function BulkCsvImportModal({
     reader.readAsText(file);
   };
 
-  const handleDownloadSample = () => {
-    const blob = new Blob([SAMPLE_CSV], { type: 'text/csv;charset=utf-8;' });
+  const handleDownloadTemplate = () => {
+    const blob = new Blob([CSV_HEADER_TEMPLATE], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'leadsetu-sample-leads.csv';
+    a.download = 'leadsetu-leads-template.csv';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -228,18 +226,11 @@ export default function BulkCsvImportModal({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => handleTextChange(SAMPLE_CSV)}
-                className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-brand-navy hover:bg-slate-50"
-              >
-                Load Sample Preview
-              </button>
-              <button
-                type="button"
-                onClick={handleDownloadSample}
+                onClick={handleDownloadTemplate}
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>Download Sample CSV</span>
+                <span>Download CSV Template</span>
               </button>
             </div>
           </div>

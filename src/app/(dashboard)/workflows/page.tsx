@@ -12,7 +12,6 @@ import {
   Plus,
   Play,
   Trash2,
-  Database,
   Search,
   Clock,
   Activity,
@@ -26,7 +25,6 @@ import {
   toggleWorkflowActive,
   executeWorkflowNow,
   deleteWorkflow,
-  seedWorkflows,
 } from '@/lib/workflows-api';
 import { getErrorMessage } from '@/lib/api-client';
 import type {
@@ -38,7 +36,7 @@ import type {
 
 const TRIGGER_LABELS: Record<WorkflowTriggerType, string> = {
   'lead.created': 'New Lead Captured (IndiaMART / WhatsApp / Meta)',
-  'lead.hot_scored': 'Gemini AI Scores Lead >= 80 (Hot Buyer)',
+  'lead.hot_scored': 'SetuAI Scores Lead >= 80 (Hot Buyer)',
   'deal.stage_changed': 'Deal Stage Moved in Kanban Pipeline',
   'invoice.overdue': 'GST Tax Invoice Passes Due Date',
   'whatsapp.inbound': 'Inbound Buyer Message on WhatsApp',
@@ -157,7 +155,7 @@ export default function WorkflowsPage() {
       setModalOpen(false);
       setName('');
       setDescription('');
-      showToast('New AI Workflow saved & activated in MongoDB!');
+      showToast('New AI Workflow saved & activated in workspace!');
       await loadWorkflows();
     } catch (err) {
       setErrorMsg(getErrorMessage(err));
@@ -208,19 +206,6 @@ export default function WorkflowsPage() {
     }
   };
 
-  const handleSeed = async () => {
-    setIsMutating(true);
-    try {
-      await seedWorkflows();
-      showToast('Seeded 4 B2B AI Workflows into MongoDB!');
-      await loadWorkflows();
-    } catch (err) {
-      setErrorMsg(getErrorMessage(err));
-    } finally {
-      setIsMutating(false);
-    }
-  };
-
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Top Back Navigation */}
@@ -249,20 +234,6 @@ export default function WorkflowsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            type="button"
-            onClick={handleSeed}
-            disabled={isMutating}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 transition-all"
-          >
-            {isMutating ? (
-              <Loader2 className="w-4 h-4 animate-spin text-brand-blue" />
-            ) : (
-              <Database className="w-4 h-4 text-brand-blue" />
-            )}
-            Seed 4 Sample Workflows
-          </button>
-
           <button
             type="button"
             onClick={() => setModalOpen(true)}
@@ -308,7 +279,7 @@ export default function WorkflowsPage() {
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Listening to live MongoDB events
+            Listening to live workspace events
           </p>
         </div>
 
@@ -395,7 +366,7 @@ export default function WorkflowsPage() {
         <div className="bg-white rounded-3xl p-16 border border-slate-200/80 flex flex-col items-center justify-center gap-3 text-slate-400">
           <Loader2 className="w-7 h-7 animate-spin text-brand-blue" />
           <p className="text-xs font-semibold">
-            Loading AI Workflows &amp; Execution Logs from MongoDB...
+            Loading AI Workflows &amp; Execution Logs from Leadsetu Cloud...
           </p>
         </div>
       ) : workflows.length === 0 ? (
@@ -408,17 +379,10 @@ export default function WorkflowsPage() {
               No Automation Workflows Found
             </h3>
             <p className="text-xs text-slate-500 mt-1">
-              Seed 4 ready-to-use Noida / Delhi-NCR sales workflows or build a custom rule.
+              Build a custom zero-code workflow to automate WhatsApp replies, task routing, and GST invoicing.
             </p>
           </div>
           <div className="flex items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={handleSeed}
-              className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50"
-            >
-              Seed 4 Sample Workflows
-            </button>
             <button
               type="button"
               onClick={() => setModalOpen(true)}
@@ -562,7 +526,7 @@ export default function WorkflowsPage() {
                     Create Zero-Code AI Automation Rule
                   </h2>
                   <p className="text-[11px] text-slate-300">
-                    Automatically runs when Leads, Deals, or GST Invoices change in MongoDB
+                    Automatically runs when Leads, Deals, or GST Invoices change in workspace
                   </p>
                 </div>
               </div>
@@ -605,7 +569,7 @@ export default function WorkflowsPage() {
                     New Lead Captured (IndiaMART / WhatsApp / Meta Ads)
                   </option>
                   <option value="lead.hot_scored">
-                    Gemini AI Scores Lead &gt;= 80 (Hot Buyer)
+                    SetuAI Scores Lead &gt;= 80 (Hot Buyer)
                   </option>
                   <option value="deal.stage_changed">
                     Deal Stage Moved in Kanban Pipeline

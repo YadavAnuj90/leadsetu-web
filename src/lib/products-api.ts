@@ -39,13 +39,3 @@ export async function deleteProductApi(
   );
   return data;
 }
-
-export async function seedProductsApi(): Promise<{
-  count: number;
-  data: Product[];
-}> {
-  const { data } = await apiClient.post<{ count: number; data: Product[] }>(
-    '/products/seed',
-  );
-  return data;
-}

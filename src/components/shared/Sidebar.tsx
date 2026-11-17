@@ -90,10 +90,10 @@ export default function Sidebar() {
       {/* Brand Header */}
       <div className="p-5 pb-4 flex-shrink-0">
         <Link href="/dashboard" className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl overflow-hidden shadow-md ring-1 ring-white/20 flex-shrink-0">
+          <div className="w-9 h-9 rounded-xl overflow-hidden shadow-md ring-1 ring-white/20 flex-shrink-0 bg-white/10">
             <img
-              src="/logo.png"
-              alt="Leadsetu Logo"
+              src={tenant?.logoUrl || '/logo.png'}
+              alt={tenant?.companyName?.trim() || 'Leadsetu Logo'}
               className="w-full h-full object-cover"
             />
           </div>
@@ -102,9 +102,7 @@ export default function Sidebar() {
               Lead<span style={{ color: '#68A0FF' }}>setu</span>
             </div>
             <div className="text-[11px] text-slate-400 truncate">
-              {tenant?.name === 'Leadsetu Platform HQ'
-                ? 'AI CRM Workspace'
-                : tenant?.name || 'AI CRM Workspace'}
+              {tenant?.companyName?.trim() || 'AI CRM Workspace'}
             </div>
           </div>
         </Link>
@@ -159,9 +157,9 @@ export default function Sidebar() {
             </div>
             <div className="text-[11px] text-slate-300 mt-0.5">
               {aiOn && waOn
-                ? 'Gemini AI & WhatsApp Active'
+                ? 'SetuAI & WhatsApp Active'
                 : aiOn
-                  ? 'Gemini AI Active · WhatsApp Off'
+                  ? 'SetuAI Active · WhatsApp Off'
                   : waOn
                     ? 'WhatsApp Active · AI Paused'
                     : 'Modules Managed by Plan'}
@@ -175,7 +173,7 @@ export default function Sidebar() {
             <div className="flex items-center justify-between gap-2 text-xs font-bold text-brand-sky">
               <span>{roleDisplay}</span>
               <span className="font-mono text-[10px] text-emerald-300">
-                {assignedCount}/{USER_FEATURE_CATALOG.length} Tools
+                {assignedCount} {assignedCount === 1 ? 'Module' : 'Modules'}
               </span>
             </div>
             <div className="text-[11px] text-slate-300 mt-0.5 flex items-center gap-1 font-mono">

@@ -270,7 +270,7 @@ export default function OverviewSection({
                   Live Quota Metering, Cost Telemetry &amp; Unit Economics
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Tracks Gemini AI &amp; Meta WhatsApp infra spend vs. MRR to catch unprofitable heavy tenants.
+                  Tracks SetuAI &amp; Meta WhatsApp infra spend vs. MRR to catch unprofitable heavy tenants.
                 </p>
               </div>
               <button

@@ -40,12 +40,6 @@ interface VoiceCrmAuditModalProps {
   ) => Promise<void> | void;
 }
 
-const SAMPLE_CLEAN_CALL =
-  'Aaj Bansal Hardware Noida Sector 63 ke Rajesh ji se baat hui. Unko 150 pcs CNC Brass Valve chahiye 18% GST billing ke saath, approx order value ₹2,25,000 ban rahi hai. Bole 30% advance RTGS kar denge aur balance 15 din ki credit par chahiye. Delivery Thursday tak maang rahe hain. Kal 11 baje formal GST proforma quote WhatsApp par bhejna hai.';
-
-const SAMPLE_COMPLIANCE_CALL =
-  'Dealer ne bola rate thoda kam karo aur 2 lakh ka maal bina bill kacha parchi me bhej do cash me GST bachane ke liye. Maine bola sir main manager se pooch ke kal confirm karta hu, koi written commitment abhi nahi di.';
-
 function computeDueIso(hint?: string): string {
   const d = new Date();
   const lower = (hint || '').toLowerCase();
@@ -398,20 +392,6 @@ export default function VoiceCrmAuditModal({
                 Sales Call Transcript / Voice Note (Hinglish / English)
               </label>
               <div className="flex flex-wrap items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setTranscript(SAMPLE_CLEAN_CALL)}
-                  className="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 dark:border-white/15 bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:border-brand-blue"
-                >
-                  Load B2B Sample
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTranscript(SAMPLE_COMPLIANCE_CALL)}
-                  className="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-300 hover:border-rose-400"
-                >
-                  Test Compliance Flag
-                </button>
                 {speechSupported && (
                   <button
                     type="button"
@@ -448,7 +428,7 @@ export default function VoiceCrmAuditModal({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="text-[11px] text-slate-400">
               {providerMeta
-                ? `Processed via ${providerMeta.provider || 'ai'} · ${providerMeta.model || ''} (${providerMeta.tokensUsed || 0} tokens)`
+                ? `Processed via SetuAI Neural Core (${providerMeta.tokensUsed || 0} tokens)`
                 : 'Runs extraction & 5-point compliance audit in parallel'}
             </div>
             <button

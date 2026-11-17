@@ -54,10 +54,6 @@ interface CreditRecoveryPanelProps {
   onRefreshParent?: () => void;
 }
 
-const SAMPLE_BANK_CSV = `${new Date().toISOString().slice(0, 10)}, NEFT CR-HDFC-BANSAL STEEL & INFRA PROJECTS-INV-2026-1004, HDFCR92026111500412, 448400
-${new Date().toISOString().slice(0, 10)}, RTGS CR-RS ELECTRICALS & SWITCHGEAR-INV-2026-1002 BAL, ICICR52026111500877, 362800
-${new Date().toISOString().slice(0, 10)}, UPI/432098761234/APEX AUTO ADVANCE, UPI432098761234, 150000`;
-
 function formatInr(n: number) {
   return `₹${Math.round(Number(n) || 0).toLocaleString('en-IN')}`;
 }
@@ -107,7 +103,7 @@ export default function CreditRecoveryPanel({
 
   // Bank Statement Auto-Reconciler Modal
   const [reconOpen, setReconOpen] = useState(false);
-  const [bankCsvText, setBankCsvText] = useState(SAMPLE_BANK_CSV);
+  const [bankCsvText, setBankCsvText] = useState('');
   const [reconResults, setReconResults] = useState<BankStatementPreviewMatch[] | null>(null);
   const [selectedEntryIds, setSelectedEntryIds] = useState<Record<string, boolean>>({});
 
@@ -666,7 +662,7 @@ export default function CreditRecoveryPanel({
               {ledger.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-slate-400">
-                    No buyer accounts yet. Load sample contacts/invoices to test credit controls.
+                    No buyer accounts yet. Add B2B contacts or GST invoices to manage credit limits &amp; holds.
                   </td>
                 </tr>
               ) : (
@@ -1191,17 +1187,11 @@ export default function CreditRecoveryPanel({
               rows={4}
               value={bankCsvText}
               onChange={(e) => setBankCsvText(e.target.value)}
+              placeholder="2026-11-17, NEFT CR-BUYER NAME-INV-2026-1001, UTR1234567890, 250000"
               className="w-full rounded-xl border border-slate-200 p-3 font-mono text-xs"
             />
 
-            <div className="flex items-center justify-between gap-2">
-              <button
-                type="button"
-                onClick={() => setBankCsvText(SAMPLE_BANK_CSV)}
-                className="text-xs font-semibold text-brand-blue hover:underline"
-              >
-                Reset Sample HDFC/ICICI Credits
-              </button>
+            <div className="flex items-center justify-end gap-2">
               <button
                 type="button"
                 disabled={busy}

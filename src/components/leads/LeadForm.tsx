@@ -85,7 +85,7 @@ export default function LeadForm({
         >
           <div>
             <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-brand-sky mb-0.5">
-              <Sparkles className="w-3.5 h-3.5" /> Gemini AI Auto-Scoring Enabled
+              <Sparkles className="w-3.5 h-3.5" /> SetuAI Auto-Scoring Enabled
             </div>
             <h3 className="text-lg font-extrabold">
               {initialData ? 'Edit Lead Details' : 'Capture New Lead'}
@@ -264,7 +264,7 @@ export default function LeadForm({
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-              Buyer Requirement &amp; Notes (Used by Gemini AI Scorer)
+              Buyer Requirement &amp; Notes (Used by SetuAI Scorer)
             </label>
             <textarea
               rows={3}

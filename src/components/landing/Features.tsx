@@ -87,15 +87,15 @@ const orbitNodes: OrbitNode[] = [
   },
   {
     id: 'agents',
-    labelLine1: 'Gemini',
-    labelLine2: 'AI Agents',
+    labelLine1: 'SetuAI',
+    labelLine2: 'Agents',
     x: 80,
     y: 44,
     svgX: 770,
     svgY: 205,
     badge: 'Autonomous Copilot',
     summary:
-      'Gemini 2.5 AI scores every inquiry 1–100 in Hinglish/English and drafts context-aware WhatsApp quotes in < 15 sec.',
+      'SetuAI scores every inquiry 1–100 in Hinglish/English and drafts context-aware WhatsApp quotes in < 15 sec.',
     metric: '94% Scoring Accuracy',
   },
   {
@@ -121,7 +121,7 @@ const orbitNodes: OrbitNode[] = [
     svgY: 392,
     badge: 'CEO Revenue Cockpit',
     summary:
-      'Live MongoDB attribution across IndiaMART, Meta Ads & WhatsApp, plus AR Udhaar aging and rep target attainment.',
+      'Live Cloud attribution across IndiaMART, Meta Ads & WhatsApp, plus AR Udhaar aging and rep target attainment.',
     metric: '8 Collections Synced',
   },
   {
@@ -253,13 +253,13 @@ const departmentWorkspaces: DepartmentWorkspace[] = [
     ],
     featuresList: [
       'Visual 5-Stage Kanban Board',
-      'Gemini AI Buyer Intent Score (1–100)',
+      'SetuAI Buyer Intent Score (1–100)',
       '1-Click Deal to GST Proforma Quote',
       'Weighted INR Territory Forecast',
     ],
     sidebarModules: [
       'Kanban Deal Pipeline',
-      'Gemini AI Lead Queue',
+      'SetuAI Lead Queue',
       'Proforma Quotes (CPQ)',
       'Monthly Target Tracker',
     ],
@@ -862,13 +862,13 @@ const departmentWorkspaces: DepartmentWorkspace[] = [
     avatarBg: '#4F46E5',
     avatarInitials: 'DV',
     moduleTitle: 'API & Webhooks',
-    scopeLabel: 'REST v1 + MongoDB',
+    scopeLabel: 'REST v1 + Cloud',
     primaryCta: 'Test Webhook',
     views: [
       'IndiaMART Webhook',
       'Meta Cloud API',
       'Razorpay Events',
-      'Gemini 2.5 Keys',
+      'SetuAI Keys',
     ],
     featuresList: [
       'Real-Time IndiaMART & Justdial Ingestion',
@@ -928,13 +928,13 @@ const departmentWorkspaces: DepartmentWorkspace[] = [
 const interactiveTabs = [
   {
     id: 'ai-scoring',
-    label: 'Gemini AI Scoring',
+    label: 'SetuAI Scoring',
     badge: '94/100 Accuracy',
     icon: Bot,
     color: '#3978EA',
     headline: 'Rank every IndiaMART, Meta & WhatsApp inquiry 1–100 in 2 seconds',
     summary:
-      'Gemini AI reads Hinglish and English messages, extracts buyer budget, quantity, and city, and tells your sales rep the exact next action to close the deal.',
+      'SetuAI reads Hinglish and English messages, extracts buyer budget, quantity, and city, and tells your sales rep the exact next action to close the deal.',
     bullets: [
       'Automatic Hot / Warm / Cold tagging on arrival',
       'Extracts INR budget, GST requirement & city hub',
@@ -964,7 +964,7 @@ const interactiveTabs = [
     color: '#059669',
     headline: 'Blast green-tick Hinglish catalogues & offers with zero ban risk',
     summary:
-      'Segment your MongoDB database by AI Score (Hot 75+), City (Noida / Delhi-NCR), or IndiaMART source and dispatch approved WhatsApp Cloud templates.',
+      'Segment your workspace database by AI Score (Hot 75+), City (Noida / Delhi-NCR), or IndiaMART source and dispatch approved WhatsApp Cloud templates.',
     bullets: [
       'Live buyer smartphone preview with {{name}} & {{company}}',
       'Real-time Sent, Delivered, Blue-Tick Read & Reply funnel',
@@ -1004,7 +1004,7 @@ const interactiveTabs = [
   {
     id: 'kanban-analytics',
     label: 'Kanban & Analytics',
-    badge: 'Live MongoDB',
+    badge: 'Live Sync',
     icon: BarChart3,
     color: '#EC4899',
     headline: 'Visual INR Deal Pipeline + Cross-Collection Executive Analytics',
@@ -1021,7 +1021,7 @@ const interactiveTabs = [
 const features = [
   {
     icon: Bot,
-    badge: 'Gemini AI Powered',
+    badge: 'SetuAI Powered',
     metric: '94% Scoring Accuracy',
     title: 'AI Lead Scoring & Intent Detection',
     description:
@@ -1056,7 +1056,7 @@ const features = [
       'Blast green-tick price lists, festival offers, and AMC reminders to segmented Noida & Delhi-NCR buyers with live handset preview.',
     accent: '#059669',
     highlights: [
-      'Dynamic MongoDB audience segments',
+      'Dynamic CRM audience segments',
       'Blue-tick read & reply tracking',
       'Attributed INR revenue per blast',
     ],
@@ -1109,7 +1109,7 @@ const features = [
     metric: '< 15 Sec First Reply',
     title: 'Unified WhatsApp & IndiaMART Inbox',
     description:
-      'Consolidate WhatsApp Cloud, IndiaMART, and Email buyer threads into a single team inbox with Gemini AI smart reply drafting.',
+      'Consolidate WhatsApp Cloud, IndiaMART, and Email buyer threads into a single team inbox with SetuAI smart reply drafting.',
     accent: '#EC4899',
     highlights: [
       '1-click Hinglish AI smart replies',
@@ -1137,7 +1137,7 @@ const features = [
     metric: '8-Collection Sync',
     title: 'Real-Time Attribution Analytics',
     description:
-      'Live MongoDB aggregation across Leads, Deals, Invoices, Campaigns, and Workflows with NCR regional hub breakdowns.',
+      'Live workspace aggregation across Leads, Deals, Invoices, Campaigns, and Workflows with NCR regional hub breakdowns.',
     accent: '#06B6D4',
     highlights: [
       'WhatsApp vs IndiaMART vs Meta ROI',
@@ -1155,7 +1155,7 @@ const integrations = [
   { name: 'Google Ads', category: 'Search & Display', dot: 'bg-amber-500' },
   { name: 'Razorpay Links', category: 'Instant UPI & NEFT', dot: 'bg-indigo-500' },
   { name: 'Rule-46 GST & Tally', category: 'HSN & CGST/IGST', dot: 'bg-teal-500' },
-  { name: 'Google Gemini AI', category: 'Hinglish NLP Engine', dot: 'bg-violet-500' },
+  { name: 'SetuAI Neural Core', category: 'Hinglish NLP Engine', dot: 'bg-violet-500' },
 ];
 
 // ─── SECTION A COMPONENT: CONTINUOUS 360° AUTO-ROTATING LIGHT FOCUS ORBIT ────
@@ -2092,7 +2092,7 @@ export default function Features() {
                       </div>
                       <span className="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        MongoDB Atlas Live
+                        Leadsetu Cloud Live
                       </span>
                     </div>
 
@@ -2114,7 +2114,7 @@ export default function Features() {
                               </p>
                             </div>
                             <div className="px-3.5 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 font-extrabold text-xs">
-                              Gemini AI: 94/100 · HOT
+                              SetuAI: 94/100 · HOT
                             </div>
                           </div>
 
@@ -2220,7 +2220,7 @@ export default function Features() {
                           </div>
                           <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
                             <span className="font-bold text-brand-sky">
-                              IF: Gemini AI Score &gt;= 80 AND City IN [Noida, Delhi-NCR]
+                              IF: SetuAI Score &gt;= 80 AND City IN [Noida, Delhi-NCR]
                             </span>
                             <span className="text-[10px] font-bold text-emerald-400">Matched ✓</span>
                           </div>

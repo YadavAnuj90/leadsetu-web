@@ -109,18 +109,6 @@ export function useDeals(initialSearch = '') {
     [fetchDeals]
   );
 
-  const seedDeals = useCallback(async () => {
-    setIsMutating(true);
-    try {
-      await apiClient.post('/deals/seed');
-      await fetchDeals();
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setIsMutating(false);
-    }
-  }, [fetchDeals]);
-
   return {
     deals,
     stats,
@@ -134,6 +122,5 @@ export function useDeals(initialSearch = '') {
     updateDeal,
     moveStage,
     deleteDeal,
-    seedDeals,
   };
 }

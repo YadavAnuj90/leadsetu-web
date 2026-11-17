@@ -482,11 +482,8 @@ export default function Header() {
                     ? 'Sales User'
                     : user?.role === 'owner'
                       ? 'Company Owner'
-                      : 'Company Admin'}{' '}
-                ·{' '}
-                {tenant?.name === 'Leadsetu Platform HQ'
-                  ? 'CRM Workspace'
-                  : tenant?.name}
+                      : 'Company Admin'}
+                {tenant?.companyName?.trim() ? ` · ${tenant.companyName.trim()}` : ''}
                 {(user?.role === 'manager' || user?.role === 'agent') && user?.userCode
                   ? ` · UID #${user.userCode}`
                   : ''}

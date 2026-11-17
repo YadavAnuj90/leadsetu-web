@@ -22,7 +22,6 @@ import {
   CheckCircle2,
   ArrowUpRight,
   Plus,
-  Database,
   Receipt,
   MessageSquare,
   Workflow,
@@ -42,7 +41,7 @@ export default function DashboardPage() {
   const campaignsEnabled = isFeatureEnabled(tenant, 'whatsappBroadcasts', user);
   const workflowsEnabled = isFeatureEnabled(tenant, 'aiWorkflows', user);
 
-  const { leads, stats, isLoading, seedSamples, isMutating } = useLeads();
+  const { leads, stats, isLoading } = useLeads();
   const [overview, setOverview] = useState<AnalyticsOverviewResponse | null>(
     null,
   );
@@ -184,8 +183,11 @@ export default function DashboardPage() {
             Namaste, {user?.name || 'Team Member'}!
           </h1>
           <p className="text-slate-200 text-sm mt-1">
-            Workspace: <span className="font-bold text-white">{tenant?.name}</span> (
-            {tenant?.city || 'Noida / Delhi-NCR'})
+            Workspace:{' '}
+            <span className="font-bold text-white">
+              {tenant?.companyName?.trim() || 'Leadsetu CRM'}
+            </span>{' '}
+            ({tenant?.city || 'Noida / Delhi-NCR'})
             {isAdmin && (
               <>
                 {' '}
@@ -207,17 +209,6 @@ export default function DashboardPage() {
               <UserCircle2 className="w-4 h-4" />
               <span>My Profile &amp; Security</span>
             </Link>
-          )}
-          {isAdmin && stats.total === 0 && (
-            <button
-              type="button"
-              onClick={seedSamples}
-              disabled={isMutating}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-xs font-bold text-white transition-colors"
-            >
-              <Database className="w-4 h-4" />
-              <span>Seed 5 Sample Leads</span>
-            </button>
           )}
           {leadsEnabled && (
             <Link
@@ -410,7 +401,7 @@ export default function DashboardPage() {
               </h2>
               <p className="text-xs text-slate-400">
                 {aiScoringEnabled
-                  ? 'Ranked automatically by Gemini AI Lead Scoring'
+                  ? 'Ranked automatically by SetuAI Lead Scoring'
                   : 'Latest active buyer inquiries in your workspace'}
               </p>
             </div>
@@ -425,7 +416,7 @@ export default function DashboardPage() {
 
           {isLoading ? (
             <div className="p-10 text-center text-xs text-slate-400">
-              Loading live leads from MongoDB Atlas...
+              Loading live leads from Leadsetu Cloud...
             </div>
           ) : leads.length === 0 ? (
             <div className="p-10 text-center space-y-3">
@@ -433,21 +424,11 @@ export default function DashboardPage() {
                 Your workspace has 0 leads right now.
               </p>
               <div className="flex items-center justify-center gap-3">
-                {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={seedSamples}
-                    disabled={isMutating}
-                    className="btn-primary-brand px-5 py-2.5 rounded-xl text-xs font-semibold text-white inline-flex items-center gap-2"
-                  >
-                    <Database className="w-4 h-4" /> Load 5 Sample Delhi-NCR Leads
-                  </button>
-                )}
                 <Link
                   href="/leads"
-                  className="px-4 py-2.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-brand-navy hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                  className="btn-primary-brand px-5 py-2.5 rounded-xl text-xs font-semibold text-white inline-flex items-center gap-2"
                 >
-                  Go to Leads Page
+                  <Plus className="w-4 h-4" /> Add or Import Leads
                 </Link>
               </div>
             </div>

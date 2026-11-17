@@ -75,7 +75,7 @@ export default function DashboardLayout({
                 {tenant.quotas.aiExceeded || tenant.quotas.waExceeded
                   ? 'Monthly Quota Limit Reached (100%):'
                   : 'High Quota Usage Alert (80%+):'}{' '}
-                Gemini AI {tenant.quotas.aiCallsUsed}/{tenant.quotas.maxMonthlyAiCalls} ({tenant.quotas.aiPct}%) · WhatsApp {tenant.quotas.whatsappUsed}/{tenant.quotas.maxMonthlyWhatsapp} ({tenant.quotas.waPct}%)
+                SetuAI {tenant.quotas.aiCallsUsed}/{tenant.quotas.maxMonthlyAiCalls} ({tenant.quotas.aiPct}%) · WhatsApp {tenant.quotas.whatsappUsed}/{tenant.quotas.maxMonthlyWhatsapp} ({tenant.quotas.waPct}%)
               </span>
             </div>
             {isAdmin && (

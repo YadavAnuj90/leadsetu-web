@@ -34,13 +34,13 @@ const suiteModules = [
   { label: '18% GST Billing', href: '/#orbit-360' },
   { label: 'CPQ Quotes', href: '/#orbit-360' },
   { label: 'SLA Desk', href: '/#team-views' },
-  { label: 'Gemini AI Agents', href: '/#features' },
+  { label: 'SetuAI Agents', href: '/#features' },
 ];
 
 const productHighlights = [
   {
     icon: Bot,
-    title: 'Gemini AI Lead Scoring (1–100)',
+    title: 'SetuAI Lead Scoring (1–100)',
     desc: 'Auto-qualify & rank every IndiaMART, Meta & WhatsApp buyer in real time',
     badge: 'Popular',
     href: '/#features',
@@ -112,7 +112,7 @@ const aiQuickPrompts = [
   {
     prompt: 'Score an IndiaMART 150 KVA Stabilizer inquiry',
     answer:
-      'Gemini AI Score: 94/100 (HOT BUYER). Detected: High-ticket B2B machinery request (Est. ₹4,50,000, Delhi-NCR). Recommended Next Action: Auto-send Hinglish GST brochure on WhatsApp & assign to Senior Closer with a 15-min call task.',
+      'SetuAI Score: 94/100 (HOT BUYER). Detected: High-ticket B2B machinery request (Est. ₹4,50,000, Delhi-NCR). Recommended Next Action: Auto-send Hinglish GST brochure on WhatsApp & assign to Senior Closer with a 15-min call task.',
   },
   {
     prompt: 'Calculate 18% GST split for Noida vs Delhi buyer',
@@ -149,7 +149,7 @@ export default function Navbar() {
 
   const activeAiResponse =
     customQuery.trim().length > 3
-      ? `Setu AI Analysis for "${customQuery.trim()}": Leadsetu routes this across WhatsApp Cloud API, qualifies buyer intent via Gemini 2.5, generates a 18% GST Proforma Quote, and logs complete activity in your Audit Shield.`
+      ? `SetuAI Analysis for "${customQuery.trim()}": Leadsetu routes this across WhatsApp Cloud API, qualifies buyer intent via SetuAI Neural Core, generates a 18% GST Proforma Quote, and logs complete activity in your Audit Shield.`
       : aiQuickPrompts[selectedPromptIdx].answer;
 
   return (
@@ -693,7 +693,7 @@ export default function Navbar() {
 
               <div className="rounded-2xl p-4 bg-slate-950 text-slate-100 border border-slate-800 space-y-2">
                 <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Gemini AI Response (Instant Preview)
+                  <CheckCircle2 className="w-3.5 h-3.5" /> SetuAI Response (Instant Preview)
                 </div>
                 <p className="text-xs sm:text-sm leading-relaxed text-slate-200">
                   {activeAiResponse}

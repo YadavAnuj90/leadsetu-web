@@ -14,6 +14,8 @@ import {
   ShieldCheck,
   Lock,
   Unlock,
+  Edit3,
+  X,
   KeyRound,
   Save,
   Sun,
@@ -137,6 +139,7 @@ export default function ProfilePage() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [territory, setTerritory] = useState('');
+  const [profileLocked, setProfileLocked] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileNotice, setProfileNotice] = useState<{
     type: 'success' | 'error';
@@ -146,6 +149,7 @@ export default function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordLocked, setPasswordLocked] = useState(true);
   const [savingPassword, setSavingPassword] = useState(false);
   const [passwordNotice, setPasswordNotice] = useState<{
     type: 'success' | 'error';
@@ -273,7 +277,11 @@ export default function ProfilePage() {
     }));
   }, [tenant, user]);
 
-  const enabledFeatureCount = featureSummary.filter((f) => f.enabled).length;
+  const assignedFeatures = useMemo(
+    () => featureSummary.filter((f) => f.enabled),
+    [featureSummary],
+  );
+  const enabledFeatureCount = assignedFeatures.length;
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -296,8 +304,9 @@ export default function ProfilePage() {
       await refreshProfile();
       setProfileNotice({
         type: 'success',
-        text: 'Profile details updated successfully.',
+        text: 'Profile details updated and locked.',
       });
+      setProfileLocked(true);
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : 'Unable to update profile details.';
@@ -335,8 +344,9 @@ export default function ProfilePage() {
       setConfirmPassword('');
       setPasswordNotice({
         type: 'success',
-        text: 'Password updated! Use your new password on next sign-in.',
+        text: 'Password updated and security locked! Use your new password on next sign-in.',
       });
+      setPasswordLocked(true);
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : 'Unable to change password.';
@@ -423,7 +433,9 @@ export default function ProfilePage() {
                   >
                     <Building2 className="w-3.5 h-3.5 text-brand-blue" />
                     <span>
-                      {tenant.name} · #{tenant.accountId}
+                      {tenant.companyName?.trim()
+                        ? `${tenant.companyName.trim()} · #${tenant.accountId}`
+                        : `Workspace #${tenant.accountId}`}
                     </span>
                     {copiedKey === 'acct' ? (
                       <Check className="w-3.5 h-3.5 text-emerald-500" />
@@ -435,7 +447,8 @@ export default function ProfilePage() {
 
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/60 text-xs font-bold text-emerald-700 dark:text-emerald-300">
                   <Sparkles className="w-3.5 h-3.5" />
-                  {enabledFeatureCount}/{featureSummary.length} Modules Enabled
+                  {enabledFeatureCount} Assigned{' '}
+                  {enabledFeatureCount === 1 ? 'Module' : 'Modules'}
                 </span>
               </div>
             </div>
@@ -713,16 +726,51 @@ export default function ProfilePage() {
         <div className="xl:col-span-5 space-y-6">
           {/* Edit Personal Details */}
           <form onSubmit={handleSaveProfile} className="card-surface p-6 space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-base font-extrabold text-brand-navy flex items-center gap-2">
                   <User className="w-4 h-4 text-brand-blue" />
                   Personal Profile Details
+                  {profileLocked && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                      <Lock className="w-2.5 h-2.5" /> Locked
+                    </span>
+                  )}
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Update your display name, mobile number, and beat territory.
+                  {profileLocked
+                    ? 'Details are locked. Click Edit to modify your name, phone, or territory.'
+                    : 'Update your display name, mobile number, and beat territory.'}
                 </p>
               </div>
+              {profileLocked ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProfileNotice(null);
+                    setProfileLocked(false);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-brand-blue/30 bg-brand-light text-brand-blue hover:bg-brand-blue hover:text-white text-xs font-bold transition-all shrink-0"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Edit</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setName(user?.name || '');
+                    setPhone(user?.phone || '');
+                    setTerritory(user?.territory || '');
+                    setProfileNotice(null);
+                    setProfileLocked(true);
+                  }}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>Cancel</span>
+                </button>
+              )}
             </div>
 
             {profileNotice && (
@@ -753,8 +801,9 @@ export default function ProfilePage() {
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    disabled={profileLocked}
                     required
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue"
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue disabled:bg-slate-100 dark:disabled:bg-slate-900/80 disabled:opacity-75 disabled:cursor-not-allowed"
                     placeholder="Your full name"
                   />
                 </div>
@@ -770,7 +819,8 @@ export default function ProfilePage() {
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue"
+                    disabled={profileLocked}
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue disabled:bg-slate-100 dark:disabled:bg-slate-900/80 disabled:opacity-75 disabled:cursor-not-allowed"
                     placeholder="+91 98765 43210"
                   />
                 </div>
@@ -786,7 +836,8 @@ export default function ProfilePage() {
                     type="text"
                     value={territory}
                     onChange={(e) => setTerritory(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue"
+                    disabled={profileLocked}
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue disabled:bg-slate-100 dark:disabled:bg-slate-900/80 disabled:opacity-75 disabled:cursor-not-allowed"
                     placeholder="e.g., Delhi-NCR, West UP"
                   />
                 </div>
@@ -798,18 +849,20 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={savingProfile}
-              className="btn-primary-brand w-full py-2.5 rounded-xl text-xs font-bold text-white inline-flex items-center justify-center gap-2 disabled:opacity-60"
-            >
-              {savingProfile ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              Save Profile Changes
-            </button>
+            {!profileLocked && (
+              <button
+                type="submit"
+                disabled={savingProfile}
+                className="btn-primary-brand w-full py-2.5 rounded-xl text-xs font-bold text-white inline-flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {savingProfile ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                Save Profile Changes
+              </button>
+            )}
           </form>
 
           {/* Change Password */}
@@ -817,14 +870,51 @@ export default function ProfilePage() {
             onSubmit={handleChangePassword}
             className="card-surface p-6 space-y-4"
           >
-            <div>
-              <h2 className="text-base font-extrabold text-brand-navy flex items-center gap-2">
-                <KeyRound className="w-4 h-4 text-amber-500" />
-                Account Password & Security
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Update your email & password sign-in credentials.
-              </p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-base font-extrabold text-brand-navy flex items-center gap-2">
+                  <KeyRound className="w-4 h-4 text-amber-500" />
+                  Account Password & Security
+                  {passwordLocked && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                      <Lock className="w-2.5 h-2.5" /> Locked
+                    </span>
+                  )}
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {passwordLocked
+                    ? 'Security credentials are locked. Click Edit to change your password.'
+                    : 'Update your email & password sign-in credentials.'}
+                </p>
+              </div>
+              {passwordLocked ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPasswordNotice(null);
+                    setPasswordLocked(false);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-brand-blue/30 bg-brand-light text-brand-blue hover:bg-brand-blue hover:text-white text-xs font-bold transition-all shrink-0"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Edit</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentPassword('');
+                    setNewPassword('');
+                    setConfirmPassword('');
+                    setPasswordNotice(null);
+                    setPasswordLocked(true);
+                  }}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>Cancel</span>
+                </button>
+              )}
             </div>
 
             {passwordNotice && (
@@ -853,9 +943,10 @@ export default function ProfilePage() {
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
+                  disabled={passwordLocked}
                   required
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue"
-                  placeholder="Enter current password"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue disabled:bg-slate-100 dark:disabled:bg-slate-900/80 disabled:opacity-75 disabled:cursor-not-allowed"
+                  placeholder={passwordLocked ? '••••••••' : 'Enter current password'}
                 />
               </div>
 
@@ -867,10 +958,11 @@ export default function ProfilePage() {
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
+                  disabled={passwordLocked}
                   required
                   minLength={8}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue"
-                  placeholder="Create a strong password"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue disabled:bg-slate-100 dark:disabled:bg-slate-900/80 disabled:opacity-75 disabled:cursor-not-allowed"
+                  placeholder={passwordLocked ? '••••••••' : 'Create a strong password'}
                 />
               </div>
 
@@ -882,26 +974,29 @@ export default function ProfilePage() {
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={passwordLocked}
                   required
                   minLength={8}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue"
-                  placeholder="Repeat new password"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue disabled:bg-slate-100 dark:disabled:bg-slate-900/80 disabled:opacity-75 disabled:cursor-not-allowed"
+                  placeholder={passwordLocked ? '••••••••' : 'Repeat new password'}
                 />
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={savingPassword}
-              className="w-full py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-900 dark:bg-brand-blue text-xs font-bold text-white hover:opacity-95 transition-opacity inline-flex items-center justify-center gap-2 disabled:opacity-60"
-            >
-              {savingPassword ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <ShieldCheck className="w-4 h-4" />
-              )}
-              Update Password
-            </button>
+            {!passwordLocked && (
+              <button
+                type="submit"
+                disabled={savingPassword}
+                className="w-full py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-900 dark:bg-brand-blue text-xs font-bold text-white hover:opacity-95 transition-opacity inline-flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {savingPassword ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ShieldCheck className="w-4 h-4" />
+                )}
+                Update Password
+              </button>
+            )}
           </form>
         </div>
 
@@ -931,9 +1026,18 @@ export default function ProfilePage() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {featureSummary.map((feat) =>
-                feat.enabled ? (
+            {assignedFeatures.length === 0 ? (
+              <div className="p-6 rounded-xl border border-dashed border-slate-200 dark:border-slate-700/60 bg-slate-50/70 dark:bg-slate-900/40 text-center space-y-1.5">
+                <p className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                  No CRM modules assigned yet
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Contact your Workspace Admin to assign modules to your account.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {assignedFeatures.map((feat) => (
                   <Link
                     key={feat.key}
                     href={feat.href}
@@ -952,29 +1056,9 @@ export default function ProfilePage() {
                     </div>
                     <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-brand-blue shrink-0 mt-0.5" />
                   </Link>
-                ) : (
-                  <div
-                    key={feat.key}
-                    className="p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-700/60 bg-slate-50/70 dark:bg-slate-900/40 opacity-75 flex items-start justify-between gap-3"
-                  >
-                    <div className="space-y-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300 truncate">
-                          {feat.label}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">
-                        {feat.description}
-                      </p>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0">
-                      Off
-                    </span>
-                  </div>
-                ),
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Display & Theme Preferences */}

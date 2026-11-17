@@ -16,21 +16,37 @@ import {
   AlertCircle,
   Loader2,
   ShieldCheck,
+  ImagePlus,
+  Trash2,
 } from 'lucide-react';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
 import { useAuth } from '@/hooks/useAuth';
+import { prepareOrganizationLogoDataUrl } from '@/lib/logo-upload';
 
 export default function RegisterPage() {
   const { register, isLoading, error, clearError } = useAuth();
 
   const [name, setName] = useState('');
   const [companyName, setCompanyName] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [logoError, setLogoError] = useState<string | null>(null);
   const [city, setCity] = useState('New Delhi');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  const handleLogoPick = async (file?: File | null) => {
+    if (!file) return;
+    setLogoError(null);
+    try {
+      const prepared = await prepareOrganizationLogoDataUrl(file);
+      setLogoUrl(prepared);
+    } catch (err) {
+      setLogoError(err instanceof Error ? err.message : 'Unable to load logo.');
+    }
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -44,7 +60,8 @@ export default function RegisterPage() {
     try {
       await register({
         name: name.trim(),
-        companyName: companyName.trim(),
+        companyName: companyName.trim() || undefined,
+        logoUrl: logoUrl || undefined,
         city,
         email: email.trim(),
         phone: formattedPhone,
@@ -109,7 +126,7 @@ export default function RegisterPage() {
                 {[
                   {
                     title: 'All 14 Growth Modules Unlocked for 14 Days',
-                    desc: 'Includes Gemini AI lead scoring, CPQ quotes, SLA desk & Subscription GST PDF.',
+                    desc: 'Includes SetuAI lead scoring, CPQ quotes, SLA desk & Subscription GST PDF.',
                   },
                   {
                     title: '5-Digit Account ID & Role Permissions',
@@ -184,19 +201,74 @@ export default function RegisterPage() {
 
                     <div>
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5 pl-2">
-                        Company / Workspace *
+                        Company / Organization Name <span className="font-normal normal-case text-slate-400">(Optional)</span>
                       </label>
                       <div className="relative">
                         <Building2 className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
                         <input
                           type="text"
-                          required
                           value={companyName}
                           onChange={(e) => setCompanyName(e.target.value)}
-                          placeholder="RS Electricals Pvt. Ltd."
+                          placeholder="e.g. RS Electricals Pvt. Ltd."
                           className="w-full pl-11 pr-4 py-2.5 rounded-full border border-slate-300/80 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#0057FF] focus:ring-2 focus:ring-[#0057FF]/15"
                         />
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Optional Organization Logo Upload */}
+                  <div className="rounded-2xl border border-slate-200/90 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-900/50 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-11 h-11 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+                        {logoUrl ? (
+                          <img
+                            src={logoUrl}
+                            alt="Organization Logo Preview"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <ImagePlus className="w-5 h-5 text-slate-400" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          Organization Logo <span className="font-normal text-slate-400">(Optional)</span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          PNG, JPG, WEBP or SVG · You can also set or update this later in Settings
+                        </div>
+                        {logoError && (
+                          <div className="text-[11px] font-semibold text-rose-600 mt-0.5">
+                            {logoError}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <label className="cursor-pointer px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-[#0057FF] text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors inline-flex items-center gap-1.5">
+                        <ImagePlus className="w-3.5 h-3.5 text-[#0057FF]" />
+                        <span>{logoUrl ? 'Change' : 'Upload Logo'}</span>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                          className="hidden"
+                          onChange={(e) => void handleLogoPick(e.target.files?.[0])}
+                        />
+                      </label>
+                      {logoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLogoUrl('');
+                            setLogoError(null);
+                          }}
+                          className="p-1.5 rounded-xl border border-rose-200 dark:border-rose-800/60 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                          title="Remove logo"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
 

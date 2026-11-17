@@ -250,7 +250,7 @@ export default function BillingSettingsPage() {
               Billed To Profile &amp; Seat Utilization
             </div>
             <div className="font-extrabold text-white">
-              {tenant?.name || 'Leadsetu Workspace'} ·{' '}
+              {tenant?.companyName?.trim() || 'Leadsetu Workspace'} ·{' '}
               <span className="font-mono text-sky-200">
                 {tenant?.gstin || 'Update GSTIN in Settings'}
               </span>

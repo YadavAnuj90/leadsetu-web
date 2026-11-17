@@ -217,7 +217,7 @@ export default function SuperAdminLoginPage() {
                   {
                     icon: Shield,
                     title: 'Live Database Authority Check',
-                    desc: 'Every HQ API call verifies live super_admin status directly against MongoDB.',
+                    desc: 'Every HQ API call verifies live super_admin status directly against Leadsetu Authority Store.',
                   },
                   {
                     icon: KeyRound,

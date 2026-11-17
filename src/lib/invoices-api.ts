@@ -87,16 +87,6 @@ export async function deleteInvoice(id: string): Promise<{ success: boolean }> {
   return data;
 }
 
-export async function seedInvoices(): Promise<{
-  count: number;
-  data: Invoice[];
-}> {
-  const { data } = await apiClient.post<{ count: number; data: Invoice[] }>(
-    '/invoices/seed',
-  );
-  return data;
-}
-
 export async function exportGstr1CsvApi(): Promise<{
   filename: string;
   rowCount: number;

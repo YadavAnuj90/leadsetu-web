@@ -17,7 +17,6 @@ import {
   ArrowRightLeft,
   ShieldCheck,
   Search,
-  Database,
   Trash2,
   Eye,
   MessageSquare,
@@ -42,7 +41,6 @@ import {
   recordInvoicePaymentApi,
   deleteInvoicePaymentApi,
   deleteInvoice,
-  seedInvoices,
   exportGstr1CsvApi,
   convertQuoteToInvoiceApi,
 } from '@/lib/invoices-api';
@@ -392,18 +390,6 @@ export default function InvoicesPage() {
     }
   };
 
-  const handleSeed = async () => {
-    setIsMutating(true);
-    try {
-      await seedInvoices();
-      await loadInvoices();
-    } catch (err) {
-      setErrorMsg(getErrorMessage(err));
-    } finally {
-      setIsMutating(false);
-    }
-  };
-
   const openPaymentModal = (inv: Invoice) => {
     const settlement = getInvoiceSettlement(inv);
     setPaymentModalInv(inv);
@@ -565,7 +551,7 @@ export default function InvoicesPage() {
       ? `\n\nView & Approve Online:\n${publicUrl}`
       : '';
     const text = encodeURIComponent(
-      `Namaste ${inv.contactPerson || inv.clientName},\n\nHere is your ${docLabel} *${inv.invoiceNumber}* from *${tenant?.name || 'Leadsetu Technologies'}* (Noida Electronic City).\n\n• Taxable Amount: ₹${inv.taxableAmount.toLocaleString('en-IN')}\n• GST (${inv.gstRate}%): ₹${inv.gstAmount.toLocaleString('en-IN')}\n• *Grand Total: ₹${inv.grandTotal.toLocaleString('en-IN')}*\n• Due Date: ${inv.dueDate || 'Immediate'}${portalSection}\n\nPay securely via Razorpay / UPI:\n${inv.paymentLink || 'https://rzp.io/i/leadsetu'}`,
+      `Namaste ${inv.contactPerson || inv.clientName},\n\nHere is your ${docLabel} *${inv.invoiceNumber}* from *${tenant?.companyName?.trim() || 'Leadsetu Technologies'}* (Noida Electronic City).\n\n• Taxable Amount: ₹${inv.taxableAmount.toLocaleString('en-IN')}\n• GST (${inv.gstRate}%): ₹${inv.gstAmount.toLocaleString('en-IN')}\n• *Grand Total: ₹${inv.grandTotal.toLocaleString('en-IN')}*\n• Due Date: ${inv.dueDate || 'Immediate'}${portalSection}\n\nPay securely via Razorpay / UPI:\n${inv.paymentLink || 'https://rzp.io/i/leadsetu'}`,
     );
     const base = waPhone ? `https://wa.me/${waPhone}` : 'https://wa.me/';
     window.open(`${base}?text=${text}`, '_blank');
@@ -615,7 +601,7 @@ export default function InvoicesPage() {
 
   const buildOverdueReminderText = (inv: Invoice): string => {
     const recipient = inv.contactPerson || inv.clientName;
-    const sender = tenant?.name || 'Leadsetu Technologies';
+    const sender = tenant?.companyName?.trim() || 'Leadsetu Technologies';
     const docLabel =
       inv.docType === 'proforma_quote' ? 'Proforma Quote' : 'GST Tax Invoice';
     const overdueDays = inv.daysOverdue ?? 0;
@@ -774,20 +760,6 @@ export default function InvoicesPage() {
 
           <button
             type="button"
-            onClick={handleSeed}
-            disabled={isMutating}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 transition-all"
-          >
-            {isMutating ? (
-              <Loader2 className="w-4 h-4 animate-spin text-brand-blue" />
-            ) : (
-              <Database className="w-4 h-4 text-brand-blue" />
-            )}
-            Seed Sample Invoices
-          </button>
-
-          <button
-            type="button"
             onClick={() => setCreateOpen(true)}
             className="btn-primary-brand inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white shadow-sm"
           >
@@ -865,7 +837,7 @@ export default function InvoicesPage() {
         />
       ) : (
         <>
-      {/* Live MongoDB KPI Strip */}
+      {/* Live Workspace KPI Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
           <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
@@ -1048,7 +1020,7 @@ export default function InvoicesPage() {
           <div className="py-16 flex flex-col items-center justify-center gap-3 text-slate-400">
             <Loader2 className="w-7 h-7 animate-spin text-brand-blue" />
             <p className="text-xs font-semibold">
-              Loading GST Invoices &amp; Proforma Quotations from MongoDB...
+              Loading GST Invoices &amp; Proforma Quotations from Leadsetu Cloud...
             </p>
           </div>
         ) : invoices.length === 0 ? (
@@ -1061,17 +1033,10 @@ export default function InvoicesPage() {
                 No GST Invoices or Quotations Found
               </h3>
               <p className="text-xs text-slate-500 mt-1">
-                Create your first 18% GST-compliant invoice or seed 4 realistic Delhi-NCR B2B sample invoices.
+                Create your first 18% GST-compliant invoice or Proforma quote with live HSN/SAC slabs.
               </p>
             </div>
             <div className="flex items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={handleSeed}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50"
-              >
-                Seed 4 Sample GST Invoices
-              </button>
               <button
                 type="button"
                 onClick={() => setCreateOpen(true)}
@@ -1822,7 +1787,7 @@ export default function InvoicesPage() {
                   className="btn-primary-brand inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white"
                 >
                   {isMutating && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Generate &amp; Save to MongoDB
+                  Generate &amp; Save Invoice
                 </button>
               </div>
             </form>

@@ -11,7 +11,6 @@ import {
   MessageSquare,
   Calendar,
   Trash2,
-  Database,
   Loader2,
   X,
   Route,
@@ -102,16 +101,6 @@ export default function TasksPage() {
     }
   };
 
-  const handleSeed = async () => {
-    setIsMutating(true);
-    try {
-      await apiClient.post('/tasks/seed');
-      await fetchTasks();
-    } finally {
-      setIsMutating(false);
-    }
-  };
-
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -128,17 +117,6 @@ export default function TasksPage() {
         </div>
 
         <div className="flex items-center gap-2.5">
-          {stats.total === 0 && (
-            <button
-              type="button"
-              onClick={handleSeed}
-              disabled={isMutating}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border border-brand-blue/30 bg-brand-light text-brand-blue hover:bg-brand-blue hover:text-white transition-all"
-            >
-              <Database className="w-4 h-4" />
-              <span>Load 4 Sample Tasks</span>
-            </button>
-          )}
           {beatPlannerEnabled && (
             <button
               type="button"
@@ -218,10 +196,10 @@ export default function TasksPage() {
           </p>
           <button
             type="button"
-            onClick={handleSeed}
+            onClick={() => setModalOpen(true)}
             className="btn-primary-brand px-5 py-2.5 rounded-xl text-xs font-semibold text-white inline-flex items-center gap-2"
           >
-            <Database className="w-4 h-4" /> Load 4 Sample Follow-up Tasks
+            <Plus className="w-4 h-4" /> Create First Task
           </button>
         </div>
       ) : (

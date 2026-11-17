@@ -28,6 +28,8 @@ export interface BillingSummaryResponse extends TenantWorkspaceResponse {
 
 export interface UpdateTenantProfilePayload {
   name?: string;
+  companyName?: string;
+  logoUrl?: string;
   city?: string;
   gstin?: string;
   state?: string;

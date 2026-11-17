@@ -6,7 +6,6 @@ import {
   Package,
   Plus,
   Search,
-  Database,
   Check,
   Copy,
   Edit3,
@@ -30,7 +29,6 @@ import {
   createProductApi,
   deleteProductApi,
   fetchProductsApi,
-  seedProductsApi,
   updateProductApi,
 } from '@/lib/products-api';
 
@@ -179,19 +177,6 @@ export default function ProductsPage() {
     }
   };
 
-  const handleSeed = async () => {
-    setIsMutating(true);
-    try {
-      const res = await seedProductsApi();
-      showToast(`Loaded ${res.count} B2B HSN/SAC SKUs into your catalog.`);
-      await loadProducts();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to seed catalog.');
-    } finally {
-      setIsMutating(false);
-    }
-  };
-
   const handleCopyPitch = async (item: Product) => {
     const gstPrice = Math.round(item.unitPrice * (1 + item.gstRate / 100));
     const text = `*${item.name}* (SKU: ${item.sku})\nHSN/SAC: ${item.hsnSac} | GST: ${item.gstRate}%\nRate: ${formatInr(item.unitPrice)} / ${item.unit} (+GST = ${formatInr(gstPrice)})\nMOQ: ${item.moq} ${item.unit}\n${item.description || 'Ready for GST billing & dispatch from Delhi-NCR.'}`;
@@ -222,18 +207,6 @@ export default function ProductsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          {stats.totalSkus === 0 && (
-            <button
-              type="button"
-              onClick={handleSeed}
-              disabled={isMutating}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border border-brand-blue/30 bg-brand-light text-brand-blue hover:bg-brand-blue hover:text-white transition-all"
-            >
-              <Database className="w-4 h-4" />
-              <span>Load 5 Sample HSN SKUs</span>
-            </button>
-          )}
-
           <Link
             href="/invoices"
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border border-slate-200 bg-white text-brand-navy hover:bg-slate-50 transition-all"
@@ -371,13 +344,6 @@ export default function ProductsPage() {
               Add your B2B products or SAC services once, and auto-populate HSN codes and GST slabs in every invoice &amp; quote.
             </p>
             <div className="flex justify-center gap-2 pt-2">
-              <button
-                type="button"
-                onClick={handleSeed}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-brand-light text-brand-blue border border-brand-blue/25 hover:bg-brand-blue hover:text-white transition"
-              >
-                Load 5 Sample HSN SKUs
-              </button>
               <button
                 type="button"
                 onClick={handleOpenCreate}

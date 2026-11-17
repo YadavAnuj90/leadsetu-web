@@ -113,7 +113,7 @@ export default function Hero() {
             <p className="max-w-xl text-base sm:text-lg md:text-[19px] text-slate-700 dark:text-slate-300 leading-relaxed font-normal">
               Intelligent automation meets intuitive design. Built with{' '}
               <span className="font-semibold text-slate-950 dark:text-white">
-                Gemini AI &amp; Official WhatsApp Cloud
+                SetuAI &amp; Official WhatsApp Cloud
               </span>{' '}
               at its core, Leadsetu CRM supercharges your Indian B2B sales, 18% GST billing, and
               SLA service teams to get ahead without the overhead.

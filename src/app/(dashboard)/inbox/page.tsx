@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { MessageSquare, Database, Loader2 } from 'lucide-react';
+import { MessageSquare, Loader2 } from 'lucide-react';
 import { useInbox } from '@/hooks/useInbox';
 import { useAuthStore } from '@/store/auth.store';
 import { isFeatureEnabled } from '@/lib/feature-access';
@@ -36,7 +36,6 @@ export default function InboxPage() {
     isSending,
     sendMessage,
     toggleStatus,
-    seedInbox,
   } = useInbox();
 
   if (isLoading) {
@@ -57,18 +56,9 @@ export default function InboxPage() {
           Your Unified WhatsApp &amp; IndiaMART Inbox is Empty
         </h2>
         <p className="text-sm text-slate-500 max-w-md">
-          Load 3 realistic Delhi-NCR buyer conversations (Hinglish + English) with Gemini AI
-          smart reply suggestions to test the inbox immediately.
+          Incoming buyer messages from your connected WhatsApp Business Cloud, IndiaMART, and
+          website webhooks will appear here automatically.
         </p>
-        <button
-          type="button"
-          onClick={seedInbox}
-          disabled={isSending}
-          className="btn-primary-brand px-6 py-3 rounded-xl text-xs sm:text-sm font-semibold text-white inline-flex items-center gap-2"
-        >
-          <Database className="w-4 h-4" />
-          <span>Load 3 Sample WhatsApp Conversations</span>
-        </button>
       </div>
     );
   }

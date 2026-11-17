@@ -172,12 +172,28 @@ function InviteAcceptanceContent() {
                   <span>Workspace Invitation · {roleLabel}</span>
                 </div>
 
-                <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-950 dark:text-white">
-                  Welcome, {inviteInfo.name}!
-                </h1>
+                <div className="flex items-center gap-3.5">
+                  {inviteInfo.logoUrl && (
+                    <div className="w-14 h-14 rounded-2xl overflow-hidden bg-white border border-slate-200 dark:border-slate-700 shadow-sm shrink-0">
+                      <img
+                        src={inviteInfo.logoUrl}
+                        alt={inviteInfo.companyName || 'Organization Logo'}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-950 dark:text-white">
+                    Welcome, {inviteInfo.name}!
+                  </h1>
+                </div>
                 <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed">
-                  You have been invited to join <strong>{inviteInfo.workspaceName}</strong> as a{' '}
-                  <strong>{roleLabel}</strong>. Sign in with your email &amp; password below to open your workspace.
+                  You have been invited by{' '}
+                  <strong>
+                    {inviteInfo.invitedByDisplay ||
+                      inviteInfo.companyName ||
+                      inviteInfo.workspaceName}
+                  </strong>{' '}
+                  to join as a <strong>{roleLabel}</strong>. Sign in with your email &amp; password below to open your workspace.
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

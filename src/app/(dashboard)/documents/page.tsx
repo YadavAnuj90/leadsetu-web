@@ -21,7 +21,6 @@ import {
   FileSignature,
   Users,
   Search,
-  Database,
   Download,
   Eye,
   ExternalLink,
@@ -42,7 +41,6 @@ import {
   createDocumentApi,
   updateDocumentApi,
   deleteDocumentApi,
-  seedDocumentsApi,
 } from '@/lib/documents-api';
 import { apiClient, getErrorMessage } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth.store';
@@ -304,21 +302,6 @@ export default function DocumentCenterPage() {
     }
   };
 
-  const handleSeedSamples = async () => {
-    setIsMutating(true);
-    setErrorMsg(null);
-    try {
-      await seedDocumentsApi();
-      await loadDocuments();
-      setToastMsg('Seeded 5 B2B documents across all 5 Document Center vaults!');
-      setTimeout(() => setToastMsg(null), 3500);
-    } catch (err) {
-      setErrorMsg(getErrorMessage(err));
-    } finally {
-      setIsMutating(false);
-    }
-  };
-
   const handlePreview = async (doc: CrmDocument) => {
     setPreviewDoc(doc);
     if (!doc.fileDataUrl && doc.hasFileData) {
@@ -447,20 +430,6 @@ export default function DocumentCenterPage() {
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             type="button"
-            onClick={handleSeedSamples}
-            disabled={isMutating}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 transition-all"
-          >
-            {isMutating ? (
-              <Loader2 className="w-4 h-4 animate-spin text-brand-blue" />
-            ) : (
-              <Database className="w-4 h-4 text-brand-blue" />
-            )}
-            Seed 5 B2B Docs
-          </button>
-
-          <button
-            type="button"
             onClick={() => {
               resetUploadForm(categoryFilter === 'all' ? 'gst_certificate' : categoryFilter);
               setUploadOpen(true);
@@ -587,17 +556,10 @@ export default function DocumentCenterPage() {
               Your Document Center is Empty
             </h3>
             <p className="text-xs text-slate-500 mt-1">
-              Upload your company GST registration, corporate profile, product brochures, signed contracts, or buyer POs — or seed 5 realistic B2B files.
+              Upload your company GST registration, corporate profile, product brochures, signed contracts, or buyer POs directly into your vault.
             </p>
           </div>
           <div className="flex items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={handleSeedSamples}
-              className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50"
-            >
-              Seed 5 B2B Sample Docs
-            </button>
             <button
               type="button"
               onClick={() => setUploadOpen(true)}

@@ -110,7 +110,7 @@ export default function AiUsageTelemetryCard() {
               Leadsetu AI Gateway &amp; Token Budget Telemetry
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Live connection status, active Gemini providers, and workspace token usage caps.
+              Live connection status, active SetuAI Neural Core, and workspace token usage caps.
             </p>
           </div>
         </div>
@@ -131,7 +131,7 @@ export default function AiUsageTelemetryCard() {
               )}
               {health.connected
                 ? health.details?.liveLlmConfigured
-                  ? `Connected · ${(health.details?.providers || ['gemini']).join(', ').toUpperCase()}`
+                  ? 'Connected · SetuAI Neural Core'
                   : 'Connected · Heuristic Mode'
                 : 'AI Gateway Offline'}
             </span>
@@ -326,7 +326,7 @@ export default function AiUsageTelemetryCard() {
                 onChange={(e) => setReqResource(e.target.value as 'ai' | 'whatsapp')}
                 className="mt-1 w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#111D33] border border-slate-200 dark:border-white/15 text-xs font-bold"
               >
-                <option value="ai">Gemini AI Calls</option>
+                <option value="ai">SetuAI Calls</option>
                 <option value="whatsapp">WhatsApp Messages</option>
               </select>
             </div>

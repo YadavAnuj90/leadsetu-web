@@ -125,19 +125,6 @@ export function useLeads(initialFilters?: LeadsFilter) {
     [fetchLeads]
   );
 
-  const seedSamples = useCallback(async () => {
-    setIsMutating(true);
-    setError(null);
-    try {
-      await apiClient.post('/leads/seed');
-      await fetchLeads();
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setIsMutating(false);
-    }
-  }, [fetchLeads]);
-
   return {
     leads,
     stats,
@@ -150,7 +137,6 @@ export function useLeads(initialFilters?: LeadsFilter) {
     createLead,
     updateLead,
     deleteLead,
-    seedSamples,
   };
 }
 

@@ -22,7 +22,7 @@ const testimonials = [
     avatar: 'PM',
     avatarColor: '#8B5CF6',
     quote:
-      'We used to juggle Excel sheets, Meta Lead Ads, and 8 brokers on personal WhatsApp. Leadsetu replaced all of them. The Gemini AI lead score accurately flags which property buyers have ready budgets.',
+      'We used to juggle Excel sheets, Meta Lead Ads, and 8 brokers on personal WhatsApp. Leadsetu replaced all of them. The SetuAI lead score accurately flags which property buyers have ready budgets.',
     rating: 5,
   },
   {

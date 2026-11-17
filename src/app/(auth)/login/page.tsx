@@ -87,7 +87,7 @@ export default function LoginPage() {
 
               <div className="space-y-3 pt-1 max-w-lg">
                 {[
-                  'Real-time Gemini AI scoring (1–100) in Hinglish & English',
+                  'Real-time SetuAI scoring (1–100) in Hinglish & English',
                   '1-Click GST Tax Invoices, CPQ quotes & Razorpay payment links',
                   '5-Digit Workspace Account ID & Anti-Data-Leak Shield',
                 ].map((item) => (

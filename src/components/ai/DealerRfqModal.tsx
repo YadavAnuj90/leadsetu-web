@@ -30,9 +30,6 @@ interface DealerRfqModalProps {
   onInsertReply?: (text: string) => void;
 }
 
-const SAMPLE_MULTI_SKU_RFQ =
-  'Bhai 50 box 4-inch cutting wheel, 120 pcs heavy duty drill chuck aur 25 bag industrial adhesive bhej do Gurugram Sector 37 plant pe. 18% GST bill ke saath aaj rate batao urgent hai.';
-
 export default function DealerRfqModal({
   open,
   onClose,
@@ -165,13 +162,6 @@ export default function DealerRfqModal({
             <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Incoming WhatsApp Buyer / Dealer Message
             </label>
-            <button
-              type="button"
-              onClick={() => setMessage(SAMPLE_MULTI_SKU_RFQ)}
-              className="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 dark:border-white/15 bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:border-brand-blue"
-            >
-              Load Multi-SKU Hinglish Sample
-            </button>
           </div>
           <textarea
             rows={4}
@@ -183,7 +173,7 @@ export default function DealerRfqModal({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span className="text-[11px] text-slate-400">
               {providerMeta
-                ? `Parsed via ${providerMeta.provider || 'ai'} · ${providerMeta.model || ''} (${providerMeta.tokensUsed || 0} tokens)`
+                ? `Parsed via SetuAI Neural Core (${providerMeta.tokensUsed || 0} tokens)`
                 : 'Detects SKU quantities, units, delivery city & 18% GST requirement'}
             </span>
             <button

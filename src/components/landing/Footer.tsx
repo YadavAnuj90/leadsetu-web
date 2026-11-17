@@ -238,7 +238,7 @@ export default function Footer() {
                 color: '#93C5FD',
               }}
             >
-              <Sparkles className="w-3 h-3" /> Google Gemini AI
+              <Sparkles className="w-3 h-3" /> SetuAI Neural Core
             </span>
           </div>
         </div>

@@ -31,7 +31,7 @@ const KILL_SWITCH_META: Array<{
 }> = [
   {
     key: 'geminiAiEnabled',
-    label: 'Gemini AI Scoring & Smart Replies',
+    label: 'SetuAI Scoring & Smart Replies',
     desc: 'Controls AI scoring & Hinglish drafting across all tenants',
   },
   {

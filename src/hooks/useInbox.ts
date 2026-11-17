@@ -72,21 +72,6 @@ export function useInbox() {
     []
   );
 
-  const seedInbox = useCallback(async () => {
-    setIsSending(true);
-    try {
-      const { data } = await apiClient.post<{ data: Conversation[] }>(
-        '/inbox/seed'
-      );
-      await fetchConversations();
-      if (data.data?.[0]) {
-        setActiveId(data.data[0].id);
-      }
-    } finally {
-      setIsSending(false);
-    }
-  }, [fetchConversations]);
-
   return {
     conversations,
     activeConversation,
@@ -101,6 +86,5 @@ export function useInbox() {
     error,
     sendMessage,
     toggleStatus,
-    seedInbox,
   };
 }

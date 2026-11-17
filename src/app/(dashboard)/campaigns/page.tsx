@@ -12,7 +12,6 @@ import {
   Users,
   IndianRupee,
   Search,
-  Database,
   Trash2,
   Rocket,
   Clock,
@@ -26,7 +25,6 @@ import {
   createCampaign,
   launchCampaign,
   deleteCampaign,
-  seedCampaigns,
 } from '@/lib/campaigns-api';
 import { getErrorMessage } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth.store';
@@ -166,18 +164,6 @@ export default function CampaignsPage() {
     }
   };
 
-  const handleSeed = async () => {
-    setIsMutating(true);
-    try {
-      await seedCampaigns();
-      await loadCampaigns();
-    } catch (err) {
-      setErrorMsg(getErrorMessage(err));
-    } finally {
-      setIsMutating(false);
-    }
-  };
-
   const handleLaunchNow = async (id: string) => {
     setIsMutating(true);
     try {
@@ -203,12 +189,12 @@ export default function CampaignsPage() {
   };
 
   const segCounts = (stats.segmentCounts || {}) as Record<string, number>;
-  const previewAudienceCount = segCounts[targetSegment] || 140;
+  const previewAudienceCount = segCounts[targetSegment] || 0;
 
   // Render live personalized preview text
   const renderedPreviewText = messageBody
-    .replace(/\{\{name\}\}/g, 'Rajesh Sharma')
-    .replace(/\{\{company\}\}/g, 'RS Electricals Pvt. Ltd.');
+    .replace(/\{\{name\}\}/g, 'Buyer Name')
+    .replace(/\{\{company\}\}/g, 'Buyer Company');
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -235,20 +221,6 @@ export default function CampaignsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            type="button"
-            onClick={handleSeed}
-            disabled={isMutating}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 transition-all"
-          >
-            {isMutating ? (
-              <Loader2 className="w-4 h-4 animate-spin text-brand-blue" />
-            ) : (
-              <Database className="w-4 h-4 text-brand-blue" />
-            )}
-            Seed 4 Sample Campaigns
-          </button>
-
           <button
             type="button"
             onClick={() => setModalOpen(true)}
@@ -376,7 +348,7 @@ export default function CampaignsPage() {
           <div className="bg-white rounded-3xl p-16 border border-slate-200/80 flex flex-col items-center justify-center gap-3 text-slate-400">
             <Loader2 className="w-7 h-7 animate-spin text-brand-blue" />
             <p className="text-xs font-semibold">
-              Loading WhatsApp Broadcast Campaigns from MongoDB...
+              Loading WhatsApp Broadcast Campaigns from Leadsetu Cloud...
             </p>
           </div>
         ) : campaigns.length === 0 ? (
@@ -389,17 +361,10 @@ export default function CampaignsPage() {
                 No WhatsApp Campaigns Yet
               </h3>
               <p className="text-xs text-slate-500 mt-1">
-                Seed 4 high-converting Noida &amp; Delhi-NCR B2B WhatsApp broadcast campaigns or create a new broadcast.
+                Create and launch your first WhatsApp broadcast campaign from your live CRM segments.
               </p>
             </div>
             <div className="flex items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={handleSeed}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50"
-              >
-                Seed 4 Sample Campaigns
-              </button>
               <button
                 type="button"
                 onClick={() => setModalOpen(true)}

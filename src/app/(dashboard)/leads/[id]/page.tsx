@@ -306,7 +306,7 @@ export default function LeadDetailPage() {
 
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
                 <div className="text-[10px] font-bold uppercase text-slate-400">
-                  Gemini AI Score
+                  SetuAI Score
                 </div>
                 <div className="text-lg font-extrabold text-emerald-600 mt-0.5">
                   {lead.aiScore} / 100 ({lead.aiLabel})
@@ -343,7 +343,7 @@ export default function LeadDetailPage() {
             )}
           </div>
 
-          {/* Gemini AI Next-Best-Action Card */}
+          {/* SetuAI Next-Best-Action Card */}
           <div
             className="rounded-3xl p-6 text-white space-y-3 shadow-lg"
             style={{
@@ -352,7 +352,7 @@ export default function LeadDetailPage() {
           >
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-sky">
-                <Sparkles className="w-4 h-4" /> Gemini AI Recommendation
+                <Sparkles className="w-4 h-4" /> SetuAI Recommendation
               </span>
               <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">
                 Score {lead.aiScore}
