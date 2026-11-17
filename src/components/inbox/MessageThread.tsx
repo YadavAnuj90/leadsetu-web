@@ -6,24 +6,30 @@ import {
   Sparkles,
   CheckCheck,
   ExternalLink,
+  Mic,
+  PackageSearch,
 } from 'lucide-react';
 import type { Conversation } from '@/types/contracts';
 
 interface MessageThreadProps {
   conversation: Conversation;
   onToggleStatus: (id: string, nextStatus: 'open' | 'resolved') => void;
+  onOpenVoiceAudit?: () => void;
+  onOpenRfqParser?: () => void;
 }
 
 export default function MessageThread({
   conversation,
   onToggleStatus,
+  onOpenVoiceAudit,
+  onOpenRfqParser,
 }: MessageThreadProps) {
   const cleanPhone = (conversation.phone || '').replace(/[^0-9]/g, '');
 
   return (
-    <div className="flex-1 flex flex-col bg-[#F4F7FC] overflow-hidden">
+    <div className="flex-1 flex flex-col bg-[#F4F7FC] dark:bg-[#081020] overflow-hidden">
       {/* Top Thread Header */}
-      <div className="px-6 py-3.5 bg-white border-b border-slate-200/80 flex items-center justify-between gap-4">
+      <div className="px-6 py-3.5 bg-white dark:bg-[#0D1628] border-b border-slate-200/80 dark:border-white/10 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div
             className="w-10 h-10 rounded-2xl flex items-center justify-center font-extrabold text-sm text-white"
@@ -35,20 +41,40 @@ export default function MessageThread({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-extrabold text-sm text-brand-navy">
+              <h3 className="font-extrabold text-sm text-brand-navy dark:text-white">
                 {conversation.contactName}
               </h3>
-              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30">
                 {conversation.channel}
               </span>
             </div>
-            <div className="text-xs text-slate-500">
+            <div className="text-xs text-slate-500 dark:text-slate-400">
               {conversation.company} · {conversation.phone} · {conversation.city}
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          {onOpenRfqParser && (
+            <button
+              type="button"
+              onClick={onOpenRfqParser}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-indigo-400/35 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-600 hover:text-white transition-colors"
+              title="Parse WhatsApp Dealer RFQ SKUs & Draft Reply"
+            >
+              <PackageSearch className="w-3.5 h-3.5" /> Parse RFQ AI
+            </button>
+          )}
+          {onOpenVoiceAudit && (
+            <button
+              type="button"
+              onClick={onOpenVoiceAudit}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-brand-blue/30 bg-brand-blue/10 text-brand-blue hover:bg-brand-blue hover:text-white transition-colors"
+              title="Analyze Hinglish Call Notes & QA Audit"
+            >
+              <Mic className="w-3.5 h-3.5" /> Call Audit AI
+            </button>
+          )}
           {cleanPhone && (
             <a
               href={`https://wa.me/${
@@ -56,7 +82,7 @@ export default function MessageThread({
               }`}
               target="_blank"
               rel="noreferrer"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300 dark:hover:bg-emerald-500/25"
             >
               <ExternalLink className="w-3.5 h-3.5" /> WhatsApp Web
             </a>
@@ -64,7 +90,7 @@ export default function MessageThread({
           {conversation.phone && (
             <a
               href={`tel:${conversation.phone}`}
-              className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:text-brand-blue hover:bg-slate-50"
+              className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:text-brand-blue hover:bg-slate-50 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/10"
               title="Call Buyer"
             >
               <Phone className="w-4 h-4" />
@@ -81,7 +107,7 @@ export default function MessageThread({
             className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
               conversation.status === 'resolved'
                 ? 'bg-emerald-500 text-white'
-                : 'border border-slate-200 text-slate-700 hover:border-brand-blue'
+                : 'border border-slate-200 text-slate-700 hover:border-brand-blue dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10'
             }`}
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
@@ -128,7 +154,7 @@ export default function MessageThread({
                 className={`max-w-lg rounded-2xl px-4 py-3 text-xs sm:text-sm leading-relaxed shadow-sm ${
                   isOutbound
                     ? 'bg-brand-blue text-white rounded-tr-sm'
-                    : 'bg-white text-brand-navy border border-slate-200/80 rounded-tl-sm'
+                    : 'bg-white text-brand-navy border border-slate-200/80 rounded-tl-sm dark:bg-[#111D33] dark:text-slate-100 dark:border-white/10'
                 }`}
               >
                 {msg.isAiDrafted && (

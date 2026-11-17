@@ -20,6 +20,7 @@ import {
   FileCheck,
 } from 'lucide-react';
 import { apiClient, getErrorMessage } from '@/lib/api-client';
+import { verifyContactGstinApi, updateContactCreditApi } from '@/lib/invoices-api';
 import type { Contact } from '@/types/contracts';
 
 export default function ContactsPage() {
@@ -45,6 +46,9 @@ export default function ContactsPage() {
   const [gstin, setGstin] = useState('');
   const [type, setType] = useState<'customer' | 'prospect' | 'partner' | 'vendor'>('customer');
   const [lifetimeValue, setLifetimeValue] = useState('');
+  const [creditLimitInr, setCreditLimitInr] = useState('500000');
+  const [creditTermDays, setCreditTermDays] = useState('30');
+  const [contactNotice, setContactNotice] = useState<string | null>(null);
 
   const fetchContacts = useCallback(async () => {
     setIsLoading(true);
@@ -82,7 +86,9 @@ export default function ContactsPage() {
         gstin,
         type,
         lifetimeValue: Number(lifetimeValue) || 0,
-        tags: gstin ? ['GST Verified', 'B2B'] : ['B2B'],
+        creditLimitInr: Number(creditLimitInr) || 0,
+        creditTermDays: Number(creditTermDays) || 15,
+        tags: gstin ? ['GST Registered', 'B2B'] : ['B2B'],
       });
       setModalOpen(false);
       setName('');
@@ -111,6 +117,31 @@ export default function ContactsPage() {
   const handleDelete = async (id: string) => {
     await apiClient.delete(`/contacts/${id}`);
     await fetchContacts();
+  };
+
+  const handleToggleCreditHold = async (c: Contact) => {
+    try {
+      await updateContactCreditApi(c.id, {
+        creditHold: !c.creditHold,
+        creditHoldReason: !c.creditHold ? 'Placed on hold from B2B Directory' : '',
+      });
+      setContactNotice(
+        `${c.company || c.name} is now ${!c.creditHold ? 'ON CREDIT HOLD' : 'RELEASED from Credit Hold'}.`,
+      );
+      await fetchContacts();
+    } catch (err) {
+      setContactNotice(getErrorMessage(err));
+    }
+  };
+
+  const handleVerifyGstin = async (c: Contact) => {
+    try {
+      const res = await verifyContactGstinApi(c.id, c.gstin);
+      setContactNotice(`${c.company || c.name}: ${res.validation?.reason || 'GSTIN checked'}`);
+      await fetchContacts();
+    } catch (err) {
+      setContactNotice(getErrorMessage(err));
+    }
   };
 
   return (
@@ -151,6 +182,15 @@ export default function ContactsPage() {
           </button>
         </div>
       </div>
+
+      {contactNotice && (
+        <div className="rounded-xl px-4 py-3 text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-between">
+          <span>{contactNotice}</span>
+          <button type="button" onClick={() => setContactNotice(null)}>
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* KPI Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -310,23 +350,52 @@ export default function ContactsPage() {
                     </span>
                   </div>
 
-                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between text-xs">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-slate-400 block">
-                        Lifetime Value
-                      </span>
-                      <span className="font-extrabold text-brand-navy">
-                        ₹{(c.lifetimeValue || 0).toLocaleString('en-IN')}
-                      </span>
-                    </div>
-                    {c.gstin && (
-                      <div className="text-right">
+                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <div>
                         <span className="text-[10px] font-bold uppercase text-slate-400 block">
-                          GSTIN
+                          Lifetime Value
                         </span>
-                        <span className="font-mono font-bold text-emerald-700 text-[11px]">
-                          {c.gstin}
+                        <span className="font-extrabold text-brand-navy">
+                          ₹{(c.lifetimeValue || 0).toLocaleString('en-IN')}
                         </span>
+                      </div>
+                      {c.gstin && (
+                        <div className="text-right">
+                          <span className="text-[10px] font-bold uppercase text-slate-400 block">
+                            GSTIN {c.gstinStatus === 'verified_active' ? '✓' : ''}
+                          </span>
+                          <span
+                            className={`font-mono font-bold text-[11px] ${
+                              c.gstinStatus === 'verified_active'
+                                ? 'text-emerald-700'
+                                : c.gstinStatus === 'checksum_failed' || c.gstinStatus === 'invalid_format'
+                                  ? 'text-rose-600'
+                                  : 'text-slate-700'
+                            }`}
+                          >
+                            {c.gstin}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="pt-2 border-t border-slate-200/70 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                      <span className="text-slate-600 font-semibold">
+                        Limit:{' '}
+                        <strong className="text-brand-navy">
+                          {c.creditLimitInr ? `₹${c.creditLimitInr.toLocaleString('en-IN')}` : 'Uncapped'}
+                        </strong>{' '}
+                        · Net {c.creditTermDays ?? 15}d
+                      </span>
+                      {(c.openReceivableInr || 0) > 0 && (
+                        <span className="font-bold text-amber-700">
+                          Udhaar: ₹{(c.openReceivableInr || 0).toLocaleString('en-IN')}
+                        </span>
+                      )}
+                    </div>
+                    {c.creditHold && (
+                      <div className="px-2 py-1 rounded-lg bg-rose-100 text-rose-800 font-bold text-[10px] uppercase tracking-wider">
+                        Credit Hold Active {c.creditHoldReason ? `· ${c.creditHoldReason}` : ''}
                       </div>
                     )}
                   </div>
@@ -356,6 +425,27 @@ export default function ContactsPage() {
                     View 360° Profile →
                   </Link>
                   <div className="flex items-center gap-1.5">
+                    {c.gstin && (
+                      <button
+                        type="button"
+                        onClick={() => handleVerifyGstin(c)}
+                        className="px-2 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-[10px] font-bold text-slate-700"
+                        title="Verify GSTIN Mod-36 Checksum"
+                      >
+                        Verify GSTIN
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleToggleCreditHold(c)}
+                      className={`px-2 py-1 rounded-lg text-[10px] font-bold border ${
+                        c.creditHold
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                          : 'bg-rose-50 border-rose-200 text-rose-700'
+                      }`}
+                    >
+                      {c.creditHold ? 'Release Hold' : 'Hold Credit'}
+                    </button>
                     {c.phone && (
                       <a
                         href={waUrl}
@@ -522,6 +612,35 @@ export default function ContactsPage() {
                     value={lifetimeValue}
                     onChange={(e) => setLifetimeValue(e.target.value)}
                     placeholder="500000"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
+                    Credit Limit (₹)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={creditLimitInr}
+                    onChange={(e) => setCreditLimitInr(e.target.value)}
+                    placeholder="500000"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
+                    Credit Terms (Net Days)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={creditTermDays}
+                    onChange={(e) => setCreditTermDays(e.target.value)}
+                    placeholder="30"
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm"
                   />
                 </div>

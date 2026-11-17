@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import {
   Bell,
@@ -25,7 +26,13 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import ThemeToggle from '@/components/shared/ThemeToggle';
+import AskAiCopilotDrawer from '@/components/ai/AskAiCopilotDrawer';
 import { fetchNotificationsApi, globalSearchApi } from '@/lib/command-api';
+import {
+  getRouteFeatureRestriction,
+  isFeatureEnabled,
+  isWorkspaceAdminRole,
+} from '@/lib/feature-access';
 import type { GlobalSearchItem, NotificationItem } from '@/types/contracts';
 
 const TYPE_META: Record<
@@ -102,6 +109,7 @@ export default function Header() {
 
   // ─── Global Ctrl+K Command Search ────────────────────────────────────────
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [aiCopilotOpen, setAiCopilotOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<GlobalSearchItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -134,13 +142,16 @@ export default function Header() {
     setIsNotifLoading(true);
     try {
       const res = await fetchNotificationsApi();
-      setNotifications(res.items || []);
+      const filteredNotifs = (res.items || []).filter(
+        (n) => !n.href || getRouteFeatureRestriction(n.href, tenant, user) === null,
+      );
+      setNotifications(filteredNotifs);
     } catch {
       // keep existing notifications on transient error
     } finally {
       setIsNotifLoading(false);
     }
-  }, [user?.id]);
+  }, [user, tenant]);
 
   useEffect(() => {
     loadNotifications();
@@ -218,7 +229,12 @@ export default function Header() {
       try {
         const res = await globalSearchApi(searchQuery);
         if (!cancelled) {
-          setSearchResults(res.items || []);
+          const allowed = (res.items || []).filter(
+            (item) =>
+              !item.href ||
+              getRouteFeatureRestriction(item.href, tenant, user) === null,
+          );
+          setSearchResults(allowed);
           setSelectedIndex(0);
         }
       } catch {
@@ -316,6 +332,22 @@ export default function Header() {
           </span>
 
           <ThemeToggle />
+
+          {isFeatureEnabled(tenant, 'aiScoring', user) &&
+            isFeatureEnabled(tenant, 'aiCopilot', user) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setNotifOpen(false);
+                  setAiCopilotOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold border border-brand-blue/35 bg-brand-blue/10 text-brand-blue hover:bg-brand-blue hover:text-white transition-all"
+                title="Ask Leadsetu AI Copilot (Tenant-Scoped RAG)"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Ask AI</span>
+              </button>
+            )}
 
           {/* Live Notification Bell */}
           <div className="relative" ref={notifContainerRef}>
@@ -426,7 +458,15 @@ export default function Header() {
           <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block" />
 
           <div className="flex items-center gap-2.5">
-            <div className="text-right hidden sm:block">
+            <Link
+              href={isWorkspaceAdminRole(user) ? '/settings' : '/profile'}
+              title={
+                isWorkspaceAdminRole(user)
+                  ? 'Company & Workspace Settings'
+                  : 'Open My Profile & Feature Access'
+              }
+              className="text-right hidden sm:block hover:opacity-90 transition-opacity"
+            >
               <div className="text-xs font-bold text-brand-navy dark:text-white flex items-center justify-end gap-1.5">
                 <span>{user?.name}</span>
                 {tenant?.accountId && (
@@ -435,11 +475,23 @@ export default function Header() {
                   </span>
                 )}
               </div>
-              <div className="text-[11px] text-slate-400 capitalize">
-                {user?.role || 'Owner'} · {tenant?.name}
-                {user?.userCode ? ` · UID #${user.userCode}` : ''}
+              <div className="text-[11px] text-slate-400">
+                {user?.role === 'manager'
+                  ? 'Sales Manager'
+                  : user?.role === 'agent'
+                    ? 'Sales User'
+                    : user?.role === 'owner'
+                      ? 'Company Owner'
+                      : 'Company Admin'}{' '}
+                ·{' '}
+                {tenant?.name === 'Leadsetu Platform HQ'
+                  ? 'CRM Workspace'
+                  : tenant?.name}
+                {(user?.role === 'manager' || user?.role === 'agent') && user?.userCode
+                  ? ` · UID #${user.userCode}`
+                  : ''}
               </div>
-            </div>
+            </Link>
 
             <button
               type="button"
@@ -553,6 +605,11 @@ export default function Header() {
           </div>
         </div>
       )}
+
+      <AskAiCopilotDrawer
+        open={aiCopilotOpen}
+        onClose={() => setAiCopilotOpen(false)}
+      />
     </>
   );
 }

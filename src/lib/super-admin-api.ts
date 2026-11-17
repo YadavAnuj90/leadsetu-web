@@ -79,6 +79,7 @@ export async function updateTenantGovernanceApi(
       maxMonthlyAiCalls?: number;
       maxMonthlyWhatsapp?: number;
       maxStorageMb?: number;
+      aiCallsUsed?: number;
       resetUsageCounters?: boolean;
     };
     securityPolicy?: {
@@ -90,6 +91,7 @@ export async function updateTenantGovernanceApi(
       ipAllowlist?: string[];
     };
     reason?: string;
+    confirmPassword?: string;
   }
 ): Promise<SuperAdminTenantDetailResponse> {
   const { data } = await apiClient.patch<SuperAdminTenantDetailResponse>(
@@ -158,6 +160,7 @@ export async function updatePlatformPoliciesApi(payload: {
   securityPolicies?: Partial<GlobalSecurityPolicies>;
   planMatrix?: Partial<Record<'starter' | 'growth' | 'enterprise', PlanEntitlementSpec>>;
   reason?: string;
+  confirmPassword?: string;
 }): Promise<{
   config: PlatformConfigData;
   featureCatalog: PlatformFeatureSpec[];
@@ -334,10 +337,226 @@ export async function createSuperAdminOperatorApi(payload: {
 
 export async function toggleSuperAdminOperatorStatusApi(
   operatorId: string,
-  isActive: boolean
+  isActive: boolean,
+  confirmPassword?: string
 ): Promise<{ data: SuperAdminOperatorItem[] }> {
   const { data } = await apiClient.patch(`/super-admin/operators/${operatorId}/status`, {
     isActive,
+    confirmPassword,
   });
+  return data;
+}
+
+export async function revokeAllTenantSessionsApi(
+  tenantId: string,
+  payload: { reason: string; confirmPassword: string }
+): Promise<SuperAdminTenantDetailResponse> {
+  const { data } = await apiClient.post<SuperAdminTenantDetailResponse>(
+    `/super-admin/tenants/${tenantId}/security/revoke-all-sessions`,
+    payload
+  );
+  return data;
+}
+
+export async function exportTenantDpdpDataApi(
+  tenantId: string
+): Promise<{ blob: Blob; filename: string }> {
+  const response = await apiClient.get(`/super-admin/tenants/${tenantId}/dpdp/export`, {
+    responseType: 'blob',
+  });
+  const disposition = String(response.headers['content-disposition'] || '');
+  const match = disposition.match(/filename="([^"]+)"/);
+  return {
+    blob: response.data as Blob,
+    filename: match?.[1] || `Leadsetu-DPDP-Backup-${tenantId}.json`,
+  };
+}
+
+export async function dpdpEraseTenantApi(
+  tenantId: string,
+  payload: {
+    mode: 'soft_delete' | 'restore' | 'permanent_purge';
+    reason: string;
+    confirmPassword?: string;
+    forceBypassRetention?: boolean;
+  }
+): Promise<SuperAdminTenantDetailResponse> {
+  const { data } = await apiClient.post<SuperAdminTenantDetailResponse>(
+    `/super-admin/tenants/${tenantId}/dpdp/erase`,
+    payload
+  );
+  return data;
+}
+
+export async function grantTenantQuotaAddonApi(
+  tenantId: string,
+  payload: {
+    addonAiCalls?: number;
+    addonWhatsapp?: number;
+    addonStorageMb?: number;
+    issueGstInvoice?: boolean;
+    addonPriceInr?: number;
+    paymentReference?: string;
+    reason?: string;
+  }
+): Promise<SuperAdminTenantDetailResponse> {
+  const { data } = await apiClient.post<SuperAdminTenantDetailResponse>(
+    `/super-admin/tenants/${tenantId}/quotas/addon`,
+    payload
+  );
+  return data;
+}
+
+export interface ManageAiAuthorityPayload {
+  mode: 'assign_balance' | 'remove_balance' | 'set_balance' | 'reset_used' | 'update_features';
+  aiCallsDelta?: number;
+  maxMonthlyAiCalls?: number;
+  aiCallsUsed?: number;
+  aiScoring?: boolean | null;
+  aiWorkflows?: boolean | null;
+  aiCreditRisk?: boolean | null;
+  aiVoiceCrm?: boolean | null;
+  aiDealerDesk?: boolean | null;
+  aiCopilot?: boolean | null;
+  reason?: string;
+}
+
+export async function manageTenantAiAuthorityApi(
+  tenantId: string,
+  payload: ManageAiAuthorityPayload
+): Promise<SuperAdminTenantDetailResponse> {
+  const { data } = await apiClient.patch<SuperAdminTenantDetailResponse>(
+    `/super-admin/tenants/${tenantId}/ai-authority`,
+    payload
+  );
+  return data;
+}
+
+export async function bulkManageAiAuthorityApi(
+  payload: ManageAiAuthorityPayload & { tenantIds?: string[] }
+): Promise<{
+  updatedCount: number;
+  data: SuperAdminTenantItem[];
+}> {
+  const { data } = await apiClient.post<{
+    updatedCount: number;
+    data: SuperAdminTenantItem[];
+  }>('/super-admin/tenants/ai-authority/bulk', payload);
+  return data;
+}
+
+export interface SuperAdminTopupRequestItem {
+  tenantId: string;
+  tenantName: string;
+  accountId: string;
+  plan: 'starter' | 'growth' | 'enterprise';
+  tenantStatus: string;
+  city: string;
+  currentAiCap: number;
+  currentAiUsed: number;
+  currentWaCap: number;
+  currentWaUsed: number;
+  id: string;
+  resource: 'ai' | 'whatsapp';
+  quantity: number;
+  note: string;
+  status: 'pending' | 'approved' | 'rejected';
+  requestedByName: string;
+  requestedByEmail: string;
+  createdAt: string;
+  resolvedAt: string;
+  resolvedByEmail: string;
+  resolutionNote: string;
+  grantedQuantity: number;
+}
+
+export interface SuperAdminTopupRequestsResponse {
+  data: SuperAdminTopupRequestItem[];
+  stats: {
+    pending: number;
+    approved: number;
+    rejected: number;
+  };
+}
+
+export async function fetchSuperAdminTopupRequestsApi(
+  status?: string
+): Promise<SuperAdminTopupRequestsResponse> {
+  const { data } = await apiClient.get<SuperAdminTopupRequestsResponse>(
+    '/super-admin/topup-requests',
+    { params: status ? { status } : undefined }
+  );
+  return data;
+}
+
+export async function resolveTopupRequestApi(
+  tenantId: string,
+  requestId: string,
+  payload: {
+    action: 'approve' | 'reject';
+    grantedQuantity?: number;
+    issueGstInvoice?: boolean;
+    priceInr?: number;
+    note?: string;
+  }
+): Promise<SuperAdminTopupRequestsResponse> {
+  const { data } = await apiClient.patch<SuperAdminTopupRequestsResponse>(
+    `/super-admin/tenants/${tenantId}/topup-requests/${requestId}`,
+    payload
+  );
+  return data;
+}
+
+export interface TerritoryAnalyticsItem {
+  city: string;
+  tenants: number;
+  active: number;
+  trial: number;
+  suspended: number;
+  mrrInr: number;
+  seatsUsed: number;
+  aiCallsUsed: number;
+  aiCap: number;
+  leadsCount: number;
+  wonRevenueInr: number;
+  avgHealthScore: number;
+}
+
+export interface TenantHealthItem {
+  id: string;
+  name: string;
+  accountId: string;
+  city: string;
+  plan: 'starter' | 'growth' | 'enterprise';
+  status: 'trial' | 'active' | 'suspended';
+  seatsUsed: number;
+  seatLimit: number;
+  leadsCount: number;
+  wonRevenueInr: number;
+  mrrInr: number;
+  aiUsed: number;
+  aiCap: number;
+  healthScore: number;
+  healthBand: 'healthy' | 'watch' | 'at_risk';
+  reasons: string[];
+}
+
+export interface TerritoryAnalyticsResponse {
+  territories: TerritoryAnalyticsItem[];
+  tenantsHealth: TenantHealthItem[];
+  summary: {
+    totalTerritories: number;
+    totalTenants: number;
+    healthy: number;
+    watch: number;
+    atRisk: number;
+    totalMrrInr: number;
+  };
+}
+
+export async function fetchTerritoryAnalyticsApi(): Promise<TerritoryAnalyticsResponse> {
+  const { data } = await apiClient.get<TerritoryAnalyticsResponse>(
+    '/super-admin/analytics/territories'
+  );
   return data;
 }

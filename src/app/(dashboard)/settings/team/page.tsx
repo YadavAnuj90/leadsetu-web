@@ -28,6 +28,11 @@ import {
   Phone,
   EyeOff,
   FileClock,
+  SlidersHorizontal,
+  Send,
+  ExternalLink,
+  Trophy,
+  Sparkles,
 } from 'lucide-react';
 import {
   fetchTeam,
@@ -35,8 +40,15 @@ import {
   updateTeamMember,
   setTeamMemberStatus,
   resetTeamMemberPassword,
+  resendTeamInvite,
   removeTeamMember,
 } from '@/lib/team-api';
+import FeatureToggleMatrix from '@/components/team/FeatureToggleMatrix';
+import {
+  DEFAULT_USER_FEATURE_MAP,
+  getRoleDefaultFeatures,
+  USER_FEATURE_CATALOG,
+} from '@/lib/feature-access';
 import { getErrorMessage } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth.store';
 import type {
@@ -47,6 +59,7 @@ import type {
   TeamRole,
   TeamStats,
   TeamViewer,
+  UserFeatureKey,
 } from '@/types/contracts';
 
 const ROLE_STYLE: Record<TeamRole, string> = {
@@ -113,13 +126,26 @@ export default function TeamSettingsPage() {
   const [fRole, setFRole] = useState<AssignableTeamRole>('agent');
   const [fTerritory, setFTerritory] = useState('');
   const [fTarget, setFTarget] = useState('');
+  const [fAiDailyLimit, setFAiDailyLimit] = useState('0');
   const [fPassword, setFPassword] = useState('');
+  const [fFeatures, setFFeatures] = useState<Record<UserFeatureKey, boolean>>(() =>
+    getRoleDefaultFeatures('agent'),
+  );
+
+  // Per-user feature access modal
+  const [featureTargetMember, setFeatureTargetMember] = useState<TeamMember | null>(null);
+  const [mFeatures, setMFeatures] = useState<Record<UserFeatureKey, boolean>>({
+    ...DEFAULT_USER_FEATURE_MAP,
+  });
+  const [mAiDailyLimit, setMAiDailyLimit] = useState('0');
+  const [leaderSort, setLeaderSort] = useState<'revenue' | 'target' | 'leads'>('revenue');
 
   // Edit member modal
   const [editing, setEditing] = useState<TeamMember | null>(null);
   const [eRole, setERole] = useState<AssignableTeamRole>('agent');
   const [eTerritory, setETerritory] = useState('');
   const [eTarget, setETarget] = useState('');
+  const [eAiDailyLimit, setEAiDailyLimit] = useState('0');
   const [ePhone, setEPhone] = useState('');
 
   // Credentials modal (after add / reset)
@@ -184,7 +210,9 @@ export default function TeamSettingsPage() {
     setFRole('agent');
     setFTerritory('');
     setFTarget('');
+    setFAiDailyLimit('0');
     setFPassword('');
+    setFFeatures(getRoleDefaultFeatures('agent'));
     setFormError(null);
   };
 
@@ -208,7 +236,10 @@ export default function TeamSettingsPage() {
         role: fRole,
         territory: fTerritory.trim() || undefined,
         monthlyTarget: fTarget ? Number(fTarget) : undefined,
+        aiDailyCallLimit: fAiDailyLimit ? Math.max(0, Number(fAiDailyLimit) || 0) : 0,
         password: fPassword || undefined,
+        featureAccess: fRole === 'admin' ? undefined : fFeatures,
+        sendInviteEmail: true,
       });
       setAddOpen(false);
       setCredentials({
@@ -226,11 +257,60 @@ export default function TeamSettingsPage() {
     }
   };
 
+  const openFeatureModal = (m: TeamMember) => {
+    setFeatureTargetMember(m);
+    setMFeatures({
+      ...DEFAULT_USER_FEATURE_MAP,
+      ...(m.featureAccess || {}),
+    });
+    setMAiDailyLimit(String(m.aiDailyCallLimit ?? 0));
+    setFormError(null);
+  };
+
+  const handleSaveFeatures = async () => {
+    if (!featureTargetMember) return;
+    setIsSaving(true);
+    setFormError(null);
+    try {
+      await updateTeamMember(featureTargetMember.id, {
+        featureAccess: mFeatures,
+        aiDailyCallLimit: Math.max(0, Number(mAiDailyLimit) || 0),
+      });
+      showToast(`Feature permissions updated for ${featureTargetMember.name}.`);
+      setFeatureTargetMember(null);
+      await loadTeam();
+    } catch (err) {
+      setFormError(getErrorMessage(err));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleResendInvite = async (m: TeamMember) => {
+    setBusyId(m.id);
+    try {
+      const res = await resendTeamInvite(m.id);
+      setCredentials({
+        ...res.credentials,
+        name: m.name,
+        phone: m.phone,
+        isReset: false,
+      });
+      showToast(`Fresh invite login link ready for ${m.email}.`);
+      await loadTeam();
+    } catch (err) {
+      setErrorMsg(getErrorMessage(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const openEdit = (m: TeamMember) => {
     setEditing(m);
     setERole(m.role === 'owner' ? 'admin' : m.role);
     setETerritory(m.territory);
     setETarget(m.monthlyTarget ? String(m.monthlyTarget) : '');
+    setEAiDailyLimit(String(m.aiDailyCallLimit ?? 0));
     setEPhone(m.phone);
     setFormError(null);
   };
@@ -250,7 +330,12 @@ export default function TeamSettingsPage() {
         phone: ePhone.trim() || undefined,
         territory: eTerritory.trim(),
         ...(isSelf || editing.role === 'owner' ? {} : { role: eRole }),
-        ...(viewer?.canManageTeam ? { monthlyTarget: Number(eTarget) || 0 } : {}),
+        ...(viewer?.canManageTeam
+          ? {
+              monthlyTarget: Number(eTarget) || 0,
+              aiDailyCallLimit: Math.max(0, Number(eAiDailyLimit) || 0),
+            }
+          : {}),
       });
       setEditing(null);
       showToast(`${editing.name}'s profile updated.`);
@@ -328,13 +413,13 @@ export default function TeamSettingsPage() {
   };
 
   const credentialsText = credentials
-    ? `Leadsetu CRM login for ${credentials.name}\n` +
+    ? `Leadsetu CRM invite for ${credentials.name}\n` +
       `Workspace Account ID: ${credentials.accountId}\n` +
       `Your User ID: ${credentials.userCode}\n` +
       `Login Email: ${credentials.loginEmail}\n` +
       (credentials.temporaryPassword ? `Temporary Password: ${credentials.temporaryPassword}\n` : '') +
-      `Sign in: ${typeof window !== 'undefined' ? window.location.origin : ''}/login\n` +
-      `Please change your password after first sign-in.`
+      `Invite Login Link: ${credentials.inviteUrl || `${typeof window !== 'undefined' ? window.location.origin : ''}/login`}\n` +
+      `Click the invite link and sign in with your email and password.`
     : '';
 
   const assignableRoles: AssignableTeamRole[] = viewer?.canManageAdmins
@@ -489,6 +574,107 @@ export default function TeamSettingsPage() {
         </div>
       </div>
 
+      {/* Team Performance & Rep Leaderboard */}
+      {members.length > 0 && (
+        <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm sm:text-base font-extrabold text-brand-navy flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-amber-500" />
+                <span>Team Performance &amp; Rep Leaderboard</span>
+              </h2>
+              <p className="text-xs text-slate-500">
+                Live closed-won revenue, target attainment, lead conversion, and daily AI copilot activity per member.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {(
+                [
+                  ['revenue', 'By Won Revenue'],
+                  ['target', 'By Target %'],
+                  ['leads', 'By Leads'],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setLeaderSort(key)}
+                  className={`px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-colors ${
+                    leaderSort === key
+                      ? 'bg-brand-blue text-white border-brand-blue'
+                      : 'bg-slate-50 border-slate-200 text-slate-600'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {[...members]
+              .sort((a, b) => {
+                if (leaderSort === 'target') {
+                  return b.performance.targetAchievedPct - a.performance.targetAchievedPct;
+                }
+                if (leaderSort === 'leads') {
+                  return b.performance.convertedLeads - a.performance.convertedLeads || b.performance.leadsCount - a.performance.leadsCount;
+                }
+                return b.performance.wonRevenue - a.performance.wonRevenue || b.performance.convertedLeads - a.performance.convertedLeads;
+              })
+              .slice(0, 6)
+              .map((rep, idx) => (
+                <div
+                  key={rep.id}
+                  className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/70 flex flex-col justify-between gap-2.5"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                            idx === 0
+                              ? 'bg-amber-500 text-white'
+                              : idx === 1
+                                ? 'bg-slate-300 text-slate-800'
+                                : 'bg-brand-blue/15 text-brand-blue'
+                          }`}
+                        >
+                          #{idx + 1}
+                        </span>
+                        <span className="font-extrabold text-xs text-brand-navy">
+                          {rep.name}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-500 capitalize mt-0.5">
+                        {rep.role === 'agent' ? 'Sales User' : rep.role} ·{' '}
+                        {rep.territory || 'All NCR'}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs font-extrabold text-emerald-600">
+                        {formatINR(rep.performance.wonRevenue)}
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        {rep.performance.wonDeals} won · {rep.performance.convertedLeads} conv
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-500">
+                    <span>
+                      Target: <strong>{rep.performance.targetAchievedPct}%</strong>
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-brand-blue">
+                      <Sparkles className="w-3 h-3" /> AI Today: {rep.aiCallsToday ?? 0}/
+                      {rep.aiDailyCallLimit ? rep.aiDailyCallLimit : '∞'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-stretch md:items-center gap-3">
         <div className="relative flex-1">
@@ -540,6 +726,7 @@ export default function TeamSettingsPage() {
                   <th className="py-3.5 px-5">Member</th>
                   <th className="py-3.5 px-4">User ID</th>
                   <th className="py-3.5 px-4">Role</th>
+                  <th className="py-3.5 px-4">Assigned Features</th>
                   <th className="py-3.5 px-4">Territory</th>
                   <th className="py-3.5 px-4">Target Progress</th>
                   <th className="py-3.5 px-4">Pipeline</th>
@@ -591,8 +778,48 @@ export default function TeamSettingsPage() {
                       </td>
                       <td className="py-4 px-4">
                         <span className={`inline-flex text-[11px] font-bold px-2.5 py-1 rounded-full capitalize ${ROLE_STYLE[m.role]}`}>
-                          {m.role}
+                          {m.role === 'manager' ? 'Sales Manager' : m.role === 'agent' ? 'Sales User' : m.role}
                         </span>
+                      </td>
+                      <td className="py-4 px-4">
+                        {m.role === 'owner' || m.role === 'admin' ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30">
+                            Full Admin Access
+                          </span>
+                        ) : (
+                          (() => {
+                            const accessMap = m.featureAccess || DEFAULT_USER_FEATURE_MAP;
+                            const enabledItems = USER_FEATURE_CATALOG.filter(
+                              (item) => accessMap[item.key] !== false,
+                            );
+                            return manageable ? (
+                              <button
+                                type="button"
+                                onClick={() => openFeatureModal(m)}
+                                className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-brand-blue/30 bg-brand-light/70 dark:bg-brand-blue/15 text-brand-blue dark:text-sky-300 hover:border-brand-blue transition-colors"
+                                title="Click to toggle features ON/OFF for this user"
+                              >
+                                <SlidersHorizontal className="w-3 h-3" />
+                                <span>
+                                  {enabledItems.length}/{USER_FEATURE_CATALOG.length} Modules
+                                </span>
+                              </button>
+                            ) : (
+                              <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                                {enabledItems.length}/{USER_FEATURE_CATALOG.length} Modules
+                              </span>
+                            );
+                          })()
+                        )}
+                        {(m.role === 'manager' || m.role === 'agent') && (
+                          <div className="text-[10px] font-semibold text-slate-400 mt-1 flex items-center gap-1">
+                            <Sparkles className="w-2.5 h-2.5 text-brand-blue" />
+                            <span>
+                              AI Today: {m.aiCallsToday ?? 0}/
+                              {m.aiDailyCallLimit ? m.aiDailyCallLimit : 'Unlimited'}
+                            </span>
+                          </div>
+                        )}
                       </td>
                       <td className="py-4 px-4 text-xs text-slate-600">
                         {m.territory ? (
@@ -632,15 +859,22 @@ export default function TeamSettingsPage() {
                         </div>
                       </td>
                       <td className="py-4 px-4">
-                        <span
-                          className={`inline-flex text-[11px] font-bold px-2.5 py-1 rounded-full ${
-                            m.isActive
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : 'bg-slate-100 text-slate-500 border border-slate-200'
-                          }`}
-                        >
-                          {m.isActive ? 'Active' : 'Deactivated'}
-                        </span>
+                        <div className="flex flex-col items-start gap-1">
+                          <span
+                            className={`inline-flex text-[11px] font-bold px-2.5 py-1 rounded-full ${
+                              m.isActive
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : 'bg-slate-100 text-slate-500 border border-slate-200'
+                            }`}
+                          >
+                            {m.isActive ? 'Active' : 'Deactivated'}
+                          </span>
+                          {m.inviteStatus === 'pending' && (
+                            <span className="inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30">
+                              Invite Sent · Pending
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-4 px-5 text-right">
                         <div className="inline-flex items-center justify-end gap-1">
@@ -648,6 +882,26 @@ export default function TeamSettingsPage() {
                             <Loader2 className="w-4 h-4 animate-spin text-brand-blue" />
                           ) : (
                             <>
+                              {manageable && (m.role === 'manager' || m.role === 'agent') && (
+                                <button
+                                  type="button"
+                                  onClick={() => openFeatureModal(m)}
+                                  title="Toggle features ON/OFF for this user"
+                                  className="p-2 rounded-lg border border-brand-blue/30 bg-brand-light/60 text-brand-blue hover:bg-brand-light"
+                                >
+                                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                              {manageable && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleResendInvite(m)}
+                                  title="Send / Resend Email Invite Login Link"
+                                  className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                                >
+                                  <Send className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                               {(manageable || isSelf) && (
                                 <button
                                   type="button"
@@ -712,17 +966,18 @@ export default function TeamSettingsPage() {
         )}
       </div>
 
-      {/* ─── ADD MEMBER MODAL ─── */}
+      {/* ─── ADD / INVITE MEMBER MODAL ─── */}
       {addOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-xl w-full border border-slate-200 shadow-2xl overflow-hidden my-8">
+          <div className="bg-white rounded-3xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden my-8">
             <div className="px-6 py-4 bg-brand-navy text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <UserPlus className="w-5 h-5 text-brand-blue" />
                 <div>
-                  <h2 className="text-base font-extrabold">Add Team Member</h2>
+                  <h2 className="text-base font-extrabold">Invite Sales Manager / User</h2>
                   <p className="text-[11px] text-slate-300">
-                    Joins Account ID <span className="font-mono font-bold">{account?.accountId}</span> with a new 10-digit User ID
+                    Generates User ID, assigns CRM features, and sends an email invite link under Account ID{' '}
+                    <span className="font-mono font-bold">{account?.accountId}</span>
                   </p>
                 </div>
               </div>
@@ -731,7 +986,7 @@ export default function TeamSettingsPage() {
               </button>
             </div>
 
-            <form onSubmit={handleAdd} className="p-6 space-y-4">
+            <form onSubmit={handleAdd} className="p-6 space-y-4 max-h-[82vh] overflow-y-auto">
               {formError && (
                 <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700">{formError}</div>
               )}
@@ -747,7 +1002,7 @@ export default function TeamSettingsPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Work Email * (login)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Work Email * (invite sent here)</label>
                   <input
                     required
                     type="email"
@@ -777,19 +1032,37 @@ export default function TeamSettingsPage() {
                     <button
                       key={r}
                       type="button"
-                      onClick={() => setFRole(r)}
+                      onClick={() => {
+                        setFRole(r);
+                        if (r === 'manager' || r === 'agent') {
+                          setFFeatures(getRoleDefaultFeatures(r));
+                        }
+                      }}
                       className={`p-2.5 rounded-xl border text-left transition-all ${
                         fRole === r ? 'border-brand-blue bg-brand-light' : 'border-slate-200 hover:bg-slate-50'
                       }`}
                     >
-                      <div className="text-xs font-extrabold capitalize text-brand-navy">{r}</div>
+                      <div className="text-xs font-extrabold capitalize text-brand-navy">
+                        {r === 'manager' ? 'Sales Manager' : r === 'agent' ? 'Sales User (Rep)' : 'Workspace Admin'}
+                      </div>
                       <div className="text-[10px] text-slate-500 leading-snug mt-0.5">{ROLE_HELP[r]}</div>
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {(fRole === 'manager' || fRole === 'agent') && (
+                <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 space-y-2">
+                  <FeatureToggleMatrix
+                    value={fFeatures}
+                    onChange={setFFeatures}
+                    workspaceFeatures={account?.workspaceFeatures}
+                    roleLabel={fRole === 'manager' ? 'Sales Manager' : 'Sales User'}
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Territory</label>
                   <input
@@ -810,6 +1083,17 @@ export default function TeamSettingsPage() {
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm"
                   />
                 </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Daily AI Call Cap (0=∞)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={fAiDailyLimit}
+                    onChange={(e) => setFAiDailyLimit(e.target.value)}
+                    placeholder="0 (Unlimited)"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm"
+                  />
+                </div>
               </div>
 
               <div>
@@ -818,7 +1102,7 @@ export default function TeamSettingsPage() {
                   type="text"
                   value={fPassword}
                   onChange={(e) => setFPassword(e.target.value)}
-                  placeholder="Leave blank to auto-generate a secure temporary password"
+                  placeholder="Leave blank to auto-generate (invitee can also set password via mail link)"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm"
                   autoComplete="new-password"
                 />
@@ -834,10 +1118,88 @@ export default function TeamSettingsPage() {
                   className="btn-primary-brand inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white"
                 >
                   {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Add Member &amp; Generate User ID
+                  <Send className="w-3.5 h-3.5" />
+                  Send Invite &amp; Assign Features
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MANAGE USER FEATURE TOGGLES MODAL ─── */}
+      {featureTargetMember && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden my-8">
+            <div className="px-6 py-4 bg-brand-navy text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <SlidersHorizontal className="w-5 h-5 text-brand-blue" />
+                <div>
+                  <h2 className="text-base font-extrabold">
+                    Feature Permissions · {featureTargetMember.name}
+                  </h2>
+                  <p className="text-[11px] text-slate-300 font-mono">
+                    UID #{featureTargetMember.userCode} ·{' '}
+                    {featureTargetMember.role === 'manager' ? 'Sales Manager' : 'Sales User'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFeatureTargetMember(null)}
+                className="p-1.5 rounded-lg hover:bg-white/10 text-slate-300"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {formError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700">
+                  {formError}
+                </div>
+              )}
+              <FeatureToggleMatrix
+                value={mFeatures}
+                onChange={setMFeatures}
+                workspaceFeatures={account?.workspaceFeatures}
+                roleLabel={featureTargetMember.role === 'manager' ? 'Sales Manager' : 'Sales User'}
+              />
+              <div className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50/70 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-xs font-bold text-brand-navy">
+                    Daily AI Call Cap for {featureTargetMember.name}
+                  </div>
+                  <div className="text-[11px] text-slate-500">
+                    Set 0 for unlimited (within workspace AI balance). Used today: {featureTargetMember.aiCallsToday ?? 0}.
+                  </div>
+                </div>
+                <input
+                  type="number"
+                  min={0}
+                  value={mAiDailyLimit}
+                  onChange={(e) => setMAiDailyLimit(e.target.value)}
+                  className="w-28 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-extrabold"
+                />
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setFeatureTargetMember(null)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isSaving}
+                  onClick={handleSaveFeatures}
+                  className="btn-primary-brand inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white"
+                >
+                  {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Save Feature Access
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -893,15 +1255,27 @@ export default function TeamSettingsPage() {
                 />
               </div>
               {viewer?.canManageTeam && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Monthly Target (₹)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={eTarget}
-                    onChange={(e) => setETarget(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Monthly Target (₹)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={eTarget}
+                      onChange={(e) => setETarget(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Daily AI Call Cap (0=∞)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={eAiDailyLimit}
+                      onChange={(e) => setEAiDailyLimit(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm"
+                    />
+                  </div>
                 </div>
               )}
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
@@ -922,16 +1296,24 @@ export default function TeamSettingsPage() {
         </div>
       )}
 
-      {/* ─── CREDENTIALS MODAL (shown once) ─── */}
+      {/* ─── CREDENTIALS / EMAIL INVITE MODAL ─── */}
       {credentials && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full border border-slate-200 shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden my-8">
             <div className="px-6 py-4 bg-emerald-600 text-white">
               <h2 className="text-base font-extrabold flex items-center gap-2">
                 <Check className="w-5 h-5" />
-                {credentials.isReset ? 'Password Reset' : `${credentials.name} Added`}
+                {credentials.isReset
+                  ? 'Password Reset'
+                  : credentials.emailSent
+                    ? `Invite Email Sent to ${credentials.name}`
+                    : `${credentials.name} Invited · Link Ready`}
               </h2>
-              <p className="text-[11px] text-emerald-100">Share these login details with the member.</p>
+              <p className="text-[11px] text-emerald-100">
+                {credentials.emailSent
+                  ? `Email delivered via ${credentials.emailProvider}. They can click the invite link to log in.`
+                  : 'Share this email invite link (or click Send in Email App below) so they can click it & sign in with email + password.'}
+              </p>
             </div>
             <div className="p-6 space-y-3">
               {[
@@ -951,23 +1333,57 @@ export default function TeamSettingsPage() {
                 </div>
               ))}
 
-              {credentials.temporaryPassword ? (
-                <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                  This temporary password is shown <strong>only once</strong> and stored encrypted. If it is lost, use
-                  “Reset password” to issue a new one.
-                </p>
-              ) : (
-                <p className="text-[11px] text-slate-500">The member signs in with the password you set.</p>
+              {credentials.inviteUrl && (
+                <div className="p-3 rounded-xl bg-brand-light/70 border border-brand-blue/30 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-blue">
+                      Email Invite Login Link (7-Day Expiry)
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <CopyButton value={credentials.inviteUrl} label="Invite Link" />
+                      <a
+                        href={credentials.inviteUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Open Invite Link"
+                        className="p-1 rounded-md text-brand-blue hover:bg-brand-blue/10"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+                  </div>
+                  <div className="font-mono text-[11px] text-slate-700 break-all select-all">
+                    {credentials.inviteUrl}
+                  </div>
+                </div>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-2 pt-2">
+              {credentials.temporaryPassword ? (
+                <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                  This temporary password is shown <strong>only once</strong>. When clicking the invite link, the user can sign in with this password or set their own password.
+                </p>
+              ) : (
+                <p className="text-[11px] text-slate-500">
+                  The member clicks the link sent to their email and logs in with their email &amp; password.
+                </p>
+              )}
+
+              <div className="flex flex-wrap gap-2 pt-2">
+                {credentials.inviteUrl && (
+                  <a
+                    href={`mailto:${encodeURIComponent(credentials.loginEmail)}?subject=${encodeURIComponent(credentials.emailSubject || `Your Leadsetu CRM Invite (${credentials.accountId})`)}&body=${encodeURIComponent(credentials.emailPreview || credentialsText)}`}
+                    className="flex-1 min-w-[140px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand-blue hover:bg-blue-700 text-xs font-bold text-white"
+                  >
+                    <Mail className="w-4 h-4" /> Send via Email App
+                  </a>
+                )}
                 <button
                   type="button"
                   onClick={() => {
                     navigator.clipboard.writeText(credentialsText);
-                    showToast('Login details copied.');
+                    showToast('Invite details copied.');
                   }}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                  className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50"
                 >
                   <Copy className="w-4 h-4" /> Copy All
                 </button>
@@ -977,9 +1393,9 @@ export default function TeamSettingsPage() {
                     const digits = credentials.phone.replace(/\D/g, '');
                     window.open(`https://wa.me/${digits}?text=${encodeURIComponent(credentialsText)}`, '_blank');
                   }}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white"
+                  className="flex-1 min-w-[130px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white"
                 >
-                  <MessageSquare className="w-4 h-4" /> Send on WhatsApp
+                  <MessageSquare className="w-4 h-4" /> WhatsApp
                 </button>
               </div>
               <button

@@ -1680,6 +1680,8 @@ export function OperatorsView({
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [territory, setTerritory] = useState('Leadsetu HQ Authority');
+  const [revokeTarget, setRevokeTarget] = useState<{ id: string; email: string } | null>(null);
+  const [revokePassword, setRevokePassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -1710,12 +1712,41 @@ export function OperatorsView({
     }
   };
 
-  const handleToggle = async (id: string, nextActive: boolean) => {
+  const handleToggle = async (id: string, nextActive: boolean, email = '') => {
+    if (!nextActive) {
+      setRevokeTarget({ id, email });
+      setRevokePassword('');
+      setError(null);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
       const res = await toggleSuperAdminOperatorStatusApi(id, nextActive);
       onUpdated(res.data);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleConfirmRevokeOperator = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!revokeTarget) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await toggleSuperAdminOperatorStatusApi(
+        revokeTarget.id,
+        false,
+        revokePassword
+      );
+      onUpdated(res.data);
+      setRevokeTarget(null);
+      setRevokePassword('');
+      setToast(`Revoked HQ operator access for ${revokeTarget.email}.`);
+      setTimeout(() => setToast(null), 3500);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -1730,6 +1761,39 @@ export function OperatorsView({
           <ShieldCheck className="w-4 h-4 text-[#0057FF]" />
           Authorized Leadsetu HQ Super Admin Operators
         </h3>
+
+        {revokeTarget && (
+          <form
+            onSubmit={handleConfirmRevokeOperator}
+            className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 flex flex-wrap items-center gap-2"
+          >
+            <div className="flex-1 min-w-[200px] text-xs font-bold text-rose-600 dark:text-rose-300">
+              Confirm password to revoke <span className="underline">{revokeTarget.email}</span>
+            </div>
+            <input
+              type="password"
+              required
+              value={revokePassword}
+              onChange={(e) => setRevokePassword(e.target.value)}
+              placeholder="Your Super Admin password"
+              className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-950 border border-rose-400/50 text-xs"
+            />
+            <button
+              type="submit"
+              disabled={busy}
+              className="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-extrabold"
+            >
+              Confirm Revoke
+            </button>
+            <button
+              type="button"
+              onClick={() => setRevokeTarget(null)}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-xs font-bold"
+            >
+              Cancel
+            </button>
+          </form>
+        )}
 
         <div className="space-y-2.5">
           {operators.map((op) => {
@@ -1762,7 +1826,7 @@ export function OperatorsView({
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() => handleToggle(op.id, !op.isActive)}
+                    onClick={() => handleToggle(op.id, !op.isActive, op.email)}
                     className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-bold border ${
                       op.isActive
                         ? 'bg-rose-500/10 border-rose-500/30 text-rose-600'

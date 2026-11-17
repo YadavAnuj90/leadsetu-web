@@ -14,16 +14,20 @@ import {
   Loader2,
   LogOut,
   Menu,
+  MapPin,
   Receipt,
   RefreshCw,
   Shield,
   ShieldAlert,
   ShieldCheck,
+  Sparkles,
   X,
 } from 'lucide-react';
 import OverviewSection from '@/components/super-admin/OverviewSection';
 import TenantsGovernanceSection from '@/components/super-admin/TenantsGovernanceSection';
 import PoliciesMatrixSection from '@/components/super-admin/PoliciesMatrixSection';
+import TopupRequestsSection from '@/components/super-admin/TopupRequestsSection';
+import TerritoryAnalyticsSection from '@/components/super-admin/TerritoryAnalyticsSection';
 import {
   AuditLogsView,
   BillingLedgerView,
@@ -54,6 +58,8 @@ import type {
 type SuperAdminTab =
   | 'overview'
   | 'tenants'
+  | 'topups'
+  | 'territories'
   | 'policies'
   | 'billing'
   | 'audit'
@@ -76,6 +82,18 @@ const NAV_ITEMS: Array<{
     label: 'Tenants & RBAC',
     subtitle: 'Inspect workspaces, quotas, modules, user RBAC & impersonation',
     icon: Building2,
+  },
+  {
+    id: 'topups',
+    label: 'Top-Up Requests',
+    subtitle: 'Approve Company Admin AI & WhatsApp balance requests with GST billing',
+    icon: Sparkles,
+  },
+  {
+    id: 'territories',
+    label: 'Territory Clusters',
+    subtitle: 'Industrial cluster heatmaps, MRR & company health scores',
+    icon: MapPin,
   },
   {
     id: 'policies',
@@ -306,6 +324,12 @@ export default function SuperAdminDashboardPage() {
               let badgeAlert = false;
               if (item.id === 'tenants' && tenants.length > 0) {
                 badge = tenants.length;
+              } else if (
+                item.id === 'topups' &&
+                (overview?.kpis?.pendingTopupRequests || 0) > 0
+              ) {
+                badge = `${overview?.kpis?.pendingTopupRequests} NEW`;
+                badgeAlert = true;
               } else if (item.id === 'policies' && (isMaintenanceMode || disabledSwitchCount > 0)) {
                 badge = isMaintenanceMode ? 'MAINT' : `${disabledSwitchCount} OFF`;
                 badgeAlert = true;
@@ -551,6 +575,23 @@ export default function SuperAdminDashboardPage() {
                   onStatusFilterChange={setStatusFilter}
                   planFilter={planFilter}
                   onPlanFilterChange={setPlanFilter}
+                />
+              )}
+
+              {activeTab === 'topups' && (
+                <TopupRequestsSection
+                  onResolved={async () => {
+                    await loadAll(false);
+                  }}
+                />
+              )}
+
+              {activeTab === 'territories' && (
+                <TerritoryAnalyticsSection
+                  onInspectTenant={(id) => {
+                    setSelectedTenantId(id);
+                    setActiveTab('tenants');
+                  }}
                 />
               )}
 

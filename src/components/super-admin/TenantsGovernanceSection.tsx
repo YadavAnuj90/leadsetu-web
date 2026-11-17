@@ -22,14 +22,23 @@ import {
   UserCheck,
   UserX,
   EyeOff,
+  Download,
+  Trash2,
 } from 'lucide-react';
 import {
+  bulkManageAiAuthorityApi,
+  dpdpEraseTenantApi,
+  exportTenantDpdpDataApi,
   fetchSuperAdminTenantDetailApi,
+  grantTenantQuotaAddonApi,
   impersonateTenantApi,
   issueTenantSubscriptionApi,
+  manageTenantAiAuthorityApi,
+  revokeAllTenantSessionsApi,
   updateSubscriptionInvoiceStatusApi,
   updateTenantGovernanceApi,
   updateTenantUserRbacApi,
+  type ManageAiAuthorityPayload,
 } from '@/lib/super-admin-api';
 import { getErrorMessage } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth.store';
@@ -83,6 +92,12 @@ export default function TenantsGovernanceSection({
   const [managerNote, setManagerNote] = useState('');
   const [auditReason, setAuditReason] = useState('');
   const [aiQuota, setAiQuota] = useState(5000);
+  const [aiUsedInput, setAiUsedInput] = useState(0);
+  const [aiDeltaInput, setAiDeltaInput] = useState(1000);
+  const [bulkAiAmount, setBulkAiAmount] = useState(1000);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkStatusMsg, setBulkStatusMsg] = useState<string | null>(null);
+  const [bulkErrorMsg, setBulkErrorMsg] = useState<string | null>(null);
   const [waQuota, setWaQuota] = useState(10000);
   const [storageQuota, setStorageQuota] = useState(2048);
   const [enforceMasking, setEnforceMasking] = useState(false);
@@ -102,6 +117,20 @@ export default function TenantsGovernanceSection({
   const [drawerGrantRef, setDrawerGrantRef] = useState('');
   const [drawerBillingBusy, setDrawerBillingBusy] = useState(false);
 
+  // Destructive confirm, Add-On Quota & DPDP state
+  const [suspendConfirmPwd, setSuspendConfirmPwd] = useState('');
+  const [addonAi, setAddonAi] = useState(2500);
+  const [addonWa, setAddonWa] = useState(5000);
+  const [addonMb, setAddonMb] = useState(0);
+  const [addonPrice, setAddonPrice] = useState(0);
+  const [addonIssueInvoice, setAddonIssueInvoice] = useState(false);
+  const [panicReason, setPanicReason] = useState('');
+  const [panicPassword, setPanicPassword] = useState('');
+  const [dpdpReason, setDpdpReason] = useState('');
+  const [dpdpPassword, setDpdpPassword] = useState('');
+  const [dpdpBypassRetention, setDpdpBypassRetention] = useState(false);
+  const [dpdpBusy, setDpdpBusy] = useState(false);
+
   // Support Impersonation Modal
   const [impersonateOpen, setImpersonateOpen] = useState(false);
   const [impersonateReason, setImpersonateReason] = useState('');
@@ -116,6 +145,7 @@ export default function TenantsGovernanceSection({
     setSeatOverride(t.seatLimitOverride ? String(t.seatLimitOverride) : '');
     setManagerNote(t.assignedManagerNote || '');
     setAiQuota(t.quotas.maxMonthlyAiCalls);
+    setAiUsedInput(t.quotas.aiCallsUsed);
     setWaQuota(t.quotas.maxMonthlyWhatsapp);
     setStorageQuota(t.quotas.maxStorageMb);
     setEnforceMasking(t.securityPolicy.enforcePhoneMasking);
@@ -163,6 +193,7 @@ export default function TenantsGovernanceSection({
         plan,
         status,
         suspensionReason: status === 'suspended' ? suspensionReason.trim() : undefined,
+        confirmPassword: status === 'suspended' ? suspendConfirmPwd : undefined,
         seatLimitOverride: seatOverride.trim() ? Number(seatOverride) : null,
         extendTrialDays,
         assignedManagerNote: managerNote,
@@ -170,6 +201,7 @@ export default function TenantsGovernanceSection({
       });
       syncFromDetail(updated);
       setAuditReason('');
+      setSuspendConfirmPwd('');
       await onRefreshTenants();
       showToast(
         extendTrialDays
@@ -213,6 +245,7 @@ export default function TenantsGovernanceSection({
       const updated = await updateTenantGovernanceApi(selectedTenantId, {
         quotas: {
           maxMonthlyAiCalls: aiQuota,
+          aiCallsUsed: resetUsageCounters ? 0 : aiUsedInput,
           maxMonthlyWhatsapp: waQuota,
           maxStorageMb: storageQuota,
           resetUsageCounters,
@@ -224,12 +257,81 @@ export default function TenantsGovernanceSection({
       syncFromDetail(updated);
       await onRefreshTenants();
       showToast(
-        resetUsageCounters ? 'Usage counters reset to 0.' : 'Tenant quotas saved.'
+        resetUsageCounters ? 'Usage counters reset to 0.' : 'Tenant quotas & AI usage saved.'
       );
     } catch (err) {
       setDrawerError(getErrorMessage(err));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDrawerAiAuthority = async (
+    payload: ManageAiAuthorityPayload,
+    okMsg: string
+  ) => {
+    if (!selectedTenantId) return;
+    setSaving(true);
+    setDrawerError(null);
+    try {
+      const updated = await manageTenantAiAuthorityApi(selectedTenantId, payload);
+      syncFromDetail(updated);
+      await onRefreshTenants();
+      showToast(okMsg);
+    } catch (err) {
+      setDrawerError(getErrorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRowAiAuthority = async (
+    tenantId: string,
+    payload: ManageAiAuthorityPayload,
+    okMsg: string
+  ) => {
+    setBulkBusy(true);
+    setBulkErrorMsg(null);
+    setBulkStatusMsg(null);
+    try {
+      const updated = await manageTenantAiAuthorityApi(tenantId, payload);
+      if (selectedTenantId === tenantId) {
+        syncFromDetail(updated);
+      }
+      await onRefreshTenants();
+      setBulkStatusMsg(okMsg);
+      setTimeout(() => setBulkStatusMsg(null), 3500);
+    } catch (err) {
+      setBulkErrorMsg(getErrorMessage(err));
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const handleBulkAiAuthority = async (
+    payload: ManageAiAuthorityPayload & { tenantIds?: string[] },
+    okMsg: string
+  ) => {
+    setBulkBusy(true);
+    setBulkErrorMsg(null);
+    setBulkStatusMsg(null);
+    try {
+      const targetIds = tenants.map((t) => t.id);
+      const res = await bulkManageAiAuthorityApi({
+        ...payload,
+        ...(targetIds.length > 0 ? { tenantIds: targetIds } : {}),
+      });
+      if (selectedTenantId) {
+        const refreshed = await fetchSuperAdminTenantDetailApi(selectedTenantId);
+        syncFromDetail(refreshed);
+      }
+      await onRefreshTenants();
+      setBulkStatusMsg(`${okMsg} (${res.updatedCount} Admin account(s) updated)`);
+      setTimeout(() => setBulkStatusMsg(null), 4000);
+    } catch (err) {
+      setBulkErrorMsg(getErrorMessage(err));
+    } finally {
+      setBulkBusy(false);
     }
   };
 
@@ -360,6 +462,165 @@ export default function TenantsGovernanceSection({
         </div>
       </div>
 
+      {/* Bulk AI Balance & AI Feature Authority Bar (All Filtered Admin Accounts) */}
+      <div className="rounded-2xl p-4 bg-white dark:bg-[#0D1628] border border-brand-blue/25 shadow-sm space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div className="text-xs font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-[#0057FF]" />
+              <span>Bulk AI Balance &amp; AI Feature Authority ({tenants.length} Admin Account{tenants.length === 1 ? '' : 's'})</span>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Assign, edit exact monthly caps, deduct/zero-out AI balance, or enable/remove AI features across all visible Admin accounts at once.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase text-slate-400">AI Calls Amount</span>
+            <input
+              type="number"
+              min={0}
+              value={bulkAiAmount}
+              onChange={(e) => setBulkAiAmount(Math.max(0, Number(e.target.value) || 0))}
+              className="w-28 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-extrabold text-slate-900 dark:text-white"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={bulkBusy || tenants.length === 0}
+            onClick={() =>
+              handleBulkAiAuthority(
+                {
+                  mode: 'assign_balance',
+                  aiCallsDelta: bulkAiAmount,
+                  aiScoring: true,
+                  reason: `Super Admin bulk assigned +${bulkAiAmount} AI calls`,
+                },
+                `Assigned +${bulkAiAmount.toLocaleString('en-IN')} AI calls & enabled AI`,
+              )
+            }
+            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-extrabold disabled:opacity-50"
+          >
+            + Assign AI Balance to All
+          </button>
+
+          <button
+            type="button"
+            disabled={bulkBusy || tenants.length === 0}
+            onClick={() =>
+              handleBulkAiAuthority(
+                {
+                  mode: 'set_balance',
+                  maxMonthlyAiCalls: bulkAiAmount,
+                  reason: `Super Admin set monthly AI cap to ${bulkAiAmount} for all accounts`,
+                },
+                `Edited monthly AI cap to ${bulkAiAmount.toLocaleString('en-IN')}`,
+              )
+            }
+            className="px-3 py-1.5 rounded-xl bg-[#0057FF] hover:bg-blue-700 text-white text-[11px] font-extrabold disabled:opacity-50"
+          >
+            Edit Exact Cap ({bulkAiAmount}) for All
+          </button>
+
+          <button
+            type="button"
+            disabled={bulkBusy || tenants.length === 0}
+            onClick={() =>
+              handleBulkAiAuthority(
+                {
+                  mode: 'remove_balance',
+                  aiCallsDelta: bulkAiAmount,
+                  reason: `Super Admin deducted ${bulkAiAmount} AI calls from accounts`,
+                },
+                `Removed ${bulkAiAmount.toLocaleString('en-IN')} AI calls`,
+              )
+            }
+            className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-[11px] font-extrabold disabled:opacity-50"
+          >
+            - Deduct AI Balance
+          </button>
+
+          <button
+            type="button"
+            disabled={bulkBusy || tenants.length === 0}
+            onClick={() =>
+              handleBulkAiAuthority(
+                {
+                  mode: 'remove_balance',
+                  maxMonthlyAiCalls: 0,
+                  reason: 'Super Admin removed all AI balance across filtered accounts',
+                },
+                'Zeroed out AI balance (0 cap)',
+              )
+            }
+            className="px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-600 dark:text-rose-300 text-[11px] font-extrabold disabled:opacity-50"
+          >
+            Zero-Out (0) AI Balance for All
+          </button>
+
+          <span className="hidden sm:inline-block h-4 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
+
+          <button
+            type="button"
+            disabled={bulkBusy || tenants.length === 0}
+            onClick={() =>
+              handleBulkAiAuthority(
+                {
+                  mode: 'update_features',
+                  aiScoring: true,
+                  aiWorkflows: true,
+                  aiCreditRisk: true,
+                  aiVoiceCrm: true,
+                  aiDealerDesk: true,
+                  aiCopilot: true,
+                  reason: 'Super Admin assigned all AI features & 4 pillars ON',
+                },
+                'Assigned all AI features & pillars ON',
+              )
+            }
+            className="px-3 py-1.5 rounded-xl border border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-600 hover:text-white text-[11px] font-extrabold disabled:opacity-50"
+          >
+            Assign AI Features (ON) All
+          </button>
+
+          <button
+            type="button"
+            disabled={bulkBusy || tenants.length === 0}
+            onClick={() =>
+              handleBulkAiAuthority(
+                {
+                  mode: 'update_features',
+                  aiScoring: false,
+                  aiWorkflows: false,
+                  aiCreditRisk: false,
+                  aiVoiceCrm: false,
+                  aiDealerDesk: false,
+                  aiCopilot: false,
+                  reason: 'Super Admin removed all AI features & 4 pillars across accounts',
+                },
+                'Removed all AI features & pillars OFF',
+              )
+            }
+            className="px-3 py-1.5 rounded-xl border border-rose-500/35 bg-rose-500/10 text-rose-600 dark:text-rose-300 hover:bg-rose-600 hover:text-white text-[11px] font-extrabold disabled:opacity-50"
+          >
+            Remove AI Features (OFF) All
+          </button>
+        </div>
+
+        {bulkStatusMsg && (
+          <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+            {bulkStatusMsg}
+          </div>
+        )}
+        {bulkErrorMsg && (
+          <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs font-bold text-rose-600 dark:text-rose-300">
+            {bulkErrorMsg}
+          </div>
+        )}
+      </div>
+
       {/* Tenants Governance Table */}
       <div className="rounded-2xl bg-white dark:bg-[#0D1628] border border-slate-200/85 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
@@ -370,6 +631,7 @@ export default function TenantsGovernanceSection({
                 <th className="py-3.5 px-3">Plan &amp; Status</th>
                 <th className="py-3.5 px-3">Seats</th>
                 <th className="py-3.5 px-3">CRM Usage &amp; Won</th>
+                <th className="py-3.5 px-3">AI Balance &amp; Features</th>
                 <th className="py-3.5 px-3">Security &amp; Overrides</th>
                 <th className="py-3.5 px-4 text-right">Authority</th>
               </tr>
@@ -437,6 +699,111 @@ export default function TenantsGovernanceSection({
                   </td>
 
                   <td className="py-3.5 px-3">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={bulkBusy}
+                        onClick={() =>
+                          handleRowAiAuthority(
+                            t.id,
+                            {
+                              mode: 'update_features',
+                              aiScoring: !(t.aiEnabled ?? true),
+                              aiWorkflows: !(t.aiEnabled ?? true),
+                              reason: `Super Admin toggled AI feature ${(t.aiEnabled ?? true) ? 'OFF' : 'ON'} for ${t.name}`,
+                            },
+                            `${t.name}: AI features ${(t.aiEnabled ?? true) ? 'Removed (OFF)' : 'Assigned (ON)'}`,
+                          )
+                        }
+                        className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border transition-colors ${
+                          t.aiEnabled ?? true
+                            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30 hover:bg-rose-500/15 hover:text-rose-500'
+                            : 'bg-rose-500/15 text-rose-600 dark:text-rose-300 border-rose-500/30 hover:bg-emerald-500/15 hover:text-emerald-500'
+                        }`}
+                        title="Click to Assign or Remove AI Features for this Admin account"
+                      >
+                        {t.aiEnabled ?? true ? 'AI Active' : 'AI Removed'}
+                      </button>
+                      <span className="text-[11px] font-extrabold text-slate-900 dark:text-white">
+                        {(t.aiBalanceRemaining ?? 0).toLocaleString('en-IN')} / {(t.maxMonthlyAiCalls ?? 0).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                    {t.aiPillars && (
+                      <div className="flex flex-wrap items-center gap-1 mt-1">
+                        {(
+                          [
+                            ['P1', t.aiPillars.aiCreditRisk, 'Pillar 1 · Credit & Udhaar AI'],
+                            ['P2', t.aiPillars.aiVoiceCrm, 'Pillar 2 · Voice-to-CRM & Call Audit'],
+                            ['P3', t.aiPillars.aiDealerDesk, 'Pillar 3 · Dealer RFQ & Beat Planner'],
+                            ['Ask', t.aiPillars.aiCopilot, 'Ask AI · Tenant RAG Copilot'],
+                          ] as const
+                        ).map(([tag, on, tip]) => (
+                          <span
+                            key={tag}
+                            title={`${tip}: ${on ? 'ON' : 'OFF'}`}
+                            className={`px-1.5 py-0.5 rounded text-[9px] font-black ${
+                              on
+                                ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-300'
+                                : 'bg-slate-200/70 dark:bg-slate-800 text-slate-400 line-through'
+                            }`}
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                      <button
+                        type="button"
+                        disabled={bulkBusy}
+                        onClick={() =>
+                          handleRowAiAuthority(
+                            t.id,
+                            {
+                              mode: 'assign_balance',
+                              aiCallsDelta: 1000,
+                              aiScoring: true,
+                              reason: `Quick +1,000 AI calls assigned to ${t.name}`,
+                            },
+                            `Added +1,000 AI calls to ${t.name}`,
+                          )
+                        }
+                        className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-extrabold hover:bg-emerald-600 hover:text-white"
+                      >
+                        +1K AI
+                      </button>
+                      <button
+                        type="button"
+                        disabled={bulkBusy}
+                        onClick={() =>
+                          handleRowAiAuthority(
+                            t.id,
+                            {
+                              mode: 'remove_balance',
+                              aiCallsDelta: 1000,
+                              reason: `Quick -1,000 AI calls deducted from ${t.name}`,
+                            },
+                            `Removed 1,000 AI calls from ${t.name}`,
+                          )
+                        }
+                        className="px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-600 dark:text-rose-300 text-[10px] font-extrabold hover:bg-rose-600 hover:text-white"
+                      >
+                        -1K AI
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDrawerTab('quotas');
+                          onSelectTenant(t.id);
+                        }}
+                        className="px-1.5 py-0.5 rounded bg-blue-500/15 text-[#0057FF] dark:text-sky-300 text-[10px] font-extrabold hover:bg-[#0057FF] hover:text-white"
+                      >
+                        Edit AI
+                      </button>
+                    </div>
+                  </td>
+
+                  <td className="py-3.5 px-3">
                     <div className="flex flex-wrap gap-1">
                       <span
                         className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -469,7 +836,7 @@ export default function TenantsGovernanceSection({
               ))}
               {tenants.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400 text-xs">
+                  <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
                     No customer workspaces match the current filters.
                   </td>
                 </tr>
@@ -651,9 +1018,9 @@ export default function TenantsGovernanceSection({
                     </div>
 
                     {status === 'suspended' && (
-                      <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 space-y-1.5">
+                      <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 space-y-2">
                         <label className="block text-[11px] font-extrabold text-rose-600 dark:text-rose-300">
-                          Mandatory Suspension Reason (Shown to workspace users on blocked login)
+                          Mandatory Suspension Reason &amp; Two-Person Root Confirmation
                         </label>
                         <input
                           type="text"
@@ -661,6 +1028,13 @@ export default function TenantsGovernanceSection({
                           onChange={(e) => setSuspensionReason(e.target.value)}
                           placeholder="e.g., Invoice overdue > 15 days or DPDP spam violation"
                           className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-950 border border-rose-300 dark:border-rose-800 text-xs"
+                        />
+                        <input
+                          type="password"
+                          value={suspendConfirmPwd}
+                          onChange={(e) => setSuspendConfirmPwd(e.target.value)}
+                          placeholder="Re-enter Super Admin password to authorize suspension *"
+                          className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-950 border border-rose-300 dark:border-rose-800 text-xs font-bold"
                         />
                       </div>
                     )}
@@ -897,6 +1271,156 @@ export default function TenantsGovernanceSection({
                 {/* TAB 2: MODULE FEATURE OVERRIDES */}
                 {drawerTab === 'features' && (
                   <div className="space-y-3">
+                    <div className="p-4 rounded-xl border border-brand-blue/30 bg-brand-blue/10 space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                          <div className="text-xs font-extrabold text-slate-900 dark:text-white">
+                            AI Feature &amp; 4-Pillar Authority (Assign / Edit / Remove)
+                          </div>
+                          <p className="text-[11px] text-slate-600 dark:text-slate-300">
+                            Assign or remove Gemini AI Scoring, 3 B2B Pillars, RAG Copilot &amp; AI Workflows for {detail.tenant.name}.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            disabled={saving}
+                            onClick={() =>
+                              handleDrawerAiAuthority(
+                                {
+                                  mode: 'update_features',
+                                  aiScoring: true,
+                                  aiWorkflows: true,
+                                  aiCreditRisk: true,
+                                  aiVoiceCrm: true,
+                                  aiDealerDesk: true,
+                                  aiCopilot: true,
+                                  reason: 'Super Admin assigned all AI features & pillars ON',
+                                },
+                                'Assigned all AI features & pillars ON for this Admin account.',
+                              )
+                            }
+                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-extrabold"
+                          >
+                            Assign All AI (ON)
+                          </button>
+                          <button
+                            type="button"
+                            disabled={saving}
+                            onClick={() =>
+                              handleDrawerAiAuthority(
+                                {
+                                  mode: 'update_features',
+                                  aiScoring: false,
+                                  aiWorkflows: false,
+                                  aiCreditRisk: false,
+                                  aiVoiceCrm: false,
+                                  aiDealerDesk: false,
+                                  aiCopilot: false,
+                                  reason: 'Super Admin removed all AI features & pillars OFF',
+                                },
+                                'Removed all AI features & pillars OFF for this Admin account.',
+                              )
+                            }
+                            className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-extrabold"
+                          >
+                            Remove All AI (OFF)
+                          </button>
+                          <button
+                            type="button"
+                            disabled={saving}
+                            onClick={() =>
+                              handleDrawerAiAuthority(
+                                {
+                                  mode: 'update_features',
+                                  aiScoring: null,
+                                  aiWorkflows: null,
+                                  aiCreditRisk: null,
+                                  aiVoiceCrm: null,
+                                  aiDealerDesk: null,
+                                  aiCopilot: null,
+                                  reason: 'Super Admin reset AI features & pillars to plan default',
+                                },
+                                'Reset AI features & pillars to plan default.',
+                              )
+                            }
+                            className="px-2.5 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-[11px] font-bold"
+                          >
+                            Plan Default
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Per-Pillar Quick Toggle Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-brand-blue/20">
+                        {(
+                          [
+                            ['aiCreditRisk', 'Pillar 1 · Credit & Udhaar AI'],
+                            ['aiVoiceCrm', 'Pillar 2 · Voice-to-CRM & Call Audit'],
+                            ['aiDealerDesk', 'Pillar 3 · Dealer RFQ & Beat Planner'],
+                            ['aiCopilot', 'Ask AI · Tenant RAG Copilot'],
+                          ] as const
+                        ).map(([pKey, pLabel]) => {
+                          const eff = detail.tenant.effectiveFeatures[pKey];
+                          const isOn = eff?.enabled ?? true;
+                          return (
+                            <div
+                              key={pKey}
+                              className="p-2.5 rounded-lg bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2"
+                            >
+                              <span className="text-[11px] font-extrabold text-slate-900 dark:text-white">
+                                {pLabel}
+                              </span>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  disabled={saving}
+                                  onClick={() =>
+                                    handleDrawerAiAuthority(
+                                      {
+                                        mode: 'update_features',
+                                        [pKey]: true,
+                                        reason: `Super Admin enabled ${pLabel}`,
+                                      },
+                                      `${pLabel} enabled.`,
+                                    )
+                                  }
+                                  className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                                    isOn
+                                      ? 'bg-emerald-500 text-white'
+                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                                  }`}
+                                >
+                                  ON
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={saving}
+                                  onClick={() =>
+                                    handleDrawerAiAuthority(
+                                      {
+                                        mode: 'update_features',
+                                        [pKey]: false,
+                                        reason: `Super Admin removed ${pLabel}`,
+                                      },
+                                      `${pLabel} removed (OFF).`,
+                                    )
+                                  }
+                                  className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                                    !isOn
+                                      ? 'bg-rose-600 text-white'
+                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                                  }`}
+                                >
+                                  OFF
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       Force individual CRM modules <strong>ON</strong> or <strong>OFF</strong> for this tenant regardless of their base{' '}
                       <span className="uppercase font-bold text-[#0057FF]">{detail.tenant.plan}</span> plan.
@@ -981,22 +1505,213 @@ export default function TenantsGovernanceSection({
                   </div>
                 )}
 
-                {/* TAB 3: QUOTAS & LIMITS */}
+                {/* TAB 3: QUOTAS, METERING & COST TELEMETRY */}
                 {drawerTab === 'quotas' && (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {detail.tenant.costTelemetry && (
+                      <div
+                        className={`p-4 rounded-xl border space-y-3 ${
+                          detail.tenant.costTelemetry.unprofitable
+                            ? 'bg-rose-500/10 border-rose-500/30'
+                            : detail.tenant.costTelemetry.alertLevel !== 'ok'
+                              ? 'bg-amber-500/10 border-amber-500/30'
+                              : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+                        }`}
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="text-xs font-extrabold text-slate-900 dark:text-white">
+                            Live Unit Economics &amp; Infra Cost Guardrail
+                          </div>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                              detail.tenant.costTelemetry.unprofitable
+                                ? 'bg-rose-600 text-white'
+                                : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                            }`}
+                          >
+                            {detail.tenant.costTelemetry.unprofitable
+                              ? 'Unprofitable Heavy Tenant'
+                              : `Gross Margin ${detail.tenant.costTelemetry.marginPct}%`}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                          <div>
+                            <div className="text-slate-400 font-bold uppercase text-[9px]">MRR</div>
+                            <div className="font-black text-slate-900 dark:text-white">
+                              {formatINR(detail.tenant.costTelemetry.mrrInr)}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-slate-400 font-bold uppercase text-[9px]">Gemini AI Cost</div>
+                            <div className="font-black text-slate-900 dark:text-white">
+                              ₹{detail.tenant.costTelemetry.estimatedAiCostInr} ({detail.tenant.costTelemetry.aiPct}%)
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-slate-400 font-bold uppercase text-[9px]">Meta WhatsApp Cost</div>
+                            <div className="font-black text-slate-900 dark:text-white">
+                              ₹{detail.tenant.costTelemetry.estimatedWaCostInr} ({detail.tenant.costTelemetry.waPct}%)
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-slate-400 font-bold uppercase text-[9px]">Net Margin</div>
+                            <div
+                              className={`font-black ${
+                                detail.tenant.costTelemetry.grossMarginInr < 0
+                                  ? 'text-rose-600 dark:text-rose-400'
+                                  : 'text-emerald-600 dark:text-emerald-400'
+                              }`}
+                            >
+                              {formatINR(detail.tenant.costTelemetry.grossMarginInr)}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Dedicated Super Admin AI Balance Assign / Edit / Remove Control */}
+                    <div className="p-4 rounded-xl bg-brand-blue/10 border border-brand-blue/25 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <div className="text-xs font-extrabold text-slate-900 dark:text-white">
+                            AI Balance Control (Assign / Edit / Remove)
+                          </div>
+                          <div className="text-[11px] text-slate-600 dark:text-slate-300">
+                            Remaining Balance:{' '}
+                            <strong className="text-[#0057FF] dark:text-sky-300">
+                              {Math.max(
+                                0,
+                                detail.tenant.quotas.maxMonthlyAiCalls -
+                                  detail.tenant.quotas.aiCallsUsed,
+                              ).toLocaleString('en-IN')}{' '}
+                              calls
+                            </strong>{' '}
+                            ({detail.tenant.quotas.aiCallsUsed.toLocaleString('en-IN')} used /{' '}
+                            {detail.tenant.quotas.maxMonthlyAiCalls.toLocaleString('en-IN')} cap)
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">
+                            Adjust Calls
+                          </span>
+                          <input
+                            type="number"
+                            min={0}
+                            value={aiDeltaInput}
+                            onChange={(e) =>
+                              setAiDeltaInput(Math.max(0, Number(e.target.value) || 0))
+                            }
+                            className="w-24 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-extrabold"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={saving}
+                          onClick={() =>
+                            handleDrawerAiAuthority(
+                              {
+                                mode: 'assign_balance',
+                                aiCallsDelta: aiDeltaInput,
+                                aiScoring: true,
+                                reason: `Assigned +${aiDeltaInput} AI calls`,
+                              },
+                              `Assigned +${aiDeltaInput.toLocaleString('en-IN')} AI calls.`,
+                            )
+                          }
+                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-extrabold"
+                        >
+                          + Assign {aiDeltaInput} AI Calls
+                        </button>
+                        <button
+                          type="button"
+                          disabled={saving}
+                          onClick={() =>
+                            handleDrawerAiAuthority(
+                              {
+                                mode: 'assign_balance',
+                                aiCallsDelta: 2500,
+                                aiScoring: true,
+                                reason: 'Quick +2,500 AI calls balance assigned',
+                              },
+                              'Assigned +2,500 AI calls.',
+                            )
+                          }
+                          className="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-[11px] font-extrabold"
+                        >
+                          +2,500
+                        </button>
+                        <button
+                          type="button"
+                          disabled={saving}
+                          onClick={() =>
+                            handleDrawerAiAuthority(
+                              {
+                                mode: 'remove_balance',
+                                aiCallsDelta: aiDeltaInput,
+                                reason: `Deducted ${aiDeltaInput} AI calls`,
+                              },
+                              `Removed ${aiDeltaInput.toLocaleString('en-IN')} AI calls.`,
+                            )
+                          }
+                          className="px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-[11px] font-extrabold"
+                        >
+                          - Deduct {aiDeltaInput} AI Calls
+                        </button>
+                        <button
+                          type="button"
+                          disabled={saving}
+                          onClick={() =>
+                            handleDrawerAiAuthority(
+                              {
+                                mode: 'remove_balance',
+                                maxMonthlyAiCalls: 0,
+                                reason: 'Removed all AI balance (cap set to 0)',
+                              },
+                              'AI balance removed (cap set to 0).',
+                            )
+                          }
+                          className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-extrabold"
+                        >
+                          Remove AI Balance (Set 0)
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                       <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                         <label className="block text-[10px] font-bold uppercase text-slate-400">
                           Monthly AI Calls Cap
                         </label>
                         <input
                           type="number"
+                          min={0}
                           value={aiQuota}
-                          onChange={(e) => setAiQuota(Number(e.target.value) || 0)}
+                          onChange={(e) => setAiQuota(Math.max(0, Number(e.target.value) || 0))}
                           className="w-full mt-1 px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-extrabold"
                         />
                         <div className="text-[10px] text-slate-400 mt-1">
-                          Used: {detail.tenant.quotas.aiCallsUsed}
+                          Used: {detail.tenant.quotas.aiCallsUsed} ({detail.tenant.costTelemetry?.aiPct ?? 0}%)
+                        </div>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <label className="block text-[10px] font-bold uppercase text-slate-400">
+                          Edit AI Calls Used
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={aiUsedInput}
+                          onChange={(e) =>
+                            setAiUsedInput(Math.max(0, Number(e.target.value) || 0))
+                          }
+                          className="w-full mt-1 px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-extrabold"
+                        />
+                        <div className="text-[10px] text-slate-400 mt-1">
+                          Remaining: {Math.max(0, aiQuota - aiUsedInput)}
                         </div>
                       </div>
 
@@ -1011,7 +1726,7 @@ export default function TenantsGovernanceSection({
                           className="w-full mt-1 px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-extrabold"
                         />
                         <div className="text-[10px] text-slate-400 mt-1">
-                          Used: {detail.tenant.quotas.whatsappUsed}
+                          Used: {detail.tenant.quotas.whatsappUsed} ({detail.tenant.costTelemetry?.waPct ?? 0}%)
                         </div>
                       </div>
 
@@ -1046,8 +1761,98 @@ export default function TenantsGovernanceSection({
                         className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-extrabold"
                       >
                         <RotateCcw className="w-4 h-4" />
-                        <span>Reset Usage Counters</span>
+                        <span>Reset Usage &amp; Cost Counters</span>
                       </button>
+                    </div>
+
+                    {/* Add-On Top-Up Pack */}
+                    <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
+                      <div className="text-xs font-extrabold text-slate-900 dark:text-white">
+                        Grant Paid / Complimentary Quota Add-On Pack
+                      </div>
+                      <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 space-y-2.5">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400">+AI Calls</label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={addonAi}
+                              onChange={(e) => setAddonAi(Number(e.target.value) || 0)}
+                              className="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 font-bold"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400">+WhatsApp</label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={addonWa}
+                              onChange={(e) => setAddonWa(Number(e.target.value) || 0)}
+                              className="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 font-bold"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400">+Storage MB</label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={addonMb}
+                              onChange={(e) => setAddonMb(Number(e.target.value) || 0)}
+                              className="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 font-bold"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400">Pack Price ₹</label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={addonPrice}
+                              onChange={(e) => setAddonPrice(Number(e.target.value) || 0)}
+                              className="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 font-bold"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <label className="flex items-center gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                            <input
+                              type="checkbox"
+                              checked={addonIssueInvoice}
+                              onChange={(e) => setAddonIssueInvoice(e.target.checked)}
+                            />
+                            <span>Attach paid 18% GST invoice if Price &gt; ₹0</span>
+                          </label>
+                          <button
+                            type="button"
+                            disabled={saving || !selectedTenantId}
+                            onClick={async () => {
+                              if (!selectedTenantId) return;
+                              setSaving(true);
+                              setDrawerError(null);
+                              try {
+                                const updated = await grantTenantQuotaAddonApi(selectedTenantId, {
+                                  addonAiCalls: addonAi,
+                                  addonWhatsapp: addonWa,
+                                  addonStorageMb: addonMb,
+                                  issueGstInvoice: addonIssueInvoice,
+                                  addonPriceInr: addonPrice,
+                                  reason: auditReason.trim() || 'Super Admin quota pack top-up',
+                                });
+                                syncFromDetail(updated);
+                                await onRefreshTenants();
+                                showToast(`Topped up +${addonAi} AI calls & +${addonWa} WhatsApp msgs.`);
+                              } catch (err) {
+                                setDrawerError(getErrorMessage(err));
+                              } finally {
+                                setSaving(false);
+                              }
+                            }}
+                            className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-extrabold"
+                          >
+                            Apply Quota Add-On Pack
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1137,6 +1942,234 @@ export default function TenantsGovernanceSection({
                       <ShieldCheck className="w-4 h-4" />
                       <span>Enforce Tenant Security Shield</span>
                     </button>
+
+                    {/* Panic Whole-Tenant Force-Logout */}
+                    <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs font-extrabold text-slate-900 dark:text-white">
+                          Panic Force-Logout (Whole Workspace Session Revocation)
+                        </div>
+                        <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                          Session v{detail.tenant.sessionVersion ?? 1}
+                        </span>
+                      </div>
+                      <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-2">
+                        <div className="grid sm:grid-cols-2 gap-2">
+                          <input
+                            type="text"
+                            value={panicReason}
+                            onChange={(e) => setPanicReason(e.target.value)}
+                            placeholder="Security reason (e.g., Compromised team laptop) *"
+                            className="px-3 py-2 rounded-lg bg-white dark:bg-slate-950 border border-amber-400/50 text-xs"
+                          />
+                          <input
+                            type="password"
+                            value={panicPassword}
+                            onChange={(e) => setPanicPassword(e.target.value)}
+                            placeholder="Super Admin password confirmation *"
+                            className="px-3 py-2 rounded-lg bg-white dark:bg-slate-950 border border-amber-400/50 text-xs font-bold"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          disabled={dpdpBusy || !selectedTenantId}
+                          onClick={async () => {
+                            if (!selectedTenantId) return;
+                            setDpdpBusy(true);
+                            setDrawerError(null);
+                            try {
+                              const updated = await revokeAllTenantSessionsApi(selectedTenantId, {
+                                reason: panicReason.trim() || 'Emergency tenant-wide session revocation',
+                                confirmPassword: panicPassword,
+                              });
+                              syncFromDetail(updated);
+                              setPanicReason('');
+                              setPanicPassword('');
+                              showToast('All active workspace JWT & refresh sessions revoked immediately.');
+                            } catch (err) {
+                              setDrawerError(getErrorMessage(err));
+                            } finally {
+                              setDpdpBusy(false);
+                            }
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-extrabold"
+                        >
+                          <LogIn className="w-3.5 h-3.5" />
+                          <span>Force-Logout Entire Workspace</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* DPDP Data Portability & Right-to-Erasure */}
+                    <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <div className="text-xs font-extrabold text-slate-900 dark:text-white">
+                            DPDP Act Compliance: Data Portability &amp; Right-to-Erasure
+                          </div>
+                          {detail.tenant.dpdpRetention?.purgedAt ? (
+                            <div className="text-[11px] text-rose-500 font-bold">
+                              Permanently Purged on {detail.tenant.dpdpRetention.purgedAt.slice(0, 10)}
+                            </div>
+                          ) : detail.tenant.dpdpRetention?.softDeletedAt ? (
+                            <div className="text-[11px] text-amber-600 dark:text-amber-300 font-bold">
+                              Soft-Deleted · Purge Eligible {detail.tenant.dpdpRetention.purgeScheduledAt?.slice(0, 10)}
+                            </div>
+                          ) : (
+                            <div className="text-[11px] text-slate-500">
+                              Export full JSON archive or execute soft-delete / verified purge.
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          disabled={dpdpBusy || !selectedTenantId}
+                          onClick={async () => {
+                            if (!selectedTenantId) return;
+                            setDpdpBusy(true);
+                            setDrawerError(null);
+                            try {
+                              const { blob, filename } = await exportTenantDpdpDataApi(selectedTenantId);
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = filename;
+                              document.body.appendChild(a);
+                              a.click();
+                              a.remove();
+                              URL.revokeObjectURL(url);
+                              showToast(`Downloaded DPDP backup: ${filename}`);
+                            } catch (err) {
+                              setDrawerError(getErrorMessage(err));
+                            } finally {
+                              setDpdpBusy(false);
+                            }
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-extrabold"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Export Full JSON Backup</span>
+                        </button>
+                      </div>
+
+                      {!detail.tenant.dpdpRetention?.purgedAt && (
+                        <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 space-y-2">
+                          <div className="grid sm:grid-cols-2 gap-2">
+                            <input
+                              type="text"
+                              value={dpdpReason}
+                              onChange={(e) => setDpdpReason(e.target.value)}
+                              placeholder="DPDP Erasure Request / Ticket # *"
+                              className="px-3 py-2 rounded-lg bg-white dark:bg-slate-950 border border-rose-300 dark:border-rose-800 text-xs"
+                            />
+                            <input
+                              type="password"
+                              value={dpdpPassword}
+                              onChange={(e) => setDpdpPassword(e.target.value)}
+                              placeholder="Super Admin password confirmation *"
+                              className="px-3 py-2 rounded-lg bg-white dark:bg-slate-950 border border-rose-300 dark:border-rose-800 text-xs font-bold"
+                            />
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {!detail.tenant.dpdpRetention?.softDeletedAt ? (
+                              <button
+                                type="button"
+                                disabled={dpdpBusy || !selectedTenantId}
+                                onClick={async () => {
+                                  if (!selectedTenantId) return;
+                                  setDpdpBusy(true);
+                                  setDrawerError(null);
+                                  try {
+                                    const updated = await dpdpEraseTenantApi(selectedTenantId, {
+                                      mode: 'soft_delete',
+                                      reason: dpdpReason.trim(),
+                                      confirmPassword: dpdpPassword,
+                                    });
+                                    syncFromDetail(updated);
+                                    setDpdpPassword('');
+                                    await onRefreshTenants();
+                                    showToast('Workspace Soft-Deleted & queued per DPDP retention.');
+                                  } catch (err) {
+                                    setDrawerError(getErrorMessage(err));
+                                  } finally {
+                                    setDpdpBusy(false);
+                                  }
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-extrabold"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Initiate DPDP Soft-Delete</span>
+                              </button>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  disabled={dpdpBusy || !selectedTenantId}
+                                  onClick={async () => {
+                                    if (!selectedTenantId) return;
+                                    setDpdpBusy(true);
+                                    setDrawerError(null);
+                                    try {
+                                      const updated = await dpdpEraseTenantApi(selectedTenantId, {
+                                        mode: 'restore',
+                                        reason: dpdpReason.trim() || 'Restored before purge',
+                                      });
+                                      syncFromDetail(updated);
+                                      await onRefreshTenants();
+                                      showToast('Cancelled soft-delete and restored workspace.');
+                                    } catch (err) {
+                                      setDrawerError(getErrorMessage(err));
+                                    } finally {
+                                      setDpdpBusy(false);
+                                    }
+                                  }}
+                                  className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-[11px] font-extrabold"
+                                >
+                                  Restore Workspace
+                                </button>
+                                <label className="flex items-center gap-1.5 text-[10px] font-bold text-rose-600 dark:text-rose-300">
+                                  <input
+                                    type="checkbox"
+                                    checked={dpdpBypassRetention}
+                                    onChange={(e) => setDpdpBypassRetention(e.target.checked)}
+                                  />
+                                  <span>Bypass retention wait</span>
+                                </label>
+                                <button
+                                  type="button"
+                                  disabled={dpdpBusy || !selectedTenantId}
+                                  onClick={async () => {
+                                    if (!selectedTenantId) return;
+                                    setDpdpBusy(true);
+                                    setDrawerError(null);
+                                    try {
+                                      const updated = await dpdpEraseTenantApi(selectedTenantId, {
+                                        mode: 'permanent_purge',
+                                        reason: dpdpReason.trim(),
+                                        confirmPassword: dpdpPassword,
+                                        forceBypassRetention: dpdpBypassRetention,
+                                      });
+                                      syncFromDetail(updated);
+                                      setDpdpPassword('');
+                                      await onRefreshTenants();
+                                      showToast('Permanent DPDP erasure executed.');
+                                    } catch (err) {
+                                      setDrawerError(getErrorMessage(err));
+                                    } finally {
+                                      setDpdpBusy(false);
+                                    }
+                                  }}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-700 hover:bg-rose-800 text-white text-[11px] font-extrabold"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>Permanent Purge Now</span>
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 

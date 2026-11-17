@@ -20,43 +20,68 @@ import {
   Sparkles,
   Megaphone,
   LifeBuoy,
+  UserCircle,
+  Hash,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { isFeatureEnabled } from '@/lib/feature-access';
-import type { PlatformFeatureKey } from '@/types/contracts';
+import {
+  isFeatureEnabled,
+  isWorkspaceAdminRole,
+  USER_FEATURE_CATALOG,
+} from '@/lib/feature-access';
+import type { UserFeatureKey } from '@/types/contracts';
 
 const navItems: Array<{
   label: string;
   href: string;
   icon: typeof LayoutDashboard;
   badge?: string;
-  feature?: PlatformFeatureKey;
+  feature?: UserFeatureKey;
+  adminOnly?: boolean;
+  userOnly?: boolean;
 }> = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Leads', href: '/leads', icon: Users, badge: 'AI' },
-  { label: 'Contacts (B2B)', href: '/contacts', icon: Building2 },
-  { label: 'Deals Pipeline', href: '/deals', icon: Kanban },
+  { label: 'Leads', href: '/leads', icon: Users, badge: 'AI', feature: 'leads' },
+  { label: 'Contacts (B2B)', href: '/contacts', icon: Building2, feature: 'contacts' },
+  { label: 'Deals Pipeline', href: '/deals', icon: Kanban, feature: 'deals' },
   { label: 'WhatsApp Inbox', href: '/inbox', icon: MessageSquare, badge: 'Live', feature: 'whatsappCloud' },
   { label: 'Campaigns', href: '/campaigns', icon: Megaphone, feature: 'whatsappBroadcasts' },
-  { label: 'Tasks', href: '/tasks', icon: CheckSquare },
+  { label: 'Tasks', href: '/tasks', icon: CheckSquare, feature: 'tasks' },
   { label: 'SLA Tickets', href: '/tickets', icon: LifeBuoy, feature: 'slaTickets' },
   { label: 'Workflows', href: '/workflows', icon: Workflow, feature: 'aiWorkflows' },
-  { label: 'Analytics', href: '/analytics', icon: BarChart3 },
-  { label: 'Products & HSN', href: '/products', icon: Package },
+  { label: 'Analytics', href: '/analytics', icon: BarChart3, feature: 'analytics' },
+  { label: 'Products & HSN', href: '/products', icon: Package, feature: 'products' },
   { label: 'Quotations', href: '/quotations', icon: ScrollText, badge: 'PDF', feature: 'gstBilling' },
   { label: 'GST Invoices', href: '/invoices', icon: FileText, feature: 'gstBilling' },
   { label: 'Document Center', href: '/documents', icon: FolderOpen, feature: 'documentVault' },
-  { label: 'Settings', href: '/settings', icon: Settings },
+  { label: 'Settings', href: '/settings', icon: Settings, adminOnly: true },
+  { label: 'My Profile', href: '/profile', icon: UserCircle, userOnly: true },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, tenant, logout } = useAuth();
-  const visibleNavItems = navItems.filter(
-    (item) => !item.feature || isFeatureEnabled(tenant, item.feature),
-  );
-  const aiOn = isFeatureEnabled(tenant, 'aiScoring');
-  const waOn = isFeatureEnabled(tenant, 'whatsappCloud');
+  const isAdmin = isWorkspaceAdminRole(user);
+
+  const visibleNavItems = navItems.filter((item) => {
+    if (item.adminOnly && !isAdmin) return false;
+    if (item.userOnly && isAdmin) return false;
+    if (!item.feature) return true;
+    return isFeatureEnabled(tenant, item.feature, user);
+  });
+  const aiOn = isFeatureEnabled(tenant, 'aiScoring', user);
+  const waOn = isFeatureEnabled(tenant, 'whatsappCloud', user);
+  const assignedCount = USER_FEATURE_CATALOG.filter((f) =>
+    isFeatureEnabled(tenant, f.key, user),
+  ).length;
+  const roleDisplay =
+    user?.role === 'manager'
+      ? 'Sales Manager'
+      : user?.role === 'agent'
+        ? 'Sales User'
+        : user?.role === 'owner'
+          ? 'Owner'
+          : 'Workspace Admin';
 
   return (
     <aside
@@ -77,7 +102,9 @@ export default function Sidebar() {
               Lead<span style={{ color: '#68A0FF' }}>setu</span>
             </div>
             <div className="text-[11px] text-slate-400 truncate">
-              {tenant?.name || 'AI CRM Workspace'}
+              {tenant?.name === 'Leadsetu Platform HQ'
+                ? 'AI CRM Workspace'
+                : tenant?.name || 'AI CRM Workspace'}
             </div>
           </div>
         </Link>
@@ -122,21 +149,41 @@ export default function Sidebar() {
 
       {/* Bottom User Card */}
       <div className="p-4 border-t border-white/10 space-y-3 flex-shrink-0">
-        <div className="p-3 rounded-xl bg-brand-blue/15 border border-brand-blue/30">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-brand-sky">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span className="capitalize">{tenant?.plan || 'Growth'} Plan · {tenant?.status === 'active' ? 'Active' : 'Trial'}</span>
+        {isAdmin ? (
+          <div className="p-3 rounded-xl bg-brand-blue/15 border border-brand-blue/30">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-brand-sky">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span className="capitalize">
+                {tenant?.plan || 'Growth'} Plan · {tenant?.status === 'active' ? 'Active' : 'Trial'}
+              </span>
+            </div>
+            <div className="text-[11px] text-slate-300 mt-0.5">
+              {aiOn && waOn
+                ? 'Gemini AI & WhatsApp Active'
+                : aiOn
+                  ? 'Gemini AI Active · WhatsApp Off'
+                  : waOn
+                    ? 'WhatsApp Active · AI Paused'
+                    : 'Modules Managed by Plan'}
+            </div>
           </div>
-          <div className="text-[11px] text-slate-300 mt-0.5">
-            {aiOn && waOn
-              ? 'Gemini AI & WhatsApp Active'
-              : aiOn
-                ? 'Gemini AI Active · WhatsApp Off'
-                : waOn
-                  ? 'WhatsApp Active · AI Paused'
-                  : 'Modules Governed by HQ'}
-          </div>
-        </div>
+        ) : (
+          <Link
+            href="/profile"
+            className="block p-3 rounded-xl bg-brand-blue/15 border border-brand-blue/30 hover:border-brand-sky/50 transition-colors"
+          >
+            <div className="flex items-center justify-between gap-2 text-xs font-bold text-brand-sky">
+              <span>{roleDisplay}</span>
+              <span className="font-mono text-[10px] text-emerald-300">
+                {assignedCount}/{USER_FEATURE_CATALOG.length} Tools
+              </span>
+            </div>
+            <div className="text-[11px] text-slate-300 mt-0.5 flex items-center gap-1 font-mono">
+              <Hash className="w-3 h-3 text-slate-400" />
+              <span>UID #{user?.userCode || '—'}</span>
+            </div>
+          </Link>
+        )}
 
         <div className="flex items-center justify-between gap-2 pt-1">
           <div className="flex items-center gap-2.5 min-w-0">

@@ -75,3 +75,40 @@ export async function subscribePlanApi(
   );
   return data;
 }
+
+export interface WorkspaceTopupRequestItem {
+  id: string;
+  resource: 'ai' | 'whatsapp';
+  quantity: number;
+  note: string;
+  status: 'pending' | 'approved' | 'rejected';
+  requestedByUserId: string;
+  requestedByName: string;
+  requestedByEmail: string;
+  createdAt: string;
+  resolvedAt: string;
+  resolvedByEmail: string;
+  resolutionNote: string;
+  grantedQuantity: number;
+}
+
+export async function fetchTopupRequestsApi(): Promise<{
+  data: WorkspaceTopupRequestItem[];
+}> {
+  const { data } = await apiClient.get<{ data: WorkspaceTopupRequestItem[] }>(
+    '/tenants/me/topup-requests',
+  );
+  return data;
+}
+
+export async function createTopupRequestApi(payload: {
+  resource: 'ai' | 'whatsapp';
+  quantity: number;
+  note?: string;
+}): Promise<{
+  created: WorkspaceTopupRequestItem;
+  data: WorkspaceTopupRequestItem[];
+}> {
+  const { data } = await apiClient.post('/tenants/me/topup-requests', payload);
+  return data;
+}

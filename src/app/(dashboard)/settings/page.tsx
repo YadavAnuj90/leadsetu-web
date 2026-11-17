@@ -46,6 +46,7 @@ import {
 import { getErrorMessage } from '@/lib/api-client';
 import { downloadSubscriptionInvoicePdf } from '@/lib/subscription-pdf';
 import SubscriptionInvoiceModal from '@/components/settings/SubscriptionInvoiceModal';
+import AiUsageTelemetryCard from '@/components/ai/AiUsageTelemetryCard';
 import type { ColorThemeId } from '@/components/shared/ThemeToggle';
 import type {
   SecuritySettings,
@@ -404,7 +405,9 @@ export default function SettingsPage() {
 
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white truncate">
-                  {tenant?.name || 'Leadsetu Workspace'}
+                  {tenant?.name === 'Leadsetu Platform HQ'
+                    ? 'Leadsetu Workspace'
+                    : tenant?.name || 'Leadsetu Workspace'}
                 </h1>
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-400/20 border border-emerald-300/40 text-[11px] font-extrabold text-emerald-200 capitalize">
                   {tenant?.plan || 'Growth'} Plan ·{' '}
@@ -681,7 +684,9 @@ export default function SettingsPage() {
                   Registered Organization
                 </span>
                 <span className="text-sm font-extrabold text-brand-navy mt-1 block">
-                  {tenant?.name || 'Leadsetu Workspace'}
+                  {tenant?.name === 'Leadsetu Platform HQ'
+                    ? 'Leadsetu Workspace'
+                    : tenant?.name || 'Leadsetu Workspace'}
                 </span>
                 <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                   slug: {tenant?.slug || 'workspace'}
@@ -826,14 +831,14 @@ export default function SettingsPage() {
                 </Link>
               ) : (
                 <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-300">
-                  Disabled by HQ
+                  Module Disabled
                 </span>
               )}
             </div>
 
             {!auditShieldEnabled ? (
               <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-rose-500/20 text-[11px] text-slate-500 dark:text-slate-400">
-                DPDP Anti-Leak Audit Shield controls are currently turned off for this workspace by Leadsetu Platform HQ.
+                DPDP Anti-Leak Audit Shield controls are currently turned off for this workspace.
               </div>
             ) : (
               <>
@@ -979,7 +984,7 @@ export default function SettingsPage() {
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-rose-500/15 text-rose-600 dark:text-rose-300">
-                    <Lock className="w-3 h-3" /> Disabled by HQ
+                    <Lock className="w-3 h-3" /> Module Disabled
                   </span>
                 )}
               </div>
@@ -1030,7 +1035,7 @@ export default function SettingsPage() {
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-rose-500/15 text-rose-600 dark:text-rose-300">
-                    <Lock className="w-3 h-3" /> Disabled by HQ
+                    <Lock className="w-3 h-3" /> Module Disabled
                   </span>
                 )}
               </div>
@@ -1131,7 +1136,7 @@ export default function SettingsPage() {
                 18% GST ITC Eligible
               </span>
               <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300">
-                {aiScoringEnabled ? 'Gemini AI Included' : 'Gemini AI Paused by HQ'}
+                {aiScoringEnabled ? 'Gemini AI Included' : 'Gemini AI Paused'}
               </span>
               {customRbacEnabled && (
                 <span className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/50 text-brand-blue dark:text-sky-300">
@@ -1165,7 +1170,7 @@ export default function SettingsPage() {
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-rose-500/15 text-rose-600 dark:text-rose-300">
-                    <Lock className="w-3 h-3" /> Disabled by HQ
+                    <Lock className="w-3 h-3" /> Module Disabled
                   </span>
                 )}
               </div>
@@ -1195,6 +1200,9 @@ export default function SettingsPage() {
           </Link>
         </div>
       </div>
+
+      {/* ─── AI GATEWAY HEALTH & TOKEN BUDGET TELEMETRY ─── */}
+      <AiUsageTelemetryCard />
 
       {/* ─── BILLING SECTION: ATTACHED SUBSCRIPTION PLAN INVOICES (PDF) ─── */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">

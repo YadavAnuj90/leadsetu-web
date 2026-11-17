@@ -1,12 +1,28 @@
 'use client';
 
+import { useState } from 'react';
 import { MessageSquare, Database, Loader2 } from 'lucide-react';
 import { useInbox } from '@/hooks/useInbox';
+import { useAuthStore } from '@/store/auth.store';
+import { isFeatureEnabled } from '@/lib/feature-access';
 import ConversationList from '@/components/inbox/ConversationList';
 import MessageThread from '@/components/inbox/MessageThread';
 import MessageComposer from '@/components/inbox/MessageComposer';
+import VoiceCrmAuditModal from '@/components/ai/VoiceCrmAuditModal';
+import DealerRfqModal from '@/components/ai/DealerRfqModal';
 
 export default function InboxPage() {
+  const user = useAuthStore((s) => s.user);
+  const tenant = useAuthStore((s) => s.tenant);
+  const baseAiEnabled = isFeatureEnabled(tenant, 'aiScoring', user);
+  const canUseVoiceCrm = baseAiEnabled && isFeatureEnabled(tenant, 'aiVoiceCrm', user);
+  const canUseDealerDesk = baseAiEnabled && isFeatureEnabled(tenant, 'aiDealerDesk', user);
+  const [voiceModalOpen, setVoiceModalOpen] = useState(false);
+  const [rfqModalOpen, setRfqModalOpen] = useState(false);
+  const [composerDraft, setComposerDraft] = useState<{
+    text: string;
+    seq: number;
+  } | null>(null);
   const {
     conversations,
     activeConversation,
@@ -77,10 +93,17 @@ export default function InboxPage() {
             <MessageThread
               conversation={activeConversation}
               onToggleStatus={toggleStatus}
+              onOpenVoiceAudit={
+                canUseVoiceCrm ? () => setVoiceModalOpen(true) : undefined
+              }
+              onOpenRfqParser={
+                canUseDealerDesk ? () => setRfqModalOpen(true) : undefined
+              }
             />
             <MessageComposer
               aiSuggestedReply={activeConversation.aiSuggestedReply}
               isSending={isSending}
+              externalDraft={composerDraft}
               onSend={sendMessage}
             />
           </>
@@ -90,6 +113,32 @@ export default function InboxPage() {
           </div>
         )}
       </div>
+
+      <VoiceCrmAuditModal
+        open={voiceModalOpen}
+        onClose={() => setVoiceModalOpen(false)}
+        initialDealerName={activeConversation?.contactName}
+        initialCompany={activeConversation?.company}
+        initialPhone={activeConversation?.phone}
+        initialCity={activeConversation?.city}
+      />
+
+      <DealerRfqModal
+        open={rfqModalOpen}
+        onClose={() => setRfqModalOpen(false)}
+        initialMessage={
+          [...(activeConversation?.messages || [])]
+            .reverse()
+            .find((m) => m.direction === 'inbound')?.content ||
+          activeConversation?.lastMessage ||
+          ''
+        }
+        dealerName={activeConversation?.contactName}
+        companyName={activeConversation?.company}
+        dealerCity={activeConversation?.city}
+        dealerPhone={activeConversation?.phone}
+        onInsertReply={(text) => setComposerDraft({ text, seq: Date.now() })}
+      />
     </div>
   );
 }

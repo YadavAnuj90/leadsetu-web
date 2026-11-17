@@ -48,11 +48,50 @@ export async function resetTeamMemberPassword(
   return data;
 }
 
+export async function resendTeamInvite(
+  id: string,
+): Promise<{ member: TeamMember; credentials: MemberCredentials }> {
+  const { data } = await apiClient.post(`/team/${id}/resend-invite`);
+  return data;
+}
+
 export async function removeTeamMember(id: string): Promise<{
   success: boolean;
   reassignedTo: { id: string; name: string } | null;
   reassigned: Record<string, number>;
 }> {
   const { data } = await apiClient.delete(`/team/${id}`);
+  return data;
+}
+
+export interface MyPerformanceResponse {
+  userId: string;
+  name: string;
+  role: string;
+  territory: string;
+  monthlyTarget: number;
+  aiDailyCallLimit: number;
+  aiCallsToday: number;
+  performance: TeamMember['performance'];
+}
+
+export interface MyTeamResponse {
+  territory: string;
+  summary: {
+    repCount: number;
+    totalWonRevenue: number;
+    totalOpenPipeline: number;
+    avgTargetPct: number;
+  };
+  data: Array<TeamMember & { pendingTasks: number }>;
+}
+
+export async function fetchMyPerformanceApi(): Promise<MyPerformanceResponse> {
+  const { data } = await apiClient.get<MyPerformanceResponse>('/team/me/performance');
+  return data;
+}
+
+export async function fetchMyTeamApi(): Promise<MyTeamResponse> {
+  const { data } = await apiClient.get<MyTeamResponse>('/team/my-team');
   return data;
 }

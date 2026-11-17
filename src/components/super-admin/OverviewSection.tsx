@@ -31,8 +31,16 @@ export default function OverviewSection({
   onInspectTenant: (tenantId: string) => void;
   onNavigateTab: (tab: 'tenants' | 'policies' | 'billing' | 'audit' | 'operators') => void;
 }) {
-  const { kpis, planBreakdown, topCities, quotaWatchlist, recentTenants, recentAudits, platformStatus } =
-    overview;
+  const {
+    kpis,
+    costTelemetry,
+    planBreakdown,
+    topCities,
+    quotaWatchlist,
+    recentTenants,
+    recentAudits,
+    platformStatus,
+  } = overview;
 
   const totalPlanCount = Math.max(
     1,
@@ -255,14 +263,14 @@ export default function OverviewSection({
         {/* Quota & Seat Saturation Watchlist */}
         <div className="lg:col-span-7 rounded-2xl p-5 bg-white dark:bg-[#0D1628] border border-slate-200/85 dark:border-slate-800 shadow-sm flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3">
               <div>
                 <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-amber-500" />
-                  Seat &amp; Quota Saturation Watchlist
+                  Live Quota Metering, Cost Telemetry &amp; Unit Economics
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Inspect any workspace to raise caps, toggle overrides, or enforce locks.
+                  Tracks Gemini AI &amp; Meta WhatsApp infra spend vs. MRR to catch unprofitable heavy tenants.
                 </p>
               </div>
               <button
@@ -274,14 +282,49 @@ export default function OverviewSection({
               </button>
             </div>
 
+            {costTelemetry && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-3">
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200/70 dark:border-slate-800">
+                  <div className="text-[10px] font-bold uppercase text-slate-400">AI Cost (Est.)</div>
+                  <div className="text-sm font-black text-slate-900 dark:text-white">
+                    ₹{costTelemetry.totalMonthlyAiCostInr.toLocaleString('en-IN')}
+                  </div>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200/70 dark:border-slate-800">
+                  <div className="text-[10px] font-bold uppercase text-slate-400">WhatsApp Cost</div>
+                  <div className="text-sm font-black text-slate-900 dark:text-white">
+                    ₹{costTelemetry.totalMonthlyWaCostInr.toLocaleString('en-IN')}
+                  </div>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200/70 dark:border-slate-800">
+                  <div className="text-[10px] font-bold uppercase text-slate-400">80%+ / 100% Alerts</div>
+                  <div className="text-sm font-black text-amber-600 dark:text-amber-300">
+                    {costTelemetry.warning80Count} / {costTelemetry.exceeded100Count}
+                  </div>
+                </div>
+                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/25">
+                  <div className="text-[10px] font-bold uppercase text-rose-500">Unprofitable</div>
+                  <div className="text-sm font-black text-rose-600 dark:text-rose-300">
+                    {costTelemetry.unprofitableTenantsCount} tenant{costTelemetry.unprofitableTenantsCount === 1 ? '' : 's'}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-3">
               {quotaWatchlist.map((w) => (
                 <div
                   key={w.id}
-                  className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                    w.unprofitable || w.alertLevel === 'exceeded_100'
+                      ? 'bg-rose-50/70 dark:bg-rose-950/20 border-rose-300/80 dark:border-rose-800/70'
+                      : w.alertLevel === 'warning_80'
+                        ? 'bg-amber-50/70 dark:bg-amber-950/20 border-amber-300/80 dark:border-amber-800/70'
+                        : 'bg-slate-50 dark:bg-slate-900/80 border-slate-200/80 dark:border-slate-800'
+                  }`}
                 >
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="font-mono text-[10px] font-extrabold px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
                         #{w.accountId || '00000'}
                       </span>
@@ -291,20 +334,41 @@ export default function OverviewSection({
                       <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/70 text-[#0057FF] dark:text-sky-400">
                         {w.plan}
                       </span>
-                      {w.overrideCount > 0 && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-300">
-                          {w.overrideCount} override{w.overrideCount > 1 ? 's' : ''}
+                      {w.unprofitable && (
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-600 text-white">
+                          Negative Margin
+                        </span>
+                      )}
+                      {w.alertLevel === 'exceeded_100' && (
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-600 dark:text-rose-300">
+                          100% Cap Hit
+                        </span>
+                      )}
+                      {w.alertLevel === 'warning_80' && (
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                          80%+ Quota
                         </span>
                       )}
                     </div>
 
-                    <div className="mt-2 flex items-center gap-4 text-[11px] text-slate-500 dark:text-slate-400">
+                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400">
                       <span>
                         Seats: <strong className="text-slate-800 dark:text-slate-200">{w.seatsUsed}/{w.seatLimit}</strong> ({w.seatPct}%)
                       </span>
                       <span>
-                        AI Usage: <strong className="text-slate-800 dark:text-slate-200">{w.aiPct}%</strong>
+                        AI: <strong className="text-slate-800 dark:text-slate-200">{w.aiPct}%</strong>
                       </span>
+                      <span>
+                        WA: <strong className="text-slate-800 dark:text-slate-200">{w.waPct ?? 0}%</strong>
+                      </span>
+                      {typeof w.totalInfraCostInr === 'number' && (
+                        <span>
+                          Cost/MRR:{' '}
+                          <strong className={w.unprofitable ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}>
+                            ₹{w.totalInfraCostInr} / ₹{w.mrrInr ?? 0}
+                          </strong>
+                        </span>
+                      )}
                     </div>
                   </div>
 

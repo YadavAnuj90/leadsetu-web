@@ -14,11 +14,20 @@ import {
   Database,
   Loader2,
   X,
+  Route,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { useAuthStore } from '@/store/auth.store';
+import { isFeatureEnabled } from '@/lib/feature-access';
+import FieldBeatPlannerModal from '@/components/ai/FieldBeatPlannerModal';
 import type { Task } from '@/types/contracts';
 
 export default function TasksPage() {
+  const user = useAuthStore((s) => s.user);
+  const tenant = useAuthStore((s) => s.tenant);
+  const beatPlannerEnabled =
+    isFeatureEnabled(tenant, 'aiScoring', user) &&
+    isFeatureEnabled(tenant, 'aiDealerDesk', user);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [stats, setStats] = useState({
     total: 0,
@@ -30,6 +39,7 @@ export default function TasksPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [beatModalOpen, setBeatModalOpen] = useState(false);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -127,6 +137,16 @@ export default function TasksPage() {
             >
               <Database className="w-4 h-4" />
               <span>Load 4 Sample Tasks</span>
+            </button>
+          )}
+          {beatPlannerEnabled && (
+            <button
+              type="button"
+              onClick={() => setBeatModalOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border border-brand-blue/30 bg-brand-light text-brand-blue hover:bg-brand-blue hover:text-white transition-all"
+            >
+              <Route className="w-4 h-4" />
+              <span>AI Field Beat Planner</span>
             </button>
           )}
           <button
@@ -227,7 +247,7 @@ export default function TasksPage() {
                     {isDone ? (
                       <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                     ) : (
-                      <Circle className="w-5 h-5 text-slate-300 hover:text-brand-blue" />
+                      <Circle className="w-5 h-5 text-slate-400 dark:text-slate-500 hover:text-brand-blue" />
                     )}
                   </button>
 
@@ -459,6 +479,12 @@ export default function TasksPage() {
           </div>
         </div>
       )}
+
+      <FieldBeatPlannerModal
+        open={beatModalOpen}
+        onClose={() => setBeatModalOpen(false)}
+        onTasksCreated={fetchTasks}
+      />
     </div>
   );
 }

@@ -171,27 +171,239 @@ html.dark .bg-dots-light {
   background-size: 20px 20px;
 }
 
-/* Scoped Dark Mode surface overrides for CRM Dashboard pages */
-html.dark .dashboard-shell .bg-white {
+/* Scoped Dark Mode surface & contrast overrides for CRM Dashboard pages */
+html.dark .dashboard-shell .bg-white,
+html.dark .dashboard-shell .bg-white\/95,
+html.dark .dashboard-shell .bg-white\/90,
+html.dark .dashboard-shell .bg-white\/85,
+html.dark .dashboard-shell .bg-white\/80,
+html.dark .dashboard-shell .bg-white\/70 {
   background-color: #0D1628 !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 html.dark .dashboard-shell .bg-slate-50,
+html.dark .dashboard-shell .bg-slate-50\/90,
 html.dark .dashboard-shell .bg-slate-50\/80,
 html.dark .dashboard-shell .bg-slate-50\/70,
-html.dark .dashboard-shell .bg-slate-50\/60 {
+html.dark .dashboard-shell .bg-slate-50\/60,
+html.dark .dashboard-shell .bg-slate-50\/50,
+html.dark .dashboard-shell .bg-\[\#F8FAFF\],
+html.dark .dashboard-shell .bg-\[\#F4F7FC\] {
   background-color: #111D33 !important;
 }
 
-html.dark .dashboard-shell .text-brand-navy {
+html.dark .dashboard-shell .bg-slate-100,
+html.dark .dashboard-shell .bg-slate-100\/80,
+html.dark .dashboard-shell .bg-slate-100\/70,
+html.dark .dashboard-shell .bg-slate-100\/60,
+html.dark .dashboard-shell .bg-slate-200,
+html.dark .dashboard-shell .bg-slate-200\/80,
+html.dark .dashboard-shell .bg-slate-200\/70 {
+  background-color: #15233D !important;
+}
+
+html.dark .dashboard-shell .bg-brand-light,
+html.dark .dashboard-shell .bg-brand-light\/80,
+html.dark .dashboard-shell .bg-brand-light\/70,
+html.dark .dashboard-shell .bg-brand-light\/60,
+html.dark .dashboard-shell .bg-brand-light\/50,
+html.dark .dashboard-shell .bg-blue-50,
+html.dark .dashboard-shell .bg-blue-50\/80,
+html.dark .dashboard-shell .bg-blue-50\/70,
+html.dark .dashboard-shell .bg-blue-50\/60,
+html.dark .dashboard-shell .bg-blue-50\/50,
+html.dark .dashboard-shell .bg-blue-100,
+html.dark .dashboard-shell .bg-indigo-50,
+html.dark .dashboard-shell .bg-indigo-50\/80,
+html.dark .dashboard-shell .bg-indigo-50\/70,
+html.dark .dashboard-shell .bg-indigo-50\/60,
+html.dark .dashboard-shell .bg-indigo-50\/50,
+html.dark .dashboard-shell .bg-indigo-100 {
+  background-color: rgba(57, 120, 234, 0.16) !important;
+}
+
+html.dark .dashboard-shell .bg-sky-50,
+html.dark .dashboard-shell .bg-sky-50\/80,
+html.dark .dashboard-shell .bg-sky-50\/70,
+html.dark .dashboard-shell .bg-sky-50\/60,
+html.dark .dashboard-shell .bg-sky-100,
+html.dark .dashboard-shell .bg-cyan-50,
+html.dark .dashboard-shell .bg-cyan-50\/70,
+html.dark .dashboard-shell .bg-cyan-100 {
+  background-color: rgba(14, 165, 233, 0.16) !important;
+}
+
+html.dark .dashboard-shell .bg-emerald-50,
+html.dark .dashboard-shell .bg-emerald-50\/80,
+html.dark .dashboard-shell .bg-emerald-50\/70,
+html.dark .dashboard-shell .bg-emerald-50\/60,
+html.dark .dashboard-shell .bg-emerald-50\/50,
+html.dark .dashboard-shell .bg-emerald-100,
+html.dark .dashboard-shell .bg-green-50,
+html.dark .dashboard-shell .bg-green-50\/70,
+html.dark .dashboard-shell .bg-green-100,
+html.dark .dashboard-shell .bg-teal-50,
+html.dark .dashboard-shell .bg-teal-50\/70,
+html.dark .dashboard-shell .bg-teal-100 {
+  background-color: rgba(16, 185, 129, 0.16) !important;
+}
+
+html.dark .dashboard-shell .bg-amber-50,
+html.dark .dashboard-shell .bg-amber-50\/80,
+html.dark .dashboard-shell .bg-amber-50\/70,
+html.dark .dashboard-shell .bg-amber-50\/60,
+html.dark .dashboard-shell .bg-amber-50\/50,
+html.dark .dashboard-shell .bg-amber-100,
+html.dark .dashboard-shell .bg-yellow-50,
+html.dark .dashboard-shell .bg-yellow-100 {
+  background-color: rgba(245, 158, 11, 0.16) !important;
+}
+
+html.dark .dashboard-shell .bg-orange-50,
+html.dark .dashboard-shell .bg-orange-50\/80,
+html.dark .dashboard-shell .bg-orange-50\/70,
+html.dark .dashboard-shell .bg-orange-50\/60,
+html.dark .dashboard-shell .bg-orange-50\/50,
+html.dark .dashboard-shell .bg-orange-100 {
+  background-color: rgba(249, 115, 22, 0.16) !important;
+}
+
+html.dark .dashboard-shell .bg-rose-50,
+html.dark .dashboard-shell .bg-rose-50\/80,
+html.dark .dashboard-shell .bg-rose-50\/70,
+html.dark .dashboard-shell .bg-rose-50\/60,
+html.dark .dashboard-shell .bg-rose-50\/50,
+html.dark .dashboard-shell .bg-rose-100,
+html.dark .dashboard-shell .bg-red-50,
+html.dark .dashboard-shell .bg-red-50\/80,
+html.dark .dashboard-shell .bg-red-100 {
+  background-color: rgba(244, 63, 94, 0.16) !important;
+}
+
+html.dark .dashboard-shell .bg-purple-50,
+html.dark .dashboard-shell .bg-purple-50\/80,
+html.dark .dashboard-shell .bg-purple-100,
+html.dark .dashboard-shell .bg-violet-50,
+html.dark .dashboard-shell .bg-violet-100,
+html.dark .dashboard-shell .bg-fuchsia-50,
+html.dark .dashboard-shell .bg-fuchsia-100 {
+  background-color: rgba(139, 92, 246, 0.18) !important;
+}
+
+html.dark .dashboard-shell .text-brand-navy,
+html.dark .dashboard-shell .text-slate-900 {
   color: #F8FAFC !important;
 }
 
+html.dark .dashboard-shell .text-slate-800 {
+  color: #E2E8F0 !important;
+}
+
+html.dark .dashboard-shell .text-slate-700 {
+  color: #CBD5E1 !important;
+}
+
+html.dark .dashboard-shell .text-slate-600,
+html.dark .dashboard-shell .text-slate-500 {
+  color: #94A3B8 !important;
+}
+
+html.dark .dashboard-shell .text-brand-blue,
+html.dark .dashboard-shell .text-blue-700,
+html.dark .dashboard-shell .text-blue-800,
+html.dark .dashboard-shell .text-blue-900 {
+  color: #7FB2FF !important;
+}
+
+html.dark .dashboard-shell .text-indigo-600,
+html.dark .dashboard-shell .text-indigo-700,
+html.dark .dashboard-shell .text-indigo-800,
+html.dark .dashboard-shell .text-indigo-900 {
+  color: #A5B4FC !important;
+}
+
+html.dark .dashboard-shell .text-sky-600,
+html.dark .dashboard-shell .text-sky-700,
+html.dark .dashboard-shell .text-sky-800 {
+  color: #7DD3FC !important;
+}
+
+html.dark .dashboard-shell .text-emerald-700,
+html.dark .dashboard-shell .text-emerald-800,
+html.dark .dashboard-shell .text-emerald-900,
+html.dark .dashboard-shell .text-green-700,
+html.dark .dashboard-shell .text-green-800,
+html.dark .dashboard-shell .text-teal-700,
+html.dark .dashboard-shell .text-teal-800 {
+  color: #6EE7B7 !important;
+}
+
+html.dark .dashboard-shell .text-amber-700,
+html.dark .dashboard-shell .text-amber-800,
+html.dark .dashboard-shell .text-amber-900,
+html.dark .dashboard-shell .text-yellow-700,
+html.dark .dashboard-shell .text-yellow-800 {
+  color: #FCD34D !important;
+}
+
+html.dark .dashboard-shell .text-orange-700,
+html.dark .dashboard-shell .text-orange-800,
+html.dark .dashboard-shell .text-orange-900 {
+  color: #FDBA74 !important;
+}
+
+html.dark .dashboard-shell .text-rose-700,
+html.dark .dashboard-shell .text-rose-800,
+html.dark .dashboard-shell .text-rose-900,
+html.dark .dashboard-shell .text-red-700,
+html.dark .dashboard-shell .text-red-800,
+html.dark .dashboard-shell .text-red-900 {
+  color: #FDA4AF !important;
+}
+
+html.dark .dashboard-shell .text-purple-700,
+html.dark .dashboard-shell .text-purple-800,
+html.dark .dashboard-shell .text-violet-700,
+html.dark .dashboard-shell .text-violet-800 {
+  color: #C4B5FD !important;
+}
+
+html.dark .dashboard-shell .border-slate-300,
 html.dark .dashboard-shell .border-slate-200,
 html.dark .dashboard-shell .border-slate-200\/80,
-html.dark .dashboard-shell .border-slate-100 {
-  border-color: rgba(255, 255, 255, 0.09) !important;
+html.dark .dashboard-shell .border-slate-200\/70,
+html.dark .dashboard-shell .border-slate-100,
+html.dark .dashboard-shell .border-slate-100\/80 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html.dark .dashboard-shell .border-blue-200,
+html.dark .dashboard-shell .border-indigo-200,
+html.dark .dashboard-shell .border-brand-light {
+  border-color: rgba(96, 165, 250, 0.28) !important;
+}
+
+html.dark .dashboard-shell .border-emerald-200,
+html.dark .dashboard-shell .border-green-200,
+html.dark .dashboard-shell .border-teal-200 {
+  border-color: rgba(52, 211, 153, 0.28) !important;
+}
+
+html.dark .dashboard-shell .border-amber-200,
+html.dark .dashboard-shell .border-yellow-200,
+html.dark .dashboard-shell .border-orange-200 {
+  border-color: rgba(251, 191, 36, 0.28) !important;
+}
+
+html.dark .dashboard-shell .border-rose-200,
+html.dark .dashboard-shell .border-red-200 {
+  border-color: rgba(251, 113, 133, 0.28) !important;
+}
+
+html.dark .dashboard-shell .border-purple-200,
+html.dark .dashboard-shell .border-violet-200 {
+  border-color: rgba(167, 139, 250, 0.28) !important;
 }
 
 html.dark .dashboard-shell .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
@@ -206,10 +418,22 @@ html.dark .dashboard-shell .hover\:bg-slate-50\/70:hover,
 html.dark .dashboard-shell .hover\:bg-slate-50\/80:hover,
 html.dark .dashboard-shell .hover\:bg-slate-100:hover,
 html.dark .dashboard-shell .hover\:bg-slate-100\/70:hover,
+html.dark .dashboard-shell .hover\:bg-slate-200:hover,
 html.dark .dashboard-shell .hover\:bg-slate-200\/70:hover,
 html.dark .dashboard-shell .hover\:bg-white:hover,
-html.dark .dashboard-shell .hover\:bg-brand-light:hover {
-  background-color: rgba(57, 120, 234, 0.1) !important;
+html.dark .dashboard-shell .hover\:bg-brand-light:hover,
+html.dark .dashboard-shell .hover\:bg-blue-50:hover,
+html.dark .dashboard-shell .hover\:bg-emerald-50:hover,
+html.dark .dashboard-shell .hover\:bg-amber-50:hover,
+html.dark .dashboard-shell .hover\:bg-rose-50:hover {
+  background-color: rgba(57, 120, 234, 0.14) !important;
+}
+
+html.dark .dashboard-shell .hover\:text-brand-navy:hover,
+html.dark .dashboard-shell .hover\:text-slate-900:hover,
+html.dark .dashboard-shell .hover\:text-slate-800:hover,
+html.dark .dashboard-shell .hover\:text-slate-700:hover {
+  color: #F8FAFC !important;
 }
 
 html.dark .dashboard-shell input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
@@ -224,6 +448,39 @@ html.dark .dashboard-shell textarea {
 html.dark .dashboard-shell input::placeholder,
 html.dark .dashboard-shell textarea::placeholder {
   color: #64748B !important;
+}
+
+/* Native dark scrollbars & color-scheme so overflow tables never show white tracks or corners */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark * {
+  scrollbar-color: rgba(148, 163, 184, 0.35) rgba(11, 20, 38, 0.6);
+  scrollbar-width: thin;
+}
+
+html.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+html.dark ::-webkit-scrollbar-track {
+  background: rgba(11, 20, 38, 0.65);
+  border-radius: 9999px;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.32);
+  border-radius: 9999px;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+html.dark ::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 @layer components {

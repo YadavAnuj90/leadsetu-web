@@ -1,11 +1,16 @@
 import { apiClient } from '@/lib/api-client';
 import type {
+  BankStatementPreviewMatch,
+  CreditRecoveryConfig,
+  CreditRecoveryOverviewResponse,
   Invoice,
+  InvoicePaymentMode,
   InvoiceStats,
   CreateInvoicePayload,
   InvoicePaymentMethod,
   PublicQuoteView,
   RecordInvoicePaymentPayload,
+  TallyXmlExportResponse,
 } from '@/types/contracts';
 
 export interface InvoicesListResponse {
@@ -105,7 +110,10 @@ export async function exportGstr1CsvApi(): Promise<{
   return data;
 }
 
-export async function convertQuoteToInvoiceApi(id: string): Promise<{
+export async function convertQuoteToInvoiceApi(
+  id: string,
+  override?: { overrideCreditHold?: boolean; overrideReason?: string },
+): Promise<{
   alreadyConverted: boolean;
   quote: Invoice;
   invoice: Invoice;
@@ -114,7 +122,138 @@ export async function convertQuoteToInvoiceApi(id: string): Promise<{
     alreadyConverted: boolean;
     quote: Invoice;
     invoice: Invoice;
-  }>(`/invoices/${id}/convert-to-invoice`);
+  }>(`/invoices/${id}/convert-to-invoice`, override || {});
+  return data;
+}
+
+export async function exportTallyXmlApi(): Promise<TallyXmlExportResponse> {
+  const { data } = await apiClient.get<TallyXmlExportResponse>(
+    '/invoices/export/tally-xml',
+  );
+  return data;
+}
+
+export async function fetchRecoveryOverviewApi(): Promise<CreditRecoveryOverviewResponse> {
+  const { data } = await apiClient.get<CreditRecoveryOverviewResponse>(
+    '/invoices/recovery/overview',
+  );
+  return data;
+}
+
+export async function updateRecoveryConfigApi(
+  payload: Partial<CreditRecoveryConfig>,
+): Promise<CreditRecoveryConfig> {
+  const { data } = await apiClient.patch<CreditRecoveryConfig>(
+    '/invoices/recovery/config',
+    payload,
+  );
+  return data;
+}
+
+export async function recordInvoicePtpApi(
+  id: string,
+  payload: {
+    promisedPaymentDate: string;
+    promisedAmount?: number;
+    ptpNote?: string;
+  },
+): Promise<Invoice> {
+  const { data } = await apiClient.post<Invoice>(`/invoices/${id}/ptp`, payload);
+  return data;
+}
+
+export async function sendRecoveryChaserApi(
+  id: string,
+  payload?: {
+    tone?: 'polite' | 'firm' | 'urgent' | 'final_hold';
+    language?: 'hinglish' | 'hindi' | 'english';
+    customMessage?: string;
+  },
+): Promise<{
+  invoice: Invoice;
+  chaserMessage: string;
+  upiLink: string;
+}> {
+  const { data } = await apiClient.post<{
+    invoice: Invoice;
+    chaserMessage: string;
+    upiLink: string;
+  }>(`/invoices/${id}/send-chaser`, payload || {});
+  return data;
+}
+
+export async function runBatchChasersApi(): Promise<{
+  sentCount: number;
+  autoHoldCount: number;
+  processedInvoices: string[];
+}> {
+  const { data } = await apiClient.post<{
+    sentCount: number;
+    autoHoldCount: number;
+    processedInvoices: string[];
+  }>('/invoices/recovery/run-chasers');
+  return data;
+}
+
+export async function previewBankReconApi(
+  entries: {
+    id?: string;
+    date: string;
+    narration: string;
+    utrOrRef: string;
+    creditAmount: number;
+  }[],
+): Promise<{
+  totalEntries: number;
+  matchedCount: number;
+  results: BankStatementPreviewMatch[];
+}> {
+  const { data } = await apiClient.post<{
+    totalEntries: number;
+    matchedCount: number;
+    results: BankStatementPreviewMatch[];
+  }>('/invoices/reconcile-bank', { entries });
+  return data;
+}
+
+export async function applyBankReconMatchesApi(
+  matches: {
+    invoiceId: string;
+    amountPaid: number;
+    tdsDeducted?: number;
+    utrOrChequeNo: string;
+    paymentDate: string;
+    paymentMode?: InvoicePaymentMode;
+    note?: string;
+  }[],
+): Promise<{ settledCount: number; invoices: Invoice[] }> {
+  const { data } = await apiClient.post<{
+    settledCount: number;
+    invoices: Invoice[];
+  }>('/invoices/reconcile-bank/apply', { matches });
+  return data;
+}
+
+export async function verifyContactGstinApi(
+  contactId: string,
+  gstin?: string,
+) {
+  const { data } = await apiClient.post(`/contacts/${contactId}/verify-gstin`, {
+    gstin,
+  });
+  return data;
+}
+
+export async function updateContactCreditApi(
+  contactId: string,
+  payload: {
+    creditLimitInr?: number;
+    creditTermDays?: number;
+    creditHold?: boolean;
+    creditHoldReason?: string;
+  },
+) {
+  const { data } = await apiClient.patch(`/contacts/${contactId}`, payload);
   return data;
 }
 

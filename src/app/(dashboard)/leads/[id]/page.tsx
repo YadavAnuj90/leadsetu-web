@@ -17,10 +17,14 @@ import {
   Trash2,
   Briefcase,
   FileText,
+  Mic,
 } from 'lucide-react';
 import { fetchSingleLead, addLeadActivityApi } from '@/hooks/useLeads';
 import { apiClient, getErrorMessage } from '@/lib/api-client';
+import { useAuthStore } from '@/store/auth.store';
+import { isFeatureEnabled } from '@/lib/feature-access';
 import LeadTimeline from '@/components/leads/LeadTimeline';
+import VoiceCrmAuditModal from '@/components/ai/VoiceCrmAuditModal';
 import type { Deal, Lead, LeadActivity, LeadStatus } from '@/types/contracts';
 
 const stages: { id: LeadStatus; label: string }[] = [
@@ -35,10 +39,16 @@ export default function LeadDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const leadId = params?.id;
+  const user = useAuthStore((s) => s.user);
+  const tenant = useAuthStore((s) => s.tenant);
+  const voiceCrmEnabled =
+    isFeatureEnabled(tenant, 'aiScoring', user) &&
+    isFeatureEnabled(tenant, 'aiVoiceCrm', user);
 
   const [lead, setLead] = useState<Lead | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isConvertingDeal, setIsConvertingDeal] = useState(false);
+  const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadLead = useCallback(async () => {
@@ -179,6 +189,16 @@ export default function LeadDetailPage() {
             )}
             <span>Convert to Deal</span>
           </button>
+
+          {voiceCrmEnabled && (
+            <button
+              type="button"
+              onClick={() => setVoiceModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border border-brand-blue/30 bg-brand-light text-brand-blue hover:bg-brand-blue hover:text-white transition-colors"
+            >
+              <Mic className="w-3.5 h-3.5" /> Voice-to-CRM &amp; Audit
+            </button>
+          )}
 
           <Link
             href={`/quotations?leadId=${encodeURIComponent(lead.id)}&client=${encodeURIComponent(lead.company || lead.name)}&contact=${encodeURIComponent(lead.name)}&phone=${encodeURIComponent(lead.phone || '')}&email=${encodeURIComponent(lead.email || '')}&city=${encodeURIComponent(lead.city || '')}&amount=${lead.estimatedValue || 0}&title=${encodeURIComponent(lead.company ? `${lead.company} Supply Proposal` : `${lead.name} Quotation`)}`}
@@ -353,6 +373,19 @@ export default function LeadDetailPage() {
           />
         </div>
       </div>
+
+      <VoiceCrmAuditModal
+        open={voiceModalOpen}
+        onClose={() => setVoiceModalOpen(false)}
+        initialDealerName={lead.name}
+        initialCompany={lead.company}
+        initialPhone={lead.phone}
+        initialCity={lead.city}
+        initialStage={lead.status}
+        onActivitySaved={(type, description) =>
+          handleAddActivity({ type, description })
+        }
+      />
     </div>
   );
 }

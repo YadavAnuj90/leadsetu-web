@@ -67,9 +67,18 @@ export default function PoliciesMatrixSection({
 }) {
   const [config, setConfig] = useState<PlatformConfigData>(initialConfig);
   const [reason, setReason] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+
+  const hasDestructiveChange =
+    config.maintenanceMode !== initialConfig.maintenanceMode ||
+    Object.keys(config.globalKillSwitches).some(
+      (k) =>
+        config.globalKillSwitches[k as keyof GlobalKillSwitches] !==
+        initialConfig.globalKillSwitches[k as keyof GlobalKillSwitches]
+    );
 
   const toggleKillSwitch = (key: keyof GlobalKillSwitches) => {
     setConfig((prev) => ({
@@ -134,6 +143,10 @@ export default function PoliciesMatrixSection({
   };
 
   const handleSave = async () => {
+    if (hasDestructiveChange && !confirmPassword.trim()) {
+      setError('Re-enter your Super Admin password below to authorize maintenance mode or kill-switch changes.');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -146,10 +159,12 @@ export default function PoliciesMatrixSection({
         securityPolicies: config.securityPolicies,
         planMatrix: config.planMatrix,
         reason: reason.trim() || 'Platform policy matrix updated from HQ Console',
+        confirmPassword: confirmPassword.trim() || undefined,
       });
       setConfig(res.config);
       onSaved(res.config);
       setReason('');
+      setConfirmPassword('');
       setToast('Global policies, kill-switches & plan matrix enforced across Leadsetu Cloud.');
       setTimeout(() => setToast(null), 4000);
     } catch (err) {
@@ -527,7 +542,25 @@ export default function PoliciesMatrixSection({
           </table>
         </div>
 
-        {/* Save Bar with Optional Governance Reason */}
+        {/* Save Bar with Optional Governance Reason & Destructive Password Re-Entry */}
+        {hasDestructiveChange && (
+          <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="text-xs font-extrabold text-rose-600 dark:text-rose-300 flex items-center gap-2">
+              <KeyRound className="w-4 h-4 shrink-0" />
+              <span>
+                Two-Person / Root Verification: Re-enter Super Admin password to apply kill-switch or maintenance mode change.
+              </span>
+            </div>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Super Admin password *"
+              className="sm:w-64 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-950 border border-rose-400/50 text-xs font-bold"
+            />
+          </div>
+        )}
+
         <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <input
             type="text"

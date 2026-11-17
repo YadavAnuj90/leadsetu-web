@@ -32,7 +32,9 @@ import {
   Wallet,
   Banknote,
   Landmark,
+  ShieldAlert,
 } from 'lucide-react';
+import CreditRecoveryPanel from '@/components/invoices/CreditRecoveryPanel';
 import {
   fetchInvoices,
   createInvoice,
@@ -193,6 +195,10 @@ export default function InvoicesPage() {
       .catch(() => {});
   }, []);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<'invoices' | 'recovery'>('invoices');
+  const [overrideCreditHold, setOverrideCreditHold] = useState(false);
+  const [overrideReason, setOverrideReason] = useState('');
+  const [createErrorMsg, setCreateErrorMsg] = useState<string | null>(null);
 
   // Record Payment / TDS Modal State
   const [paymentModalInv, setPaymentModalInv] = useState<Invoice | null>(null);
@@ -345,6 +351,7 @@ export default function InvoicesPage() {
     if (!clientName.trim()) return;
     setIsMutating(true);
     setErrorMsg(null);
+    setCreateErrorMsg(null);
     try {
       const created = await createInvoice({
         docType,
@@ -362,6 +369,8 @@ export default function InvoicesPage() {
         status: 'sent',
         linkedDealId: linkedDealId || undefined,
         linkedLeadId: linkedLeadId || undefined,
+        overrideCreditHold: overrideCreditHold || undefined,
+        overrideReason: overrideCreditHold ? overrideReason.trim() : undefined,
         items: items.map((i) => ({
           description: i.description.trim() || 'B2B Supply / Service',
           hsnSac: i.hsnSac.trim() || '998314',
@@ -370,10 +379,14 @@ export default function InvoicesPage() {
         })),
       });
       setCreateOpen(false);
+      setOverrideCreditHold(false);
+      setOverrideReason('');
       await loadInvoices();
       setSelectedInvoice(created);
     } catch (err) {
-      setErrorMsg(getErrorMessage(err));
+      const msg = getErrorMessage(err);
+      setCreateErrorMsg(msg);
+      setErrorMsg(msg);
     } finally {
       setIsMutating(false);
     }
@@ -812,6 +825,46 @@ export default function InvoicesPage() {
         </div>
       )}
 
+      {/* Workspace View Switcher: GST Invoices vs Udhaar Recovery & Tally Bridge */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
+        <button
+          type="button"
+          onClick={() => setActiveWorkspaceTab('invoices')}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            activeWorkspaceTab === 'invoices'
+              ? 'bg-brand-navy text-white shadow-sm'
+              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+          }`}
+        >
+          <Receipt className="w-3.5 h-3.5" />
+          <span>GST Invoices &amp; Quotes</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveWorkspaceTab('recovery')}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            activeWorkspaceTab === 'recovery'
+              ? 'bg-amber-600 text-white shadow-sm'
+              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+          }`}
+        >
+          <ShieldAlert className="w-3.5 h-3.5" />
+          <span>Udhaar Recovery, Credit-Hold &amp; Tally Bridge</span>
+          {stats.overdueCount > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500 text-white">
+              {stats.overdueCount}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {activeWorkspaceTab === 'recovery' ? (
+        <CreditRecoveryPanel
+          onOpenPaymentModal={openPaymentModal}
+          onRefreshParent={loadInvoices}
+        />
+      ) : (
+        <>
       {/* Live MongoDB KPI Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
@@ -901,28 +954,28 @@ export default function InvoicesPage() {
               key: 'current' as const,
               label: 'Current / Not Due',
               amount: stats.aging?.currentAmount ?? 0,
-              tone: 'border-emerald-200 bg-emerald-50/60 text-emerald-800',
+              tone: 'border-emerald-200 bg-emerald-50/60 text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-200',
               activeTone: 'ring-2 ring-emerald-500 border-emerald-400',
             },
             {
               key: '1_15_days' as const,
               label: '1–15 Days Overdue',
               amount: stats.aging?.bucket1to15 ?? 0,
-              tone: 'border-amber-200 bg-amber-50/70 text-amber-800',
+              tone: 'border-amber-200 bg-amber-50/70 text-amber-800 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200',
               activeTone: 'ring-2 ring-amber-500 border-amber-400',
             },
             {
               key: '16_30_days' as const,
               label: '16–30 Days Overdue',
               amount: stats.aging?.bucket16to30 ?? 0,
-              tone: 'border-orange-200 bg-orange-50/70 text-orange-800',
+              tone: 'border-orange-200 bg-orange-50/70 text-orange-800 dark:border-orange-800/60 dark:bg-orange-950/40 dark:text-orange-200',
               activeTone: 'ring-2 ring-orange-500 border-orange-400',
             },
             {
               key: '30_plus_days' as const,
               label: '30+ Days Critical',
               amount: stats.aging?.bucket30Plus ?? 0,
-              tone: 'border-rose-200 bg-rose-50/80 text-rose-800',
+              tone: 'border-rose-200 bg-rose-50/80 text-rose-800 dark:border-rose-800/60 dark:bg-rose-950/40 dark:text-rose-200',
               activeTone: 'ring-2 ring-rose-500 border-rose-400',
             },
           ].map((bucket) => {
@@ -1316,6 +1369,8 @@ export default function InvoicesPage() {
           </div>
         )}
       </div>
+        </>
+      )}
 
       {/* ─── CREATE GST INVOICE / PROFORMA MODAL ───────────────── */}
       {createOpen && (
@@ -1689,6 +1744,69 @@ export default function InvoicesPage() {
                   </div>
                 </div>
               </div>
+
+              {(() => {
+                const matched = contacts.find(
+                  (c) =>
+                    (gstin.trim() && c.gstin?.toUpperCase() === gstin.trim().toUpperCase()) ||
+                    (clientName.trim() &&
+                      (c.company?.toLowerCase() === clientName.trim().toLowerCase() ||
+                        c.name?.toLowerCase() === clientName.trim().toLowerCase())),
+                );
+                const limit = matched?.creditLimitInr || 0;
+                const openRec = matched?.openReceivableInr || 0;
+                const willExceed =
+                  docType === 'tax_invoice' &&
+                  limit > 0 &&
+                  openRec + grandTotalPreview > limit;
+                const showGuardrail =
+                  Boolean(matched?.creditHold) ||
+                  willExceed ||
+                  Boolean(createErrorMsg?.includes('CREDIT_GUARDRAIL'));
+
+                if (!showGuardrail && !createErrorMsg) return null;
+                return (
+                  <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 space-y-2.5 text-xs">
+                    {createErrorMsg && (
+                      <p className="font-bold text-rose-700">{createErrorMsg}</p>
+                    )}
+                    {showGuardrail && (
+                      <>
+                        <div className="flex items-start gap-2 text-rose-800 font-bold">
+                          <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                          <span>
+                            B2B Credit Guardrail Alert:{' '}
+                            {matched?.creditHold
+                              ? `Account is on CREDIT HOLD (${matched.creditHoldReason || 'Overdue receivables'}).`
+                              : willExceed
+                                ? `Open ₹${openRec.toLocaleString('en-IN')} + New ₹${grandTotalPreview.toLocaleString('en-IN')} exceeds Credit Limit ₹${limit.toLocaleString('en-IN')}.`
+                                : 'Buyer requires Admin Credit Hold override.'}
+                          </span>
+                        </div>
+                        <label className="flex items-center gap-2 font-semibold text-rose-900 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={overrideCreditHold}
+                            onChange={(e) => setOverrideCreditHold(e.target.checked)}
+                            className="accent-rose-600"
+                          />
+                          <span>Admin / Finance Override (Audit Logged)</span>
+                        </label>
+                        {overrideCreditHold && (
+                          <input
+                            type="text"
+                            required={overrideCreditHold}
+                            value={overrideReason}
+                            onChange={(e) => setOverrideReason(e.target.value)}
+                            placeholder="Mandatory override reason (e.g., MD confirmed Friday NEFT)..."
+                            className="w-full rounded-xl border border-rose-300 bg-white px-3 py-2 text-xs"
+                          />
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button

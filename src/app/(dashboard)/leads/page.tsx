@@ -23,8 +23,9 @@ import {
 import { useLeads } from '@/hooks/useLeads';
 import { useAuthStore } from '@/store/auth.store';
 import { isFeatureEnabled } from '@/lib/feature-access';
-import { Upload } from 'lucide-react';
+import { Upload, Mic } from 'lucide-react';
 import BulkCsvImportModal from '@/components/leads/BulkCsvImportModal';
+import VoiceCrmAuditModal from '@/components/ai/VoiceCrmAuditModal';
 import LeadForm from '@/components/leads/LeadForm';
 import LeadCard from '@/components/leads/LeadCard';
 import type { CreateLeadPayload, Lead, LeadStatus } from '@/types/contracts';
@@ -66,11 +67,14 @@ export default function LeadsPage() {
     fetchLeads,
   } = useLeads();
 
+  const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
-  const aiEnabled = isFeatureEnabled(tenant, 'aiScoring');
+  const aiEnabled = isFeatureEnabled(tenant, 'aiScoring', user);
+  const voiceCrmEnabled = aiEnabled && isFeatureEnabled(tenant, 'aiVoiceCrm', user);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [modalOpen, setModalOpen] = useState(false);
   const [csvModalOpen, setCsvModalOpen] = useState(false);
+  const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
 
   const handleOpenCreate = () => {
@@ -104,7 +108,7 @@ export default function LeadsPage() {
         <div>
           <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-blue mb-1">
             <Sparkles className="w-3.5 h-3.5" />{' '}
-            {aiEnabled ? 'Gemini AI Lead Engine' : 'Lead Pipeline · AI Scoring Paused by HQ'}
+            {aiEnabled ? 'Gemini AI Lead Engine' : 'Lead Pipeline · AI Scoring Paused'}
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-navy tracking-tight">
             Leads Command Center
@@ -124,6 +128,17 @@ export default function LeadsPage() {
             >
               <Database className="w-4 h-4" />
               <span>Load 5 Sample Delhi-NCR Leads</span>
+            </button>
+          )}
+
+          {voiceCrmEnabled && (
+            <button
+              type="button"
+              onClick={() => setVoiceModalOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border border-brand-blue/30 bg-brand-light text-brand-blue hover:bg-brand-blue hover:text-white transition-all"
+            >
+              <Mic className="w-4 h-4" />
+              <span>Voice-to-CRM &amp; Audit</span>
             </button>
           )}
 
@@ -562,6 +577,13 @@ export default function LeadsPage() {
           onImported={() => fetchLeads()}
         />
       )}
+
+      {/* Pillar 2 AI: Hinglish Voice-to-CRM & Call Audit */}
+      <VoiceCrmAuditModal
+        open={voiceModalOpen}
+        onClose={() => setVoiceModalOpen(false)}
+        onLeadCreated={() => fetchLeads()}
+      />
     </div>
   );
 }

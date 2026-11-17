@@ -149,6 +149,12 @@ export interface CreateDealPayload {
 }
 
 // ─── Contacts ─────────────────────────────────────────
+export type GstinStatus =
+  | 'unverified'
+  | 'verified_active'
+  | 'invalid_format'
+  | 'checksum_failed';
+
 export interface Contact {
   id: string;
   tenantId: string;
@@ -159,8 +165,18 @@ export interface Contact {
   email: string;
   city: string;
   gstin: string;
+  gstinStatus?: GstinStatus;
+  gstinStateName?: string;
+  gstinVerifiedAt?: string;
   type: 'customer' | 'prospect' | 'partner' | 'vendor';
   lifetimeValue: number;
+  creditLimitInr?: number;
+  creditTermDays?: number;
+  creditHold?: boolean;
+  creditHoldReason?: string;
+  openReceivableInr?: number;
+  overdueReceivableInr?: number;
+  creditUtilizationPct?: number;
   tags: string[];
   notes: string;
   createdAt: string;
@@ -233,6 +249,12 @@ export interface AuthUser {
   role: 'super_admin' | 'owner' | 'admin' | 'manager' | 'agent';
   departmentPreset?: string;
   permissions?: string[];
+  featureAccess?: Partial<Record<UserFeatureKey, boolean>>;
+  territory?: string;
+  monthlyTarget?: number;
+  inviteStatus?: 'active' | 'pending' | 'accepted';
+  lastLoginAt?: string | null;
+  createdAt?: string | null;
   maskPhones?: boolean;
   isImpersonation?: boolean;
   impersonatorEmail?: string;
@@ -264,6 +286,20 @@ export interface TenantInfo {
   >;
   globalKillSwitches?: GlobalKillSwitches;
   maintenanceMode?: boolean;
+  sessionTtlHours?: number;
+  quotas?: {
+    maxMonthlyAiCalls: number;
+    maxMonthlyWhatsapp: number;
+    aiCallsUsed: number;
+    whatsappUsed: number;
+    maxStorageMb: number;
+    aiPct: number;
+    waPct: number;
+    aiWarning: boolean;
+    waWarning: boolean;
+    aiExceeded: boolean;
+    waExceeded: boolean;
+  };
 }
 
 export interface SubscriptionInvoice {
@@ -422,6 +458,25 @@ export interface Invoice {
   approvedAt?: string;
   convertedFromQuoteId?: string;
   convertedToInvoiceId?: string;
+  chaserStage?: 'none' | 'day_3_polite' | 'day_7_firm' | 'day_15_urgent' | 'day_30_hold';
+  lastChaserSentAt?: string;
+  chaserCount?: number;
+  chaserHistory?: {
+    id: string;
+    stage: string;
+    channel: string;
+    message: string;
+    upiLink: string;
+    sentBy: string;
+    sentAt: string;
+  }[];
+  promisedPaymentDate?: string;
+  promisedAmount?: number;
+  ptpNote?: string;
+  ptpUpdatedAt?: string;
+  isPtpBroken?: boolean;
+  creditOverrideBy?: string;
+  creditOverrideReason?: string;
   daysOverdue?: number;
   agingBucket?: 'paid' | 'current' | '1_15_days' | '16_30_days' | '30_plus_days';
   createdAt: string;
@@ -495,6 +550,71 @@ export interface Gstr1ExportResponse {
   csv: string;
 }
 
+export interface TallyXmlExportResponse {
+  filename: string;
+  voucherCount: number;
+  xml: string;
+}
+
+export interface CreditRecoveryConfig {
+  upiId: string;
+  merchantName: string;
+  autoChasersEnabled: boolean;
+  autoHoldAfterDays: number;
+  bankAccountNote: string;
+}
+
+export interface CreditRiskLedgerRow {
+  contactId: string;
+  buyerName: string;
+  contactPerson: string;
+  phone: string;
+  gstin: string;
+  gstinStatus: string;
+  creditLimitInr: number;
+  creditTermDays: number;
+  creditHold: boolean;
+  creditHoldReason: string;
+  openBalanceInr: number;
+  overdueBalanceInr: number;
+  maxOverdueDays: number;
+  openInvoicesCount: number;
+  utilizationPct: number;
+  riskLevel: 'hold' | 'critical' | 'warning' | 'healthy';
+}
+
+export interface CreditRecoveryOverviewResponse {
+  kpis: {
+    totalOpenUdhaar: number;
+    overdueUdhaar: number;
+    overdueCount: number;
+    brokenPromisesCount: number;
+    activePromisesCount: number;
+    blockedAccountsCount: number;
+    recoveryRatePct: number;
+  };
+  recoveryConfig: CreditRecoveryConfig;
+  creditRiskLedger: CreditRiskLedgerRow[];
+  overdueQueue: (Invoice & { upiLink?: string })[];
+  promisesQueue: Invoice[];
+}
+
+export interface BankStatementPreviewMatch {
+  entryId: string;
+  date: string;
+  narration: string;
+  utrOrRef: string;
+  creditAmount: number;
+  paymentMode: 'UPI' | 'RTGS' | 'NEFT';
+  confidence: 'high' | 'medium' | 'unmatched';
+  matchedInvoiceId: string;
+  matchedInvoiceNumber: string;
+  matchedClientName: string;
+  openBalanceDue: number;
+  suggestedTds: number;
+  matchReasons: string[];
+}
+
 export interface CreateInvoicePayload {
   invoiceNumber?: string;
   docType?: InvoiceDocType;
@@ -519,6 +639,8 @@ export interface CreateInvoicePayload {
   notes?: string;
   linkedDealId?: string;
   linkedLeadId?: string;
+  overrideCreditHold?: boolean;
+  overrideReason?: string;
 }
 
 // ─── WhatsApp Broadcast Campaigns ─────────────────────
@@ -641,6 +763,39 @@ export interface CreateWorkflowPayload {
 
 
 
+export type UserFeatureKey =
+  | 'leads'
+  | 'aiScoring'
+  | 'contacts'
+  | 'deals'
+  | 'whatsappCloud'
+  | 'whatsappBroadcasts'
+  | 'tasks'
+  | 'slaTickets'
+  | 'aiWorkflows'
+  | 'analytics'
+  | 'products'
+  | 'gstBilling'
+  | 'documentVault'
+  | 'aiCreditRisk'
+  | 'aiVoiceCrm'
+  | 'aiDealerDesk'
+  | 'aiCopilot';
+
+export interface InviteInfoResponse {
+  valid: boolean;
+  name: string;
+  email: string;
+  phone: string;
+  userCode: string;
+  role: string;
+  territory: string;
+  inviteStatus: 'active' | 'pending' | 'accepted';
+  workspaceName: string;
+  accountId: string;
+  featureAccess: Record<UserFeatureKey, boolean>;
+}
+
 // ─── Team & Role-Based Access ─────────────────────────
 export type TeamRole = 'owner' | 'admin' | 'manager' | 'agent';
 export type AssignableTeamRole = Exclude<TeamRole, 'owner'>;
@@ -667,6 +822,11 @@ export interface TeamMember {
   territory: string;
   monthlyTarget: number;
   maskPhones?: boolean;
+  aiDailyCallLimit?: number;
+  aiCallsToday?: number;
+  featureAccess?: Record<UserFeatureKey, boolean>;
+  inviteStatus?: 'active' | 'pending' | 'accepted';
+  inviteSentAt?: string | null;
   invitedBy: string | null;
   lastLoginAt: string | null;
   createdAt: string | null;
@@ -684,6 +844,7 @@ export interface TeamAccountInfo {
   blockAgentExport?: boolean;
   ownerName: string;
   ownerEmail: string;
+  workspaceFeatures?: Record<string, boolean>;
 }
 
 export interface TeamViewer {
@@ -718,6 +879,11 @@ export interface MemberCredentials {
   loginEmail: string;
   /** Only present when the server generated it — shown once, never retrievable again */
   temporaryPassword: string | null;
+  inviteUrl?: string;
+  emailSent?: boolean;
+  emailProvider?: string;
+  emailSubject?: string;
+  emailPreview?: string;
 }
 
 export interface AddTeamMemberPayload {
@@ -728,6 +894,9 @@ export interface AddTeamMemberPayload {
   territory?: string;
   monthlyTarget?: number;
   password?: string;
+  featureAccess?: Record<string, boolean>;
+  sendInviteEmail?: boolean;
+  aiDailyCallLimit?: number;
 }
 
 export interface UpdateTeamMemberPayload {
@@ -737,6 +906,8 @@ export interface UpdateTeamMemberPayload {
   territory?: string;
   monthlyTarget?: number;
   maskPhones?: boolean;
+  featureAccess?: Record<string, boolean>;
+  aiDailyCallLimit?: number;
 }
 
 // ─── Security, Phone Masking & Audit Trail ───────────
@@ -1083,7 +1254,11 @@ export type PlatformFeatureKey =
   | 'documentVault'
   | 'apiWebhooks'
   | 'customRbac'
-  | 'auditShield';
+  | 'auditShield'
+  | 'aiCreditRisk'
+  | 'aiVoiceCrm'
+  | 'aiDealerDesk'
+  | 'aiCopilot';
 
 export interface PlatformFeatureSpec {
   key: PlatformFeatureKey;
@@ -1163,6 +1338,15 @@ export interface SuperAdminOverviewResponse {
     annualRunRateInr: number;
     totalSubscriptionBilledInr: number;
     totalGstCollectedInr: number;
+    pendingTopupRequests?: number;
+  };
+  costTelemetry?: {
+    totalMonthlyAiCostInr: number;
+    totalMonthlyWaCostInr: number;
+    totalInfraCostInr: number;
+    unprofitableTenantsCount: number;
+    warning80Count: number;
+    exceeded100Count: number;
   };
   planBreakdown: { starter: number; growth: number; enterprise: number };
   topCities: Array<{ city: string; count: number }>;
@@ -1176,6 +1360,19 @@ export interface SuperAdminOverviewResponse {
     seatLimit: number;
     seatPct: number;
     aiPct: number;
+    aiUsed?: number;
+    aiLimit?: number;
+    waPct?: number;
+    waUsed?: number;
+    waLimit?: number;
+    mrrInr?: number;
+    estimatedAiCostInr?: number;
+    estimatedWaCostInr?: number;
+    totalInfraCostInr?: number;
+    grossMarginInr?: number;
+    marginPct?: number;
+    unprofitable?: boolean;
+    alertLevel?: 'ok' | 'warning_80' | 'exceeded_100';
     overrideCount: number;
   }>;
   recentTenants: Array<{
@@ -1218,6 +1415,18 @@ export interface SuperAdminTenantItem {
   overrideCount: number;
   maskPhoneForAgents: boolean;
   blockAgentExport: boolean;
+  aiEnabled?: boolean;
+  aiWorkflowsEnabled?: boolean;
+  aiSource?: 'plan' | 'override_on' | 'override_off' | 'kill_switch';
+  aiPillars?: {
+    aiCreditRisk: boolean;
+    aiVoiceCrm: boolean;
+    aiDealerDesk: boolean;
+    aiCopilot: boolean;
+  };
+  maxMonthlyAiCalls?: number;
+  aiCallsUsed?: number;
+  aiBalanceRemaining?: number;
   trialEndsAt: string;
   suspensionReason: string;
   createdAt: string | null;
@@ -1271,6 +1480,35 @@ export interface SuperAdminTenantDetailResponse {
       aiCallsUsed: number;
       whatsappUsed: number;
       maxStorageMb: number;
+      aiCostInr?: number;
+      whatsappCostInr?: number;
+      addonAiCalls?: number;
+      addonWhatsapp?: number;
+      lastMeterResetAt?: string;
+    };
+    costTelemetry?: {
+      mrrInr: number;
+      aiUsed: number;
+      aiLimit: number;
+      aiPct: number;
+      estimatedAiCostInr: number;
+      waUsed: number;
+      waLimit: number;
+      waPct: number;
+      estimatedWaCostInr: number;
+      totalInfraCostInr: number;
+      grossMarginInr: number;
+      marginPct: number;
+      unprofitable: boolean;
+      alertLevel: 'ok' | 'warning_80' | 'exceeded_100';
+    };
+    sessionVersion?: number;
+    dpdpRetention?: {
+      softDeletedAt?: string;
+      purgeScheduledAt?: string;
+      purgedAt?: string;
+      deletionReason?: string;
+      requestedByEmail?: string;
     };
     securityPolicy: {
       enforcePhoneMasking: boolean;

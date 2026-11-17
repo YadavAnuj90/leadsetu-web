@@ -644,7 +644,7 @@ export default function DocumentCenterPage() {
                         className={`p-1 rounded-full transition-colors ${
                           doc.isVerified
                             ? 'text-emerald-600 bg-emerald-50'
-                            : 'text-slate-300 bg-slate-100'
+                            : 'text-slate-500 bg-slate-100 dark:text-slate-400'
                         }`}
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" />
