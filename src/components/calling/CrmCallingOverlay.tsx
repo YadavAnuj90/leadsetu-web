@@ -24,10 +24,19 @@ import {
   ArrowUpRight,
   CheckCircle2,
   AlertCircle,
+  FileText,
+  Pause,
+  Play,
+  PhoneForwarded,
+  Disc,
+  Smartphone,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCallEngine } from '@/hooks/useCallEngine';
 import { playDtmfTone, playRingPulse } from '@/lib/call-sound';
+import CallDispositionModal, {
+  CALL_OUTCOME_OPTIONS,
+} from '@/components/calling/CallDispositionModal';
 import {
   useCallUiStore,
   formatCallDuration,
@@ -95,19 +104,78 @@ export default function CrmCallingOverlay() {
     presenceRoster,
     history,
     handlers,
+    activeSimCall,
     setDialerDrawerOpen,
     setMinimized,
     setDialInput,
     appendDialDigit,
     backspaceDialDigit,
     setErrorBanner,
+    updateActiveCall,
+    promptSimDisposition,
+    clearSimCall,
+    hydrateSimCall,
     tickTimers,
   } = useCallUiStore();
 
   const [drawerTab, setDrawerTab] = useState<'dialer' | 'history'>('dialer');
   const [searchQuery, setSearchQuery] = useState('');
   const [inCallKeypad, setInCallKeypad] = useState(false);
+  const [inCallNotesOpen, setInCallNotesOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferUid, setTransferUid] = useState('');
+  const [transferring, setTransferring] = useState(false);
   const [ringtoneMuted, setRingtoneMuted] = useState(false);
+  const [simElapsedSec, setSimElapsedSec] = useState(0);
+
+  useEffect(() => {
+    hydrateSimCall();
+  }, [hydrateSimCall]);
+
+  useEffect(() => {
+    if (!activeSimCall) {
+      setSimElapsedSec(0);
+      return;
+    }
+    const updateElapsed = () => {
+      setSimElapsedSec(
+        Math.max(0, Math.floor((Date.now() - activeSimCall.startedAtMs) / 1000)),
+      );
+    };
+    updateElapsed();
+    const timer = setInterval(updateElapsed, 1000);
+
+    const handleReturnToApp = () => {
+      if (
+        typeof document !== 'undefined' &&
+        document.visibilityState === 'hidden'
+      ) {
+        return;
+      }
+      const sim = useCallUiStore.getState().activeSimCall;
+      if (sim && Date.now() - sim.startedAtMs >= 3000) {
+        useCallUiStore.getState().promptSimDisposition();
+      }
+    };
+
+    window.addEventListener('focus', handleReturnToApp);
+    document.addEventListener('visibilitychange', handleReturnToApp);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', handleReturnToApp);
+      document.removeEventListener('visibilitychange', handleReturnToApp);
+    };
+  }, [activeSimCall]);
+
+  useEffect(() => {
+    if (callState === 'idle') {
+      setInCallKeypad(false);
+      setInCallNotesOpen(false);
+      setTransferOpen(false);
+      setTransferUid('');
+      setTransferring(false);
+    }
+  }, [callState]);
 
   // Synced 1s timer for call duration & ringing countdown
   useEffect(() => {
@@ -639,7 +707,20 @@ export default function CrmCallingOverlay() {
                 </div>
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-1.5">
+                {activeCall.peer.transferredFromName && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-400/20 border border-indigo-300/40 text-[11px] font-extrabold text-indigo-200">
+                    Transferred by {activeCall.peer.transferredFromName}
+                  </div>
+                )}
+                {activeCall.peer.callerType === 'customer' && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/20 border border-amber-300/40 text-[11px] font-extrabold text-amber-200">
+                    Customer Web Call
+                    {activeCall.peer.customerPhone
+                      ? ` · ${activeCall.peer.customerPhone}`
+                      : ''}
+                  </div>
+                )}
                 <h3 className="text-2xl font-black tracking-tight text-white">
                   {activeCall.peer.name}
                 </h3>
@@ -650,6 +731,16 @@ export default function CrmCallingOverlay() {
                   <p className="font-mono text-[11px] text-slate-300">
                     UID #{activeCall.peer.userCode}
                   </p>
+                )}
+                {activeCall.peer.linkedEntityLabel && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-[11px] font-bold text-sky-200">
+                    <span className="uppercase text-emerald-300">
+                      {activeCall.peer.linkedEntityType || 'CRM'}:
+                    </span>
+                    <span className="truncate max-w-[220px]">
+                      {activeCall.peer.linkedEntityLabel}
+                    </span>
+                  </div>
                 )}
               </div>
 
@@ -849,32 +940,70 @@ export default function CrmCallingOverlay() {
                 </div>
 
                 {callState === 'connected' && (
-                  <div className="rounded-2xl bg-white/[0.06] border border-white/10 px-4 py-3 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-1 h-6">
-                      {[45, 80, 60, 95, 50, 85, 70, 100, 55, 90, 65, 75, 45, 60].map(
-                        (h, idx) => (
-                          <span
-                            key={idx}
-                            className={`w-1 rounded-full transition-all duration-300 ${
-                              isAudioFlowing
-                                ? 'bg-emerald-400 animate-pulse'
-                                : 'bg-slate-500/60'
-                            }`}
-                            style={{
-                              height: isAudioFlowing ? `${h}%` : '22%',
-                              animationDelay: `${idx * 75}ms`,
-                            }}
-                          />
-                        ),
-                      )}
+                  <div className="space-y-2">
+                    {(activeCall.isOnHold ||
+                      activeCall.peerOnHold ||
+                      activeCall.isRecording ||
+                      activeCall.isUploadingRecording) && (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {(activeCall.isOnHold || activeCall.peerOnHold) && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-[10px] font-extrabold text-amber-200">
+                            <Pause className="w-3 h-3" />
+                            {activeCall.isOnHold
+                              ? 'Call On Hold (You)'
+                              : 'Call On Hold (Peer)'}
+                          </span>
+                        )}
+                        {activeCall.isRecording && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/25 border border-rose-400/50 text-[10px] font-extrabold text-rose-200 animate-pulse">
+                            <Disc className="w-3 h-3" />
+                            Recording Audio ●
+                          </span>
+                        )}
+                        {activeCall.isUploadingRecording && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-500/20 border border-sky-400/40 text-[10px] font-bold text-sky-200">
+                            Saving Recording...
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="rounded-2xl bg-white/[0.06] border border-white/10 px-4 py-3 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-1 h-6">
+                        {[45, 80, 60, 95, 50, 85, 70, 100, 55, 90, 65, 75, 45, 60].map(
+                          (h, idx) => (
+                            <span
+                              key={idx}
+                              className={`w-1 rounded-full transition-all duration-300 ${
+                                activeCall.isOnHold || activeCall.peerOnHold
+                                  ? 'bg-amber-400/70'
+                                  : isAudioFlowing
+                                    ? 'bg-emerald-400 animate-pulse'
+                                    : 'bg-slate-500/60'
+                              }`}
+                              style={{
+                                height:
+                                  isAudioFlowing &&
+                                  !activeCall.isOnHold &&
+                                  !activeCall.peerOnHold
+                                    ? `${h}%`
+                                    : '22%',
+                                animationDelay: `${idx * 75}ms`,
+                              }}
+                            />
+                          ),
+                        )}
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">
+                        {activeCall.isOnHold || activeCall.peerOnHold
+                          ? 'On Hold'
+                          : activeCall.isMuted
+                            ? 'Your Mic Muted'
+                            : activeCall.peerMuted
+                              ? 'Peer Mic Muted'
+                              : 'HD Audio Live'}
+                      </span>
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">
-                      {activeCall.isMuted
-                        ? 'Your Mic Muted'
-                        : activeCall.peerMuted
-                          ? 'Peer Mic Muted'
-                          : 'HD Audio Live'}
-                    </span>
                   </div>
                 )}
 
@@ -893,38 +1022,164 @@ export default function CrmCallingOverlay() {
                   </div>
                 )}
 
+                {inCallNotesOpen && callState === 'connected' && (
+                  <div className="p-3 rounded-2xl bg-black/25 border border-white/15 space-y-2.5">
+                    <div className="flex flex-wrap gap-1">
+                      {CALL_OUTCOME_OPTIONS.slice(0, 4).map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() =>
+                            updateActiveCall({
+                              outcomeTag:
+                                activeCall.outcomeTag === opt.id ? '' : opt.id,
+                            })
+                          }
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-colors ${
+                            activeCall.outcomeTag === opt.id
+                              ? 'bg-emerald-500 text-slate-950'
+                              : 'bg-white/10 text-slate-200 hover:bg-white/20'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                    <textarea
+                      rows={2}
+                      value={activeCall.notes || ''}
+                      onChange={(e) =>
+                        updateActiveCall({ notes: e.target.value })
+                      }
+                      placeholder="Jot quick call notes (auto-saves into post-call disposition)..."
+                      className="w-full px-2.5 py-2 rounded-xl bg-white/10 border border-white/15 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-sky-400"
+                    />
+                  </div>
+                )}
+
+                {transferOpen && callState === 'connected' && (
+                  <div className="p-3 rounded-2xl bg-black/25 border border-white/15 space-y-2">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-sky-200">
+                      Transfer Live Call to Teammate UID #
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={transferUid}
+                        onChange={(e) => setTransferUid(e.target.value)}
+                        placeholder="Enter 10-digit UID #"
+                        className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/15 text-xs font-mono text-white placeholder-slate-400 focus:outline-none focus:border-sky-400"
+                      />
+                      <button
+                        type="button"
+                        disabled={transferring || !transferUid.trim()}
+                        onClick={async () => {
+                          setTransferring(true);
+                          const ok = await handlers?.transferCall(transferUid);
+                          setTransferring(false);
+                          if (ok) {
+                            setTransferOpen(false);
+                            setTransferUid('');
+                          }
+                        }}
+                        className="px-3 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-400 disabled:opacity-45 text-white text-xs font-extrabold shrink-0"
+                      >
+                        {transferring ? '...' : 'Transfer'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {callState !== 'ended' && (
                   <div className="space-y-3">
                     {callState === 'connected' && (
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-3 gap-2">
                         <button
                           type="button"
                           onClick={() => handlers?.toggleMute()}
-                          className={`py-2.5 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold border transition-all ${
+                          className={`py-2.5 rounded-2xl flex items-center justify-center gap-1.5 text-xs font-bold border transition-all ${
                             activeCall.isMuted
                               ? 'bg-rose-500 border-rose-400 text-white'
                               : 'bg-white/10 border-white/10 hover:bg-white/15 text-slate-200'
                           }`}
                         >
                           {activeCall.isMuted ? (
-                            <MicOff className="w-4 h-4" />
+                            <MicOff className="w-3.5 h-3.5" />
                           ) : (
-                            <Mic className="w-4 h-4" />
+                            <Mic className="w-3.5 h-3.5" />
                           )}
-                          <span>{activeCall.isMuted ? 'Unmute Mic' : 'Mute Mic'}</span>
+                          <span>{activeCall.isMuted ? 'Unmute' : 'Mute'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handlers?.toggleHold()}
+                          className={`py-2.5 rounded-2xl flex items-center justify-center gap-1.5 text-xs font-bold border transition-all ${
+                            activeCall.isOnHold
+                              ? 'bg-amber-500 border-amber-400 text-slate-950'
+                              : 'bg-white/10 border-white/10 hover:bg-white/15 text-slate-200'
+                          }`}
+                        >
+                          {activeCall.isOnHold ? (
+                            <Play className="w-3.5 h-3.5" />
+                          ) : (
+                            <Pause className="w-3.5 h-3.5" />
+                          )}
+                          <span>{activeCall.isOnHold ? 'Resume' : 'Hold'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handlers?.toggleRecording()}
+                          className={`py-2.5 rounded-2xl flex items-center justify-center gap-1.5 text-xs font-bold border transition-all ${
+                            activeCall.isRecording
+                              ? 'bg-rose-500 border-rose-400 text-white animate-pulse'
+                              : 'bg-white/10 border-white/10 hover:bg-white/15 text-slate-200'
+                          }`}
+                        >
+                          <Disc className="w-3.5 h-3.5" />
+                          <span>
+                            {activeCall.isRecording ? 'Stop Rec' : 'Record'}
+                          </span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => setInCallKeypad((v) => !v)}
-                          className={`py-2.5 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold border transition-all ${
+                          className={`py-2.5 rounded-2xl flex items-center justify-center gap-1.5 text-xs font-bold border transition-all ${
                             inCallKeypad
                               ? 'bg-brand-blue border-sky-400 text-white'
                               : 'bg-white/10 border-white/10 hover:bg-white/15 text-slate-200'
                           }`}
                         >
-                          <Grid3X3 className="w-4 h-4" />
+                          <Grid3X3 className="w-3.5 h-3.5" />
                           <span>Keypad</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setInCallNotesOpen((v) => !v)}
+                          className={`py-2.5 rounded-2xl flex items-center justify-center gap-1.5 text-xs font-bold border transition-all ${
+                            inCallNotesOpen || Boolean(activeCall.notes)
+                              ? 'bg-emerald-500/90 border-emerald-400 text-slate-950'
+                              : 'bg-white/10 border-white/10 hover:bg-white/15 text-slate-200'
+                          }`}
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>Notes</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setTransferOpen((v) => !v)}
+                          className={`py-2.5 rounded-2xl flex items-center justify-center gap-1.5 text-xs font-bold border transition-all ${
+                            transferOpen
+                              ? 'bg-indigo-500 border-indigo-400 text-white'
+                              : 'bg-white/10 border-white/10 hover:bg-white/15 text-slate-200'
+                          }`}
+                        >
+                          <PhoneForwarded className="w-3.5 h-3.5" />
+                          <span>Transfer</span>
                         </button>
                       </div>
                     )}
@@ -955,6 +1210,50 @@ export default function CrmCallingOverlay() {
           )}
         </div>
       )}
+
+      {/* ─── 4. SIM MOBILE CALL RETURN-TO-APP PROMPT ──────────────────────── */}
+      {activeSimCall && (
+        <div className="fixed bottom-5 left-5 z-[60] w-[330px] sm:w-[360px] rounded-3xl bg-[#091224] text-white border border-emerald-400/35 shadow-2xl p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/35 text-[10px] font-extrabold uppercase tracking-wider text-emerald-300">
+              <Smartphone className="w-3 h-3 animate-pulse" />
+              SIM Call in Progress
+            </span>
+            <span className="font-mono text-xs font-black text-emerald-300">
+              {formatCallDuration(simElapsedSec)}
+            </span>
+          </div>
+
+          <div className="min-w-0">
+            <div className="text-sm font-extrabold truncate">
+              {activeSimCall.contactName}
+            </div>
+            <div className="text-[11px] font-mono text-slate-300 truncate">
+              {activeSimCall.contactPhone}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={promptSimDisposition}
+              className="flex-1 py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold transition-colors"
+            >
+              Log Call Outcome
+            </button>
+            <button
+              type="button"
+              onClick={clearSimCall}
+              className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-bold transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── 5. POST-CALL DISPOSITION MODAL ──────────────────────────────── */}
+      <CallDispositionModal />
     </>
   );
 }

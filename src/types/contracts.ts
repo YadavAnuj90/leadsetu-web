@@ -93,7 +93,7 @@ export type DealStage =
 
 export interface DealActivity {
   id: string;
-  type: 'created' | 'stage_change' | 'note' | 'quote';
+  type: 'created' | 'stage_change' | 'note' | 'quote' | 'call';
   description: string;
   authorName: string;
   createdAt: string;
@@ -155,6 +155,14 @@ export type GstinStatus =
   | 'invalid_format'
   | 'checksum_failed';
 
+export interface ContactActivity {
+  id: string;
+  type: 'created' | 'note' | 'call' | 'whatsapp';
+  description: string;
+  authorName: string;
+  createdAt: string;
+}
+
 export interface Contact {
   id: string;
   tenantId: string;
@@ -179,6 +187,7 @@ export interface Contact {
   creditUtilizationPct?: number;
   tags: string[];
   notes: string;
+  activities?: ContactActivity[];
   createdAt: string;
   updatedAt: string;
 }

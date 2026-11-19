@@ -4,11 +4,11 @@ import Link from 'next/link';
 import {
   Building2,
   MessageSquare,
-  Phone,
   Calendar,
   ArrowUpRight,
   Trash2,
 } from 'lucide-react';
+import CallMobileButton from '@/components/calling/CallMobileButton';
 import type { Deal, DealStage } from '@/types/contracts';
 
 interface DealCardProps {
@@ -123,13 +123,16 @@ export default function DealCard({
               >
                 <MessageSquare className="w-3.5 h-3.5" />
               </a>
-              <a
-                href={`tel:${deal.contactPhone}`}
-                title="Call Client"
+              <CallMobileButton
+                phone={deal.contactPhone}
+                contactName={deal.contactName || deal.title}
+                company={deal.company}
+                entityType="deal"
+                entityId={deal.id}
+                entityLabel={deal.company ? `${deal.title} (${deal.company})` : deal.title}
+                variant="icon"
                 className="p-1.5 rounded-lg bg-blue-50 text-brand-blue hover:bg-blue-100 transition-colors"
-              >
-                <Phone className="w-3.5 h-3.5" />
-              </a>
+              />
             </>
           )}
           <button

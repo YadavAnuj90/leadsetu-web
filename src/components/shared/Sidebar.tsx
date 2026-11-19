@@ -25,6 +25,7 @@ import {
   PhoneCall,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useCallUiStore } from '@/store/call-ui.store';
 import {
   isFeatureEnabled,
   isWorkspaceAdminRole,
@@ -63,6 +64,9 @@ const navItems: Array<{
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, tenant, logout } = useAuth();
+  const pendingMissed = useCallUiStore(
+    (s) => s.historyStats.pendingCallbacks || 0,
+  );
   const isAdmin = isWorkspaceAdminRole(user);
 
   const visibleNavItems = navItems.filter((item) => {
@@ -115,8 +119,13 @@ export default function Sidebar() {
         {visibleNavItems.map((item) => {
           const Icon = item.icon;
           const active = pathname === item.href || pathname?.startsWith(`${item.href}/`);
+          const isCallsAlert = item.href === '/calls' && pendingMissed > 0;
           const badgeText =
-            item.href === '/leads' && !aiOn ? undefined : item.badge;
+            item.href === '/leads' && !aiOn
+              ? undefined
+              : isCallsAlert
+                ? `${pendingMissed} Missed`
+                : item.badge;
           return (
             <Link
               key={item.href}
@@ -134,9 +143,11 @@ export default function Sidebar() {
               {badgeText && (
                 <span
                   className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                    active
-                      ? 'bg-white/20 text-white'
-                      : 'bg-brand-blue/20 text-brand-sky'
+                    isCallsAlert
+                      ? 'bg-rose-500 text-white'
+                      : active
+                        ? 'bg-white/20 text-white'
+                        : 'bg-brand-blue/20 text-brand-sky'
                   }`}
                 >
                   {badgeText}

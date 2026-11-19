@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import {
   Phone,
   PhoneCall,
@@ -24,13 +25,26 @@ import {
   Copy,
   Check,
   Activity,
+  FileText,
+  Link2,
+  MessageSquare,
+  Mail,
+  ExternalLink,
+  CalendarCheck,
+  Tag,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { playDtmfTone } from '@/lib/call-sound';
 import {
+  createCallShareLinkApi,
+  fetchCallCrmEntitiesApi,
   fetchUserCallAnalyticsApi,
+  resolveCallCallbackApi,
+  type CrmLinkableEntity,
+  type ShareCallLinkResponse,
   type UserCallAnalyticsItem,
 } from '@/lib/calls-api';
+import { CALL_OUTCOME_OPTIONS } from '@/components/calling/CallDispositionModal';
 import RoundCallMetricRing from '@/components/calling/RoundCallMetricRing';
 import {
   useCallUiStore,
@@ -116,6 +130,7 @@ export default function CrmPhonePage() {
     setDialInput,
     appendDialDigit,
     backspaceDialDigit,
+    setDispositionModalCall,
   } = useCallUiStore();
 
   const [search, setSearch] = useState('');
@@ -123,8 +138,9 @@ export default function CrmPhonePage() {
     'all' | 'online' | 'busy' | 'offline'
   >('all');
   const [historyFilter, setHistoryFilter] = useState<
-    'all' | 'outgoing' | 'incoming' | 'missed'
+    'all' | 'outgoing' | 'incoming' | 'missed' | 'callbacks'
   >('all');
+  const [resolvingCallId, setResolvingCallId] = useState<string | null>(null);
   const [historySearch, setHistorySearch] = useState('');
   const [micState, setMicState] = useState<'unchecked' | 'granted' | 'denied'>(
     'unchecked',
@@ -137,6 +153,22 @@ export default function CrmPhonePage() {
   );
   const [isAdminAnalytics, setIsAdminAnalytics] = useState(false);
   const [copiedUid, setCopiedUid] = useState(false);
+
+  const [crmEntities, setCrmEntities] = useState<{
+    leads: CrmLinkableEntity[];
+    deals: CrmLinkableEntity[];
+    tickets: CrmLinkableEntity[];
+  }>({ leads: [], deals: [], tickets: [] });
+  const [shareEntityType, setShareEntityType] = useState<
+    '' | 'lead' | 'deal' | 'ticket'
+  >('');
+  const [shareEntityId, setShareEntityId] = useState('');
+  const [generatingShareLink, setGeneratingShareLink] = useState(false);
+  const [shareResult, setShareResult] = useState<ShareCallLinkResponse | null>(
+    null,
+  );
+  const [copiedShareUrl, setCopiedShareUrl] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
 
   const isAdminViewer = ['owner', 'admin', 'super_admin'].includes(
     user?.role || '',
@@ -160,6 +192,62 @@ export default function CrmPhonePage() {
       active = false;
     };
   }, [history.length]);
+
+  useEffect(() => {
+    let active = true;
+    fetchCallCrmEntitiesApi()
+      .then((res) => {
+        if (!active) return;
+        setCrmEntities(res);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const shareEntityOptions = useMemo(() => {
+    if (shareEntityType === 'lead') return crmEntities.leads;
+    if (shareEntityType === 'deal') return crmEntities.deals;
+    if (shareEntityType === 'ticket') return crmEntities.tickets;
+    return [];
+  }, [crmEntities, shareEntityType]);
+
+  const handleGenerateShareLink = async () => {
+    setGeneratingShareLink(true);
+    setShareError(null);
+    try {
+      const res = await createCallShareLinkApi({
+        entityType: shareEntityType,
+        entityId: shareEntityType ? shareEntityId : '',
+        expiresInDays: 7,
+      });
+      setShareResult(res);
+    } catch (err) {
+      setShareError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to generate Click-to-Call link.',
+      );
+    } finally {
+      setGeneratingShareLink(false);
+    }
+  };
+
+  const shareFullUrl = useMemo(() => {
+    if (!shareResult) return '';
+    if (typeof window === 'undefined') return shareResult.urlPath;
+    return `${window.location.origin}${shareResult.urlPath}`;
+  }, [shareResult]);
+
+  const handleCopyShareUrl = () => {
+    if (!shareFullUrl || typeof navigator === 'undefined' || !navigator.clipboard)
+      return;
+    void navigator.clipboard.writeText(shareFullUrl).then(() => {
+      setCopiedShareUrl(true);
+      setTimeout(() => setCopiedShareUrl(false), 1800);
+    });
+  };
 
   const { onlineCount, busyCount, offlineCount } = useMemo(() => {
     let online = 0;
@@ -940,22 +1028,24 @@ export default function CrmPhonePage() {
 
           <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <div className="flex flex-wrap gap-1.5">
-              {(['all', 'outgoing', 'incoming', 'missed'] as const).map(
-                (tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setHistoryFilter(tab)}
-                    className={`px-3 py-1 rounded-full text-[11px] font-bold capitalize transition-colors ${
-                      historyFilter === tab
-                        ? 'bg-brand-navy text-white dark:bg-brand-blue'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ),
-              )}
+              {(
+                ['all', 'outgoing', 'incoming', 'missed', 'callbacks'] as const
+              ).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setHistoryFilter(tab)}
+                  className={`px-3 py-1 rounded-full text-[11px] font-bold capitalize transition-colors ${
+                    historyFilter === tab
+                      ? 'bg-brand-navy text-white dark:bg-brand-blue'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {tab === 'callbacks'
+                    ? `Callbacks (${historyStats.pendingCallbacks || 0})`
+                    : tab}
+                </button>
+              ))}
             </div>
 
             <div className="relative sm:w-56">
@@ -1007,106 +1097,447 @@ export default function CrmPhonePage() {
                   item.connection?.turnUsed ||
                   item.connection?.icePath === 'turn_relay';
                 const isDirect = item.connection?.icePath === 'direct';
-                const canRedialTarget = Boolean(item.peerUserCode || item.peerId);
+                const isCustomerCall = item.callerType === 'customer';
+                const canRedialTarget =
+                  !isCustomerCall && Boolean(item.peerUserCode || item.peerId);
+                const outcomeLabel =
+                  CALL_OUTCOME_OPTIONS.find((o) => o.id === item.outcomeTag)
+                    ?.label ||
+                  (item.outcomeTag ? item.outcomeTag.replace(/_/g, ' ') : '');
+                const linkedHref =
+                  item.linkedEntityType === 'lead' && item.linkedEntityId
+                    ? `/leads/${item.linkedEntityId}`
+                    : item.linkedEntityType === 'deal' && item.linkedEntityId
+                      ? `/deals/${item.linkedEntityId}`
+                      : item.linkedEntityType === 'contact' &&
+                          item.linkedEntityId
+                        ? `/contacts/${item.linkedEntityId}`
+                        : item.linkedEntityType === 'ticket'
+                          ? '/tickets'
+                          : '';
                 return (
                   <div
                     key={item.id}
-                    className="p-3.5 rounded-2xl bg-slate-50/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3 hover:border-brand-blue/35 transition-colors"
+                    className="p-3.5 rounded-2xl bg-slate-50/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 space-y-2 hover:border-brand-blue/35 transition-colors"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                          isMissed
-                            ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-300'
-                            : item.direction === 'incoming'
-                              ? 'bg-sky-50 text-sky-600 dark:bg-sky-950/60 dark:text-sky-300'
-                              : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-300'
-                        }`}
-                      >
-                        {isMissed ? (
-                          <PhoneMissed className="w-4 h-4" />
-                        ) : item.direction === 'incoming' ? (
-                          <PhoneIncoming className="w-4 h-4" />
-                        ) : (
-                          <PhoneOutgoing className="w-4 h-4" />
-                        )}
-                      </div>
-                      <div className="min-w-0 space-y-0.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-extrabold text-brand-navy dark:text-white truncate">
-                            {item.peerName}
-                          </span>
-                          {item.peerUserCode && (
-                            <span className="px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-[10px] font-mono text-slate-500 dark:text-slate-300">
-                              UID #{item.peerUserCode}
-                            </span>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                            isMissed
+                              ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-300'
+                              : item.direction === 'incoming'
+                                ? 'bg-sky-50 text-sky-600 dark:bg-sky-950/60 dark:text-sky-300'
+                                : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-300'
+                          }`}
+                        >
+                          {isMissed ? (
+                            <PhoneMissed className="w-4 h-4" />
+                          ) : item.direction === 'incoming' ? (
+                            <PhoneIncoming className="w-4 h-4" />
+                          ) : (
+                            <PhoneOutgoing className="w-4 h-4" />
                           )}
                         </div>
-                        <div className="text-[10px] text-slate-400 flex items-center gap-1.5 flex-wrap">
-                          <span className="capitalize font-semibold">
-                            {item.status}
-                          </span>
-                          <span>·</span>
-                          <span>{formatTime(item.startedAt)}</span>
-                          {item.durationSeconds > 0 && (
-                            <>
-                              <span>·</span>
-                              <span className="font-mono font-bold text-slate-600 dark:text-slate-300">
-                                {formatCallDuration(item.durationSeconds)}
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-extrabold text-brand-navy dark:text-white truncate">
+                              {item.peerName}
+                            </span>
+                            {item.callChannel === 'sim_mobile' && (
+                              <span className="px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950/60 text-brand-blue dark:text-sky-300 text-[10px] font-extrabold">
+                                SIM Mobile
+                                {item.customerPhone
+                                  ? ` · ${item.customerPhone}`
+                                  : ''}
                               </span>
-                            </>
+                            )}
+                            {isCustomerCall && (
+                              <span className="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold">
+                                Customer Call
+                                {item.customerPhone
+                                  ? ` · ${item.customerPhone}`
+                                  : ''}
+                              </span>
+                            )}
+                            {item.peerUserCode && (
+                              <span className="px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-[10px] font-mono text-slate-500 dark:text-slate-300">
+                                UID #{item.peerUserCode}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-slate-400 flex items-center gap-1.5 flex-wrap">
+                            <span className="capitalize font-semibold">
+                              {item.status}
+                            </span>
+                            <span>·</span>
+                            <span>{formatTime(item.startedAt)}</span>
+                            {item.durationSeconds > 0 && (
+                              <>
+                                <span>·</span>
+                                <span className="font-mono font-bold text-slate-600 dark:text-slate-300">
+                                  {formatCallDuration(item.durationSeconds)}
+                                </span>
+                              </>
+                            )}
+                            {isTurn ? (
+                              <span className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-bold">
+                                TURN
+                              </span>
+                            ) : isDirect ? (
+                              <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold">
+                                Direct
+                              </span>
+                            ) : null}
+                            {(item.transferredFromName ||
+                              item.transferredToName) && (
+                              <span className="px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold">
+                                Transferred
+                                {item.transferredToName
+                                  ? ` → ${item.transferredToName}`
+                                  : item.transferredFromName
+                                    ? ` ← ${item.transferredFromName}`
+                                    : ''}
+                              </span>
+                            )}
+                            {item.recordingUrl && (
+                              <span className="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 font-bold">
+                                Recorded
+                              </span>
+                            )}
+                          </div>
+
+                          {item.recordingUrl && (
+                            <audio
+                              controls
+                              preload="metadata"
+                              src={item.recordingUrl}
+                              className="h-8 w-full max-w-xs mt-1"
+                            />
                           )}
-                          {isTurn ? (
-                            <span className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-bold">
-                              TURN
-                            </span>
-                          ) : isDirect ? (
-                            <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold">
-                              Direct
-                            </span>
-                          ) : null}
+
+                          {(item.linkedEntityLabel ||
+                            outcomeLabel ||
+                            item.followUpTaskId) && (
+                            <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                              {item.linkedEntityLabel && linkedHref ? (
+                                <Link
+                                  href={linkedHref}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/50 border border-blue-200/80 dark:border-blue-800 text-[10px] font-bold text-brand-blue dark:text-sky-300 hover:underline"
+                                >
+                                  <Link2 className="w-2.5 h-2.5" />
+                                  <span className="uppercase">
+                                    {item.linkedEntityType}:
+                                  </span>
+                                  <span>{item.linkedEntityLabel}</span>
+                                </Link>
+                              ) : item.linkedEntityLabel ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/50 border border-blue-200/80 dark:border-blue-800 text-[10px] font-bold text-brand-blue dark:text-sky-300">
+                                  <Link2 className="w-2.5 h-2.5" />
+                                  {item.linkedEntityLabel}
+                                </span>
+                              ) : null}
+
+                              {outcomeLabel && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/80 dark:border-emerald-800 text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
+                                  <Tag className="w-2.5 h-2.5" />
+                                  {outcomeLabel}
+                                </span>
+                              )}
+
+                              {item.followUpTaskId && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/50 border border-purple-200/80 dark:border-purple-800 text-[10px] font-bold text-purple-700 dark:text-purple-300">
+                                  <CalendarCheck className="w-2.5 h-2.5" />
+                                  Task Scheduled
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {item.notes && (
+                            <p className="text-[11px] text-slate-600 dark:text-slate-300 bg-white/80 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800 rounded-xl px-2.5 py-1.5 line-clamp-2">
+                              {item.notes}
+                            </p>
+                          )}
                         </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 flex-wrap justify-end shrink-0">
+                        {isMissed && (
+                          <button
+                            type="button"
+                            disabled={resolvingCallId === item.id}
+                            onClick={async () => {
+                              setResolvingCallId(item.id);
+                              try {
+                                await resolveCallCallbackApi(
+                                  item.id,
+                                  !item.callbackResolved,
+                                );
+                                await handlers?.refreshHistory(historyFilter);
+                              } finally {
+                                setResolvingCallId(null);
+                              }
+                            }}
+                            className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold border inline-flex items-center gap-1 transition-colors disabled:opacity-50 ${
+                              item.callbackResolved
+                                ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+                                : 'bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/50'
+                            }`}
+                            title={
+                              item.callbackResolved
+                                ? 'Reopen callback queue item'
+                                : 'Mark missed call / callback request as Called Back'
+                            }
+                          >
+                            {resolvingCallId === item.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : item.callbackResolved ? (
+                              <Check className="w-3 h-3" />
+                            ) : null}
+                            <span>
+                              {item.callbackResolved
+                                ? 'Called Back ✓'
+                                : 'Mark Called Back'}
+                            </span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setDispositionModalCall({
+                              callId: item.id,
+                              peerName: item.peerName,
+                              durationSeconds: item.durationSeconds,
+                              linkedEntityType: item.linkedEntityType,
+                              linkedEntityId: item.linkedEntityId,
+                              linkedEntityLabel: item.linkedEntityLabel,
+                              notes: item.notes,
+                              outcomeTag: item.outcomeTag,
+                            })
+                          }
+                          className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-brand-blue hover:text-brand-blue text-slate-600 dark:text-slate-300 transition-colors"
+                          title="Log Notes / CRM Link / Follow-up"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={
+                            !canRedialTarget ||
+                            callState !== 'idle' ||
+                            myStatus === 'offline' ||
+                            (isAdminViewer && peerPresence?.status !== 'online') ||
+                            !socketConnected
+                          }
+                          onClick={() =>
+                            void handlers?.initiateCall({
+                              id: item.peerId,
+                              name: item.peerName,
+                              role: formatRoleLabel(item.peerRole),
+                              userCode: item.peerUserCode,
+                            })
+                          }
+                          className={`${
+                            isAdminViewer
+                              ? 'p-2 rounded-xl'
+                              : 'px-2.5 py-1.5 rounded-xl inline-flex items-center gap-1.5 text-[11px] font-bold'
+                          } bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:text-emerald-600 text-slate-600 dark:text-slate-300 disabled:opacity-40 transition-colors shrink-0`}
+                          title={
+                            isCustomerCall
+                              ? 'Inbound customer web call (use Share Link to reconnect)'
+                              : isAdminViewer
+                                ? peerPresence?.status === 'online'
+                                  ? 'Call Again'
+                                  : 'Agent offline or busy'
+                                : 'Call Again'
+                          }
+                        >
+                          <Phone className="w-3.5 h-3.5" />
+                          {!isAdminViewer && <span>Redial</span>}
+                        </button>
                       </div>
                     </div>
-
-                    <button
-                      type="button"
-                      disabled={
-                        !canRedialTarget ||
-                        callState !== 'idle' ||
-                        myStatus === 'offline' ||
-                        (isAdminViewer && peerPresence?.status !== 'online') ||
-                        !socketConnected
-                      }
-                      onClick={() =>
-                        void handlers?.initiateCall({
-                          id: item.peerId,
-                          name: item.peerName,
-                          role: formatRoleLabel(item.peerRole),
-                          userCode: item.peerUserCode,
-                        })
-                      }
-                      className={`${
-                        isAdminViewer
-                          ? 'p-2 rounded-xl'
-                          : 'px-2.5 py-1.5 rounded-xl inline-flex items-center gap-1.5 text-[11px] font-bold'
-                      } bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:text-emerald-600 text-slate-600 dark:text-slate-300 disabled:opacity-40 transition-colors shrink-0`}
-                      title={
-                        isAdminViewer
-                          ? peerPresence?.status === 'online'
-                            ? 'Call Again'
-                            : 'Agent offline or busy'
-                          : 'Call Again'
-                      }
-                    >
-                      <Phone className="w-3.5 h-3.5" />
-                      {!isAdminViewer && <span>Redial</span>}
-                    </button>
                   </div>
                 );
               })
             )}
           </div>
+        </div>
+      </div>
+
+      {/* ─── PHASE 2: CUSTOMER CLICK-TO-CALL SHARE DESK ────────────────────────── */}
+      <div className="rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-extrabold text-brand-navy dark:text-white flex items-center gap-2">
+              <Link2 className="w-4 h-4 text-emerald-500" />
+              Customer Click-to-Call Share Desk (Free Browser Audio)
+            </h2>
+            <p className="text-[11px] text-slate-400">
+              Generate a secure customer voice link routed directly to the
+              assigned agent — share via WhatsApp or Email
+            </p>
+          </div>
+          <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-800 text-[10px] font-extrabold">
+            ₹0 WebRTC Link
+          </span>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+            <div className="md:col-span-3 space-y-1">
+              <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                Link Context Type
+              </label>
+              <select
+                value={shareEntityType}
+                onChange={(e) => {
+                  setShareEntityType(
+                    e.target.value as '' | 'lead' | 'deal' | 'ticket',
+                  );
+                  setShareEntityId('');
+                }}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-brand-navy dark:text-white"
+              >
+                <option value="">General Agent Call Link (Me)</option>
+                <option value="lead">Link to Lead</option>
+                <option value="deal">Link to Deal</option>
+                <option value="ticket">Link to Ticket</option>
+              </select>
+            </div>
+
+            <div className="md:col-span-6 space-y-1">
+              <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                {shareEntityType
+                  ? `Select ${shareEntityType} (routes to assigned owner)`
+                  : 'Assigned Agent'}
+              </label>
+              {shareEntityType ? (
+                <select
+                  value={shareEntityId}
+                  onChange={(e) => setShareEntityId(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-brand-navy dark:text-white"
+                >
+                  <option value="">-- Choose a {shareEntityType} --</option>
+                  {shareEntityOptions.map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.label}
+                      {opt.phone ? ` · ${opt.phone}` : ''}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  Routes incoming web calls directly to{' '}
+                  <strong>{user?.name || 'You'}</strong> (UID #
+                  {user?.userCode || '—'})
+                </div>
+              )}
+            </div>
+
+            <div className="md:col-span-3">
+              <button
+                type="button"
+                disabled={
+                  generatingShareLink ||
+                  (Boolean(shareEntityType) && !shareEntityId)
+                }
+                onClick={() => void handleGenerateShareLink()}
+                className="w-full py-2.5 px-4 rounded-xl bg-brand-navy hover:bg-brand-blue disabled:opacity-45 text-white text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors shadow-sm"
+              >
+                {generatingShareLink ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Link2 className="w-3.5 h-3.5" />
+                )}
+                <span>Generate Call Link</span>
+              </button>
+            </div>
+          </div>
+
+          {shareError && (
+            <div className="px-3.5 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-xs font-semibold text-rose-700 dark:text-rose-200">
+              {shareError}
+            </div>
+          )}
+
+          {shareResult && (
+            <div className="rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 p-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-xs font-bold text-brand-navy dark:text-white flex items-center gap-2 flex-wrap">
+                  <span>Assigned Agent: {shareResult.agent.name}</span>
+                  {shareResult.entityLabel && (
+                    <span className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/50 text-brand-blue dark:text-sky-300 text-[10px] font-bold">
+                      {shareResult.entityType.toUpperCase()}:{' '}
+                      {shareResult.entityLabel}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] font-semibold text-slate-400">
+                  Valid for {shareResult.expiresInDays} days
+                </span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+                <input
+                  type="text"
+                  readOnly
+                  value={shareFullUrl}
+                  className="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-700 dark:text-slate-200"
+                />
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleCopyShareUrl}
+                    className="px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-brand-blue text-xs font-bold text-brand-navy dark:text-white inline-flex items-center gap-1.5"
+                  >
+                    {copiedShareUrl ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-500" />
+                        <span>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-brand-blue" />
+                        <span>Copy Link</span>
+                      </>
+                    )}
+                  </button>
+
+                  <a
+                    href={`https://wa.me/${(shareResult.customerPhone || '').replace(/\D/g, '')}?text=${encodeURIComponent(`Hi${shareResult.customerName ? ` ${shareResult.customerName}` : ''}, tap this secure link to speak directly with ${shareResult.agent.name} at ${shareResult.companyName} (free browser voice call): ${shareFullUrl}`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1.5"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>WhatsApp</span>
+                  </a>
+
+                  <a
+                    href={`mailto:?subject=${encodeURIComponent(`Direct Voice Support Link — ${shareResult.companyName}`)}&body=${encodeURIComponent(`Hi${shareResult.customerName ? ` ${shareResult.customerName}` : ''},\n\nClick the link below to talk directly with ${shareResult.agent.name} from your browser (no app needed):\n${shareFullUrl}\n\nRegards,\n${shareResult.companyName}`)}`}
+                    className="px-3 py-2 rounded-xl bg-brand-blue hover:bg-blue-700 text-white text-xs font-bold inline-flex items-center gap-1.5"
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    <span>Email</span>
+                  </a>
+
+                  <a
+                    href={shareResult.urlPath}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-brand-blue"
+                    title="Open Customer Call Page"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -11,8 +11,10 @@ import {
   MapPin,
   Loader2,
   MessageSquare,
+  Clock,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import CallMobileButton from '@/components/calling/CallMobileButton';
 import type { Contact } from '@/types/contracts';
 
 export default function ContactDetailPage() {
@@ -21,15 +23,33 @@ export default function ContactDetailPage() {
   const [contact, setContact] = useState<Contact | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
+  const loadContact = useCallback(async () => {
     if (!params?.id) return;
     setIsLoading(true);
-    apiClient
-      .get<Contact>(`/contacts/${params.id}`)
-      .then((res) => setContact(res.data))
-      .catch(() => setContact(null))
-      .finally(() => setIsLoading(false));
+    try {
+      const res = await apiClient.get<Contact>(`/contacts/${params.id}`);
+      setContact(res.data);
+    } catch {
+      setContact(null);
+    } finally {
+      setIsLoading(false);
+    }
   }, [params?.id]);
+
+  useEffect(() => {
+    void loadContact();
+  }, [loadContact]);
+
+  useEffect(() => {
+    const onSimLogged = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ entityType?: string; entityId?: string }>).detail;
+      if (detail?.entityType === 'contact' && detail?.entityId === params?.id) {
+        void loadContact();
+      }
+    };
+    window.addEventListener('leadsetu:sim-call-logged', onSimLogged);
+    return () => window.removeEventListener('leadsetu:sim-call-logged', onSimLogged);
+  }, [loadContact, params?.id]);
 
   if (isLoading) {
     return (
@@ -101,14 +121,23 @@ export default function ContactDetailPage() {
           </div>
 
           {contact.phone && (
-            <a
-              href={`https://wa.me/${contact.phone.replace(/[^0-9]/g, '')}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-xs font-bold"
-            >
-              <MessageSquare className="w-4 h-4" /> Message on WhatsApp
-            </a>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <CallMobileButton
+                phone={contact.phone}
+                contactName={contact.name}
+                company={contact.company}
+                entityType="contact"
+                entityId={contact.id}
+              />
+              <a
+                href={`https://wa.me/${contact.phone.replace(/[^0-9]/g, '')}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-xs font-bold"
+              >
+                <MessageSquare className="w-4 h-4" /> Message on WhatsApp
+              </a>
+            </div>
           )}
         </div>
 
@@ -154,6 +183,53 @@ export default function ContactDetailPage() {
             <MapPin className="w-4 h-4 text-brand-blue" /> {contact.city || 'Delhi-NCR'}
           </div>
         </div>
+      </div>
+
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-brand-blue" />
+            <h2 className="text-sm font-extrabold text-brand-navy">Call & Activity Timeline</h2>
+          </div>
+          <span className="text-[11px] font-semibold text-slate-400">
+            {(contact.activities || []).length} events
+          </span>
+        </div>
+
+        {(contact.activities || []).length === 0 ? (
+          <p className="text-xs text-slate-500">
+            No call logs or activities recorded yet. Use Call Mobile to dial and log outcomes directly to this contact timeline.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {[...(contact.activities || [])]
+              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+              .map((act) => (
+                <div
+                  key={act.id}
+                  className="flex items-start gap-3 p-3.5 rounded-2xl border border-slate-100 bg-slate-50/70"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-brand-blue flex items-center justify-center shrink-0 mt-0.5">
+                    {act.type === 'call' ? (
+                      <Phone className="w-3.5 h-3.5" />
+                    ) : (
+                      <Clock className="w-3.5 h-3.5" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-brand-navy whitespace-pre-line">
+                      {act.description}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-slate-400">
+                      {act.authorName && <span className="font-semibold text-slate-500">{act.authorName}</span>}
+                      <span>·</span>
+                      <span>{new Date(act.createdAt).toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+          </div>
+        )}
       </div>
     </div>
   );

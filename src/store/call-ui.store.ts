@@ -30,6 +30,12 @@ export interface CallPeerInfo {
   role: string;
   userCode?: string;
   territory?: string;
+  callerType?: 'agent' | 'customer';
+  customerPhone?: string;
+  linkedEntityType?: '' | 'lead' | 'deal' | 'ticket' | 'contact';
+  linkedEntityId?: string;
+  linkedEntityLabel?: string;
+  transferredFromName?: string;
 }
 
 export interface ActiveCallSession {
@@ -42,12 +48,21 @@ export interface ActiveCallSession {
   durationSec: number;
   isMuted: boolean;
   peerMuted: boolean;
+  isOnHold?: boolean;
+  peerOnHold?: boolean;
+  isRecording?: boolean;
+  isUploadingRecording?: boolean;
   isSpeakerBoost: boolean;
   icePath: CallIcePath;
   relayProtocol?: string;
   isReconnecting?: boolean;
   rttMs: number;
   endReason?: string;
+  notes?: string;
+  outcomeTag?: string;
+  linkedEntityType?: '' | 'lead' | 'deal' | 'ticket' | 'contact';
+  linkedEntityId?: string;
+  linkedEntityLabel?: string;
 }
 
 export interface CallHistoryEntry {
@@ -65,6 +80,23 @@ export interface CallHistoryEntry {
   durationSeconds: number;
   setupTimeMs: number;
   endReason?: string;
+  callChannel?: 'webrtc' | 'sim_mobile';
+  callerType?: 'agent' | 'customer';
+  customerPhone?: string;
+  linkedEntityType?: '' | 'lead' | 'deal' | 'ticket' | 'contact';
+  linkedEntityId?: string;
+  linkedEntityLabel?: string;
+  notes?: string;
+  outcomeTag?: string;
+  followUpTaskId?: string;
+  dispositionAt?: string | null;
+  callbackResolved?: boolean;
+  callbackResolvedAt?: string | null;
+  recordingUrl?: string;
+  recordingDurationSeconds?: number;
+  recordedAt?: string | null;
+  transferredFromName?: string;
+  transferredToName?: string;
   connection?: {
     icePath: CallIcePath;
     turnUsed: boolean;
@@ -78,12 +110,41 @@ export interface CallHistoryEntry {
   };
 }
 
+export interface SimCallSession {
+  id: string;
+  startedAtMs: number;
+  contactName: string;
+  contactPhone: string;
+  company?: string;
+  linkedEntityType: '' | 'lead' | 'deal' | 'ticket' | 'contact';
+  linkedEntityId: string;
+  linkedEntityLabel: string;
+}
+
+export interface DispositionModalCall {
+  mode?: 'webrtc' | 'sim';
+  callId: string;
+  peerName: string;
+  durationSeconds: number;
+  customerPhone?: string;
+  company?: string;
+  simStatus?: 'completed' | 'missed' | 'rejected';
+  linkedEntityType?: '' | 'lead' | 'deal' | 'ticket' | 'contact';
+  linkedEntityId?: string;
+  linkedEntityLabel?: string;
+  notes?: string;
+  outcomeTag?: string;
+}
+
 export interface CallEngineHandlers {
   initiateCall: (peer: CallPeerInfo) => Promise<void>;
   acceptIncomingCall: () => Promise<void>;
   rejectIncomingCall: () => void;
   endCall: (reason?: string) => Promise<void>;
   toggleMute: () => void;
+  toggleHold: () => void;
+  toggleRecording: () => void;
+  transferCall: (targetUserCode: string) => Promise<boolean>;
   setPresence: (status: AgentPresenceStatus) => void;
   refreshHistory: (filter?: string) => Promise<void>;
 }
@@ -103,6 +164,8 @@ interface CallUiState {
   history: CallHistoryEntry[];
   historyStats: CallHistoryStats;
   loadingHistory: boolean;
+  dispositionModalCall: DispositionModalCall | null;
+  activeSimCall: SimCallSession | null;
 
   handlers: CallEngineHandlers | null;
 
@@ -116,6 +179,11 @@ interface CallUiState {
   appendDialDigit: (digit: string) => void;
   backspaceDialDigit: () => void;
   setErrorBanner: (msg: string | null) => void;
+  setDispositionModalCall: (call: DispositionModalCall | null) => void;
+  startSimCall: (payload: Omit<SimCallSession, 'id' | 'startedAtMs'>) => void;
+  promptSimDisposition: () => void;
+  clearSimCall: () => void;
+  hydrateSimCall: () => void;
 
   setSessionState: (
     next: Partial<
@@ -132,6 +200,23 @@ interface CallUiState {
 }
 
 const DEFAULT_TIMEOUT_SEC = 30;
+const SIM_CALL_STORAGE_KEY = 'leadsetu_pending_sim_call';
+
+function saveSimSessionToStorage(session: SimCallSession | null) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (session) {
+      window.sessionStorage.setItem(
+        SIM_CALL_STORAGE_KEY,
+        JSON.stringify(session),
+      );
+    } else {
+      window.sessionStorage.removeItem(SIM_CALL_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore sessionStorage restrictions
+  }
+}
 
 export const useCallUiStore = create<CallUiState>((set, get) => ({
   socketConnected: false,
@@ -146,8 +231,16 @@ export const useCallUiStore = create<CallUiState>((set, get) => ({
 
   presenceRoster: [],
   history: [],
-  historyStats: { total: 0, answered: 0, missed: 0, avgDurationSec: 0 },
+  historyStats: {
+    total: 0,
+    answered: 0,
+    missed: 0,
+    avgDurationSec: 0,
+    pendingCallbacks: 0,
+  },
   loadingHistory: false,
+  dispositionModalCall: null,
+  activeSimCall: null,
 
   handlers: null,
 
@@ -165,6 +258,64 @@ export const useCallUiStore = create<CallUiState>((set, get) => ({
   backspaceDialDigit: () =>
     set((s) => ({ dialInput: s.dialInput.slice(0, -1) })),
   setErrorBanner: (errorBanner) => set({ errorBanner }),
+  setDispositionModalCall: (dispositionModalCall) =>
+    set({ dispositionModalCall }),
+
+  startSimCall: (payload) => {
+    const session: SimCallSession = {
+      id: `sim_${Date.now()}`,
+      startedAtMs: Date.now(),
+      ...payload,
+    };
+    saveSimSessionToStorage(session);
+    set({ activeSimCall: session });
+  },
+
+  promptSimDisposition: () => {
+    const sim = get().activeSimCall;
+    if (!sim) return;
+    const elapsedSec = Math.max(
+      1,
+      Math.round((Date.now() - sim.startedAtMs) / 1000),
+    );
+    saveSimSessionToStorage(null);
+    set({
+      activeSimCall: null,
+      dispositionModalCall: {
+        mode: 'sim',
+        callId: '',
+        peerName: sim.contactName,
+        durationSeconds: elapsedSec,
+        customerPhone: sim.contactPhone,
+        company: sim.company,
+        simStatus: 'completed',
+        linkedEntityType: sim.linkedEntityType,
+        linkedEntityId: sim.linkedEntityId,
+        linkedEntityLabel: sim.linkedEntityLabel,
+      },
+    });
+  },
+
+  clearSimCall: () => {
+    saveSimSessionToStorage(null);
+    set({ activeSimCall: null });
+  },
+
+  hydrateSimCall: () => {
+    if (typeof window === 'undefined' || get().activeSimCall) return;
+    try {
+      const raw = window.sessionStorage.getItem(SIM_CALL_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as SimCallSession;
+      if (parsed && parsed.startedAtMs && Date.now() - parsed.startedAtMs < 3600_000) {
+        set({ activeSimCall: parsed });
+      } else {
+        saveSimSessionToStorage(null);
+      }
+    } catch {
+      saveSimSessionToStorage(null);
+    }
+  },
 
   setSessionState: (next) => set(next),
   updateActiveCall: (patch) =>

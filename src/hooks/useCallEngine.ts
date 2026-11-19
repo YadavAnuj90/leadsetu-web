@@ -8,6 +8,7 @@ import {
   fetchCallHistoryApi,
   fetchCallsPresenceApi,
   fetchIceServersApi,
+  uploadCallRecordingApi,
   type CallTelemetryPayload,
   type TenantPresenceMember,
 } from '@/lib/calls-api';
@@ -43,6 +44,11 @@ export function useCallEngine() {
   const iceRestartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const iceRestartInProgressRef = useRef<boolean>(false);
   const lastTelemetryRef = useRef<CallTelemetryPayload | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const recordingCallIdRef = useRef<string | null>(null);
+  const recordingStartedAtRef = useRef<number>(0);
 
   const refreshHistory = useCallback(async (filter?: string) => {
     const store = useCallUiStore.getState();
@@ -57,7 +63,7 @@ export function useCallEngine() {
     }
   }, []);
 
-  const cleanupMediaAndPeer = useCallback(() => {
+  const cleanupPeerOnly = useCallback(() => {
     if (statsIntervalRef.current) {
       clearInterval(statsIntervalRef.current);
       statsIntervalRef.current = null;
@@ -79,17 +85,6 @@ export function useCallEngine() {
       pcRef.current = null;
     }
 
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((t) => {
-        try {
-          t.stop();
-        } catch {
-          // Ignore track stop errors
-        }
-      });
-      localStreamRef.current = null;
-    }
-
     if (remoteStreamRef.current) {
       remoteStreamRef.current.getTracks().forEach((t) => {
         try {
@@ -105,6 +100,7 @@ export function useCallEngine() {
       try {
         remoteAudioRef.current.pause();
         remoteAudioRef.current.srcObject = null;
+        remoteAudioRef.current.muted = false;
       } catch {
         // Ignore
       }
@@ -112,11 +108,27 @@ export function useCallEngine() {
 
     pendingIceRef.current = [];
     remoteDescSetRef.current = false;
-    activeCallIdRef.current = null;
-    isInitiatorRef.current = false;
     iceRestartInProgressRef.current = false;
     lastTelemetryRef.current = null;
   }, []);
+
+  const cleanupMediaAndPeer = useCallback(() => {
+    cleanupPeerOnly();
+
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((t) => {
+        try {
+          t.stop();
+        } catch {
+          // Ignore track stop errors
+        }
+      });
+      localStreamRef.current = null;
+    }
+
+    activeCallIdRef.current = null;
+    isInitiatorRef.current = false;
+  }, [cleanupPeerOnly]);
 
   const acquireMicrophone = useCallback(async (): Promise<MediaStream> => {
     if (
@@ -375,6 +387,15 @@ export function useCallEngine() {
           {
             ...(peer.id ? { calleeId: peer.id } : {}),
             ...(peer.userCode ? { calleeUserCode: peer.userCode } : {}),
+            ...(peer.linkedEntityType
+              ? { linkedEntityType: peer.linkedEntityType }
+              : {}),
+            ...(peer.linkedEntityId
+              ? { linkedEntityId: peer.linkedEntityId }
+              : {}),
+            ...(peer.linkedEntityLabel
+              ? { linkedEntityLabel: peer.linkedEntityLabel }
+              : {}),
           },
           (ack?: {
             ok?: boolean;
@@ -401,6 +422,9 @@ export function useCallEngine() {
                   role: formatRoleLabel(ack.callee.role),
                   userCode: ack.callee.userCode,
                   territory: ack.callee.territory,
+                  linkedEntityType: peer.linkedEntityType,
+                  linkedEntityId: peer.linkedEntityId,
+                  linkedEntityLabel: peer.linkedEntityLabel,
                 }
               : peer;
             activeCallIdRef.current = ack.call.id;
@@ -420,6 +444,9 @@ export function useCallEngine() {
                 isSpeakerBoost: false,
                 icePath: 'direct',
                 rttMs: 0,
+                linkedEntityType: peer.linkedEntityType,
+                linkedEntityId: peer.linkedEntityId,
+                linkedEntityLabel: peer.linkedEntityLabel,
               },
             });
             store.setDialerDrawerOpen(false);
@@ -490,6 +517,153 @@ export function useCallEngine() {
     }, 1500);
   }, [cleanupMediaAndPeer, refreshHistory]);
 
+  const stopAndUploadRecording = useCallback(
+    async (callIdOverride?: string) => {
+      const recorder = mediaRecorderRef.current;
+      const ctx = audioCtxRef.current;
+      const targetCallId =
+        callIdOverride || recordingCallIdRef.current || activeCallIdRef.current;
+      const recDurationSec = Math.max(
+        1,
+        Math.round((Date.now() - recordingStartedAtRef.current) / 1000),
+      );
+      const chunks = recordedChunksRef.current;
+
+      mediaRecorderRef.current = null;
+      recordingCallIdRef.current = null;
+      audioCtxRef.current = null;
+      recordedChunksRef.current = [];
+      useCallUiStore.getState().updateActiveCall({ isRecording: false });
+
+      if (!recorder || recorder.state === 'inactive') {
+        try {
+          await ctx?.close();
+        } catch {
+          // Ignore close errors
+        }
+        return;
+      }
+
+      await new Promise<void>((resolve) => {
+        const mimeType = recorder.mimeType || 'audio/webm';
+        recorder.onstop = () => {
+          try {
+            void ctx?.close();
+          } catch {
+            // Ignore
+          }
+          if (!targetCallId || chunks.length === 0) {
+            resolve();
+            return;
+          }
+          const blob = new Blob(chunks, { type: mimeType });
+          const reader = new FileReader();
+          reader.onloadend = async () => {
+            const audioDataUrl =
+              typeof reader.result === 'string' ? reader.result : '';
+            if (!audioDataUrl) {
+              resolve();
+              return;
+            }
+            const store = useCallUiStore.getState();
+            store.updateActiveCall({ isUploadingRecording: true });
+            try {
+              await uploadCallRecordingApi(targetCallId, {
+                audioDataUrl,
+                durationSeconds: recDurationSec,
+              });
+              await refreshHistory();
+            } catch {
+              store.setErrorBanner('Call recording upload failed.');
+            } finally {
+              store.updateActiveCall({ isUploadingRecording: false });
+              resolve();
+            }
+          };
+          reader.onerror = () => resolve();
+          reader.readAsDataURL(blob);
+        };
+        try {
+          recorder.stop();
+        } catch {
+          resolve();
+        }
+      });
+    },
+    [refreshHistory],
+  );
+
+  const toggleRecording = useCallback(() => {
+    const store = useCallUiStore.getState();
+    const active = store.activeCall;
+    if (!active) return;
+
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state !== 'inactive'
+    ) {
+      void stopAndUploadRecording(active.id);
+      return;
+    }
+
+    if (typeof window === 'undefined' || typeof MediaRecorder === 'undefined') {
+      store.setErrorBanner('Browser audio recording is not supported here.');
+      return;
+    }
+
+    try {
+      const AudioContextCtor =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext })
+          .webkitAudioContext;
+      const ctx = new AudioContextCtor();
+      const dest = ctx.createMediaStreamDestination();
+
+      if (
+        localStreamRef.current &&
+        localStreamRef.current.getAudioTracks().length > 0
+      ) {
+        ctx.createMediaStreamSource(localStreamRef.current).connect(dest);
+      }
+      if (
+        remoteStreamRef.current &&
+        remoteStreamRef.current.getAudioTracks().length > 0
+      ) {
+        ctx.createMediaStreamSource(remoteStreamRef.current).connect(dest);
+      }
+
+      const preferredTypes = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/mp4',
+      ];
+      const mimeType = preferredTypes.find((t) =>
+        MediaRecorder.isTypeSupported(t),
+      );
+      const recorder = mimeType
+        ? new MediaRecorder(dest.stream, { mimeType })
+        : new MediaRecorder(dest.stream);
+
+      recordedChunksRef.current = [];
+      recordingCallIdRef.current = active.id;
+      recordingStartedAtRef.current = Date.now();
+      audioCtxRef.current = ctx;
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (ev) => {
+        if (ev.data && ev.data.size > 0) {
+          recordedChunksRef.current.push(ev.data);
+        }
+      };
+
+      recorder.start(500);
+      store.updateActiveCall({ isRecording: true });
+    } catch {
+      store.setErrorBanner('Could not initialize audio recorder.');
+    }
+  }, [stopAndUploadRecording]);
+
   const endCall = useCallback(
     async (reason?: string) => {
       const store = useCallUiStore.getState();
@@ -498,6 +672,13 @@ export function useCallEngine() {
         cleanupMediaAndPeer();
         store.setSessionState({ callState: 'idle', activeCall: null });
         return;
+      }
+
+      if (
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state !== 'inactive'
+      ) {
+        void stopAndUploadRecording(active.id);
       }
 
       const finalTelemetry = pcRef.current
@@ -511,11 +692,27 @@ export function useCallEngine() {
       });
 
       cleanupMediaAndPeer();
+      const wasConnected =
+        active.durationSec > 0 || Boolean(active.connectedAt);
       store.setSessionState({
         callState: 'ended',
         isMinimized: false,
         activeCall: { ...active, endReason: reason || 'Call Ended' },
       });
+      if (wasConnected) {
+        store.setDispositionModalCall({
+          callId: active.id,
+          peerName: active.peer.name,
+          durationSeconds: active.durationSec,
+          linkedEntityType:
+            active.linkedEntityType || active.peer.linkedEntityType,
+          linkedEntityId: active.linkedEntityId || active.peer.linkedEntityId,
+          linkedEntityLabel:
+            active.linkedEntityLabel || active.peer.linkedEntityLabel,
+          notes: active.notes,
+          outcomeTag: active.outcomeTag,
+        });
+      }
       void refreshHistory();
 
       setTimeout(() => {
@@ -525,7 +722,7 @@ export function useCallEngine() {
         }
       }, 1500);
     },
-    [cleanupMediaAndPeer, refreshHistory],
+    [cleanupMediaAndPeer, refreshHistory, stopAndUploadRecording],
   );
 
   const toggleMute = useCallback(() => {
@@ -536,7 +733,7 @@ export function useCallEngine() {
     const nextMuted = !active.isMuted;
     if (localStreamRef.current) {
       localStreamRef.current.getAudioTracks().forEach((track) => {
-        track.enabled = !nextMuted;
+        track.enabled = !nextMuted && !active.isOnHold;
       });
     }
     store.updateActiveCall({ isMuted: nextMuted });
@@ -545,6 +742,82 @@ export function useCallEngine() {
       isMuted: nextMuted,
     });
   }, []);
+
+  const toggleHold = useCallback(() => {
+    const store = useCallUiStore.getState();
+    const active = store.activeCall;
+    if (!active) return;
+
+    const nextHold = !Boolean(active.isOnHold);
+    if (localStreamRef.current) {
+      localStreamRef.current.getAudioTracks().forEach((track) => {
+        track.enabled = nextHold ? false : !active.isMuted;
+      });
+    }
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.muted = nextHold;
+    }
+    store.updateActiveCall({ isOnHold: nextHold });
+    socketRef.current?.emit('call:hold_state', {
+      callId: active.id,
+      isOnHold: nextHold,
+    });
+  }, []);
+
+  const transferCall = useCallback(
+    async (targetUserCode: string): Promise<boolean> => {
+      const store = useCallUiStore.getState();
+      const active = store.activeCall;
+      const socket = socketRef.current;
+      const cleanCode = targetUserCode.replace(/^#/, '').trim();
+      if (!active || !socket || !socket.connected || !cleanCode) {
+        return false;
+      }
+
+      store.setErrorBanner(null);
+      return new Promise<boolean>((resolve) => {
+        socket.emit(
+          'call:transfer',
+          { callId: active.id, targetUserCode: cleanCode },
+          (ack?: {
+            ok?: boolean;
+            error?: string;
+            callee?: { name?: string };
+          }) => {
+            if (!ack?.ok) {
+              store.setErrorBanner(ack?.error || 'Could not transfer call.');
+              resolve(false);
+              return;
+            }
+            if (
+              mediaRecorderRef.current &&
+              mediaRecorderRef.current.state !== 'inactive'
+            ) {
+              void stopAndUploadRecording(active.id);
+            }
+            cleanupMediaAndPeer();
+            store.setSessionState({
+              callState: 'ended',
+              isMinimized: false,
+              activeCall: {
+                ...active,
+                endReason: `Transferred to ${ack.callee?.name || `#${cleanCode}`}`,
+              },
+            });
+            void refreshHistory();
+            setTimeout(() => {
+              const curr = useCallUiStore.getState();
+              if (curr.callState === 'ended' && curr.activeCall?.id === active.id) {
+                curr.setSessionState({ callState: 'idle', activeCall: null });
+              }
+            }, 1800);
+            resolve(true);
+          },
+        );
+      });
+    },
+    [cleanupMediaAndPeer, refreshHistory, stopAndUploadRecording],
+  );
 
   const setPresence = useCallback((status: AgentPresenceStatus) => {
     useCallUiStore.getState().setMyStatusLocal(status);
@@ -559,6 +832,9 @@ export function useCallEngine() {
       rejectIncomingCall,
       endCall,
       toggleMute,
+      toggleHold,
+      toggleRecording,
+      transferCall,
       setPresence,
       refreshHistory,
     });
@@ -571,6 +847,9 @@ export function useCallEngine() {
     rejectIncomingCall,
     endCall,
     toggleMute,
+    toggleHold,
+    toggleRecording,
+    transferCall,
     setPresence,
     refreshHistory,
   ]);
@@ -626,7 +905,18 @@ export function useCallEngine() {
       'call:incoming',
       (payload: {
         callId: string;
-        caller: { userId: string; name: string; role: string; userCode: string };
+        caller: {
+          userId: string;
+          name: string;
+          role: string;
+          userCode: string;
+          callerType?: 'agent' | 'customer';
+          customerPhone?: string;
+          linkedEntityType?: '' | 'lead' | 'deal' | 'ticket';
+          linkedEntityId?: string;
+          linkedEntityLabel?: string;
+          transferredFromName?: string;
+        };
         startedAt: string;
         timeoutSec?: number;
       }) => {
@@ -646,6 +936,12 @@ export function useCallEngine() {
               name: payload.caller.name,
               role: formatRoleLabel(payload.caller.role),
               userCode: payload.caller.userCode,
+              callerType: payload.caller.callerType || 'agent',
+              customerPhone: payload.caller.customerPhone || '',
+              linkedEntityType: payload.caller.linkedEntityType || '',
+              linkedEntityId: payload.caller.linkedEntityId || '',
+              linkedEntityLabel: payload.caller.linkedEntityLabel || '',
+              transferredFromName: payload.caller.transferredFromName || '',
             },
             direction: 'incoming',
             startedAt: payload.startedAt || new Date().toISOString(),
@@ -655,6 +951,9 @@ export function useCallEngine() {
             isSpeakerBoost: false,
             icePath: 'direct',
             rttMs: 0,
+            linkedEntityType: payload.caller.linkedEntityType || '',
+            linkedEntityId: payload.caller.linkedEntityId || '',
+            linkedEntityLabel: payload.caller.linkedEntityLabel || '',
           },
         });
       },
@@ -795,6 +1094,92 @@ export function useCallEngine() {
       },
     );
 
+    socket.on(
+      'call:hold_state',
+      (payload: { callId: string; isOnHold: boolean }) => {
+        const store = useCallUiStore.getState();
+        if (store.activeCall?.id === payload.callId) {
+          store.updateActiveCall({ peerOnHold: Boolean(payload.isOnHold) });
+        }
+      },
+    );
+
+    socket.on(
+      'call:transferred_outgoing',
+      (payload: {
+        oldCallId: string;
+        newCallId: string;
+        startedAt: string;
+        callee: {
+          userId: string;
+          name: string;
+          role: string;
+          userCode: string;
+          territory?: string;
+        };
+        transferredFromName?: string;
+        timeoutSec?: number;
+      }) => {
+        void (async () => {
+          const store = useCallUiStore.getState();
+          if (
+            mediaRecorderRef.current &&
+            mediaRecorderRef.current.state !== 'inactive'
+          ) {
+            void stopAndUploadRecording(payload.oldCallId);
+          }
+          cleanupPeerOnly();
+          if (!localStreamRef.current) {
+            try {
+              await acquireMicrophone();
+            } catch {
+              // Ignore if mic unavailable
+            }
+          } else {
+            localStreamRef.current.getAudioTracks().forEach((t) => {
+              t.enabled = true;
+            });
+          }
+
+          activeCallIdRef.current = payload.newCallId;
+          isInitiatorRef.current = true;
+          const prevSession = store.activeCall;
+          store.setSessionState({
+            callState: 'ringing_outgoing',
+            ringSecondsLeft: payload.timeoutSec || 30,
+            isMinimized: false,
+            activeCall: {
+              id: payload.newCallId,
+              peer: {
+                id: payload.callee.userId,
+                name: payload.callee.name,
+                role: formatRoleLabel(payload.callee.role),
+                userCode: payload.callee.userCode,
+                territory: payload.callee.territory,
+                transferredFromName: payload.transferredFromName,
+              },
+              direction: 'outgoing',
+              startedAt: payload.startedAt || new Date().toISOString(),
+              durationSec: 0,
+              isMuted: false,
+              peerMuted: false,
+              isOnHold: false,
+              peerOnHold: false,
+              isRecording: false,
+              isSpeakerBoost: false,
+              icePath: 'direct',
+              rttMs: 0,
+              linkedEntityType: prevSession?.linkedEntityType,
+              linkedEntityId: prevSession?.linkedEntityId,
+              linkedEntityLabel: prevSession?.linkedEntityLabel,
+              notes: prevSession?.notes,
+              outcomeTag: prevSession?.outcomeTag,
+            },
+          });
+        })();
+      },
+    );
+
     const handleTerminalEvent = (
       payload: { callId: string; reason?: string; durationSeconds?: number },
       fallbackReason: string,
@@ -805,16 +1190,37 @@ export function useCallEngine() {
         return;
       }
       const prev = store.activeCall;
+      const finalDuration = payload.durationSeconds ?? prev.durationSec;
+      const wasConnected = finalDuration > 0 || Boolean(prev.connectedAt);
+      if (
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state !== 'inactive'
+      ) {
+        void stopAndUploadRecording(prev.id);
+      }
       cleanupMediaAndPeer();
       store.setSessionState({
         callState: 'ended',
         isMinimized: false,
         activeCall: {
           ...prev,
-          durationSec: payload.durationSeconds ?? prev.durationSec,
+          durationSec: finalDuration,
           endReason: payload.reason || fallbackReason,
         },
       });
+      if (wasConnected && store.dispositionModalCall?.callId !== payload.callId) {
+        store.setDispositionModalCall({
+          callId: prev.id,
+          peerName: prev.peer.name,
+          durationSeconds: finalDuration,
+          linkedEntityType: prev.linkedEntityType || prev.peer.linkedEntityType,
+          linkedEntityId: prev.linkedEntityId || prev.peer.linkedEntityId,
+          linkedEntityLabel:
+            prev.linkedEntityLabel || prev.peer.linkedEntityLabel,
+          notes: prev.notes,
+          outcomeTag: prev.outcomeTag,
+        });
+      }
       void refreshHistory();
       setTimeout(() => {
         const curr = useCallUiStore.getState();
@@ -914,11 +1320,14 @@ export function useCallEngine() {
   }, [
     accessToken,
     currentUser?.id,
+    acquireMicrophone,
     cleanupMediaAndPeer,
+    cleanupPeerOnly,
     createConfiguredPeerConnection,
     endCall,
     flushBufferedIceCandidates,
     refreshHistory,
+    stopAndUploadRecording,
     triggerIceRestart,
   ]);
 

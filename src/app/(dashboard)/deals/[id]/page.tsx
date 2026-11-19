@@ -17,6 +17,8 @@ import {
   FileText,
 } from 'lucide-react';
 import { apiClient, getErrorMessage } from '@/lib/api-client';
+import ShareVoiceCallLinkButton from '@/components/calling/ShareVoiceCallLinkButton';
+import CallMobileButton from '@/components/calling/CallMobileButton';
 import type { Deal, DealStage } from '@/types/contracts';
 
 const stages: { id: DealStage; label: string }[] = [
@@ -52,6 +54,17 @@ export default function DealDetailPage() {
   useEffect(() => {
     loadDeal();
   }, [loadDeal]);
+
+  useEffect(() => {
+    const onSimLogged = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ entityType?: string; entityId?: string }>).detail;
+      if (detail?.entityType === 'deal' && detail?.entityId === dealId) {
+        void loadDeal();
+      }
+    };
+    window.addEventListener('leadsetu:sim-call-logged', onSimLogged);
+    return () => window.removeEventListener('leadsetu:sim-call-logged', onSimLogged);
+  }, [loadDeal, dealId]);
 
   const handleStageChange = async (stage: DealStage) => {
     if (!deal) return;
@@ -131,6 +144,22 @@ export default function DealDetailPage() {
           >
             <FileText className="w-3.5 h-3.5" /> Generate GST Invoice
           </Link>
+
+          <CallMobileButton
+            phone={deal.contactPhone}
+            contactName={deal.contactName || deal.title}
+            company={deal.company}
+            entityType="deal"
+            entityId={deal.id}
+            entityLabel={deal.company ? `${deal.title} (${deal.company})` : deal.title}
+          />
+
+          <ShareVoiceCallLinkButton
+            entityType="deal"
+            entityId={deal.id}
+            recipientName={deal.contactName || deal.title}
+            recipientPhone={deal.contactPhone}
+          />
 
           <button
             type="button"

@@ -109,8 +109,10 @@ export default function Header() {
   const {
     myStatus: callPresence,
     callState,
+    historyStats,
     setDialerDrawerOpen,
   } = useCallUiStore();
+  const pendingMissed = historyStats.pendingCallbacks || 0;
 
   const showBackButton = pathname && pathname !== '/dashboard';
 
@@ -369,6 +371,14 @@ export default function Header() {
             <span className="hidden md:inline">
               {callState === 'connected' ? 'On Call' : 'Phone'}
             </span>
+            {pendingMissed > 0 && callState === 'idle' && (
+              <span
+                className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-black leading-none"
+                title={`${pendingMissed} pending missed call / callback${pendingMissed === 1 ? '' : 's'}`}
+              >
+                {pendingMissed}
+              </span>
+            )}
           </button>
 
           {isFeatureEnabled(tenant, 'aiScoring', user) &&

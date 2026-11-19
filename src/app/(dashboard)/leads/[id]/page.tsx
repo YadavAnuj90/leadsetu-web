@@ -25,6 +25,8 @@ import { useAuthStore } from '@/store/auth.store';
 import { isFeatureEnabled } from '@/lib/feature-access';
 import LeadTimeline from '@/components/leads/LeadTimeline';
 import VoiceCrmAuditModal from '@/components/ai/VoiceCrmAuditModal';
+import ShareVoiceCallLinkButton from '@/components/calling/ShareVoiceCallLinkButton';
+import CallMobileButton from '@/components/calling/CallMobileButton';
 import type { Deal, Lead, LeadActivity, LeadStatus } from '@/types/contracts';
 
 const stages: { id: LeadStatus; label: string }[] = [
@@ -68,6 +70,17 @@ export default function LeadDetailPage() {
   useEffect(() => {
     loadLead();
   }, [loadLead]);
+
+  useEffect(() => {
+    const onSimLogged = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ entityType?: string; entityId?: string }>).detail;
+      if (detail?.entityType === 'lead' && detail?.entityId === leadId) {
+        void loadLead();
+      }
+    };
+    window.addEventListener('leadsetu:sim-call-logged', onSimLogged);
+    return () => window.removeEventListener('leadsetu:sim-call-logged', onSimLogged);
+  }, [loadLead, leadId]);
 
   const handleStageChange = async (status: LeadStatus) => {
     if (!lead) return;
@@ -224,6 +237,19 @@ export default function LeadDetailPage() {
               <MessageSquare className="w-3.5 h-3.5" /> Open in WhatsApp
             </a>
           )}
+          <CallMobileButton
+            phone={lead.phone}
+            contactName={lead.name}
+            company={lead.company}
+            entityType="lead"
+            entityId={lead.id}
+          />
+          <ShareVoiceCallLinkButton
+            entityType="lead"
+            entityId={lead.id}
+            recipientName={lead.name}
+            recipientPhone={lead.phone}
+          />
           <button
             type="button"
             onClick={handleDelete}

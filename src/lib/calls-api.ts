@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { apiClient } from '@/lib/api-client';
 import type {
   AgentPresenceStatus,
@@ -27,6 +28,7 @@ export interface CallHistoryStats {
   answered: number;
   missed: number;
   avgDurationSec: number;
+  pendingCallbacks?: number;
 }
 
 export interface CallTelemetryPayload {
@@ -190,5 +192,177 @@ export async function fetchCallTelemetryApi(callId: string): Promise<{
     call: CallAnalyticsRecentRow;
     samples: CallTelemetrySampleRecord[];
   }>(`/calls/${callId}/telemetry`);
+  return data;
+}
+
+export interface CrmLinkableEntity {
+  id: string;
+  type: 'lead' | 'deal' | 'ticket' | 'contact';
+  label: string;
+  sublabel: string;
+  phone: string;
+  company: string;
+  ownerId: string;
+}
+
+export interface SaveCallDispositionPayload {
+  linkedEntityType?: '' | 'lead' | 'deal' | 'ticket' | 'contact';
+  linkedEntityId?: string;
+  outcomeTag?: string;
+  notes?: string;
+  createFollowUpTask?: boolean;
+  taskTitle?: string;
+  taskDueDate?: string;
+  taskPriority?: 'high' | 'medium' | 'low';
+  taskCategory?: 'call' | 'whatsapp' | 'meeting' | 'quote' | 'followup';
+}
+
+export interface LogSimCallPayload extends SaveCallDispositionPayload {
+  contactName?: string;
+  customerPhone?: string;
+  status?: 'completed' | 'missed' | 'rejected';
+  durationSeconds?: number;
+}
+
+export interface ShareCallLinkResponse {
+  token: string;
+  urlPath: string;
+  agent: {
+    userId: string;
+    name: string;
+    role: string;
+    userCode: string;
+  };
+  companyName: string;
+  entityType: '' | 'lead' | 'deal' | 'ticket';
+  entityId: string;
+  entityLabel: string;
+  customerName: string;
+  customerPhone: string;
+  expiresInDays: number;
+}
+
+export interface PublicCallLinkInfo {
+  valid: boolean;
+  companyName: string;
+  companyLogoUrl: string;
+  agent: {
+    name: string;
+    role: string;
+    territory: string;
+    status: AgentPresenceStatus;
+  };
+  context: {
+    entityType: '' | 'lead' | 'deal' | 'ticket';
+    entityLabel: string;
+    customerName: string;
+    customerPhone: string;
+  };
+  iceServers: RTCIceServer[];
+  iceTransportPolicy: RTCIceTransportPolicy;
+}
+
+export async function fetchCallCrmEntitiesApi(q?: string): Promise<{
+  leads: CrmLinkableEntity[];
+  deals: CrmLinkableEntity[];
+  tickets: CrmLinkableEntity[];
+  contacts: CrmLinkableEntity[];
+}> {
+  const { data } = await apiClient.get<{
+    leads: CrmLinkableEntity[];
+    deals: CrmLinkableEntity[];
+    tickets: CrmLinkableEntity[];
+    contacts: CrmLinkableEntity[];
+  }>('/calls/crm-entities', { params: q ? { q } : undefined });
+  return {
+    leads: data.leads || [],
+    deals: data.deals || [],
+    tickets: data.tickets || [],
+    contacts: data.contacts || [],
+  };
+}
+
+export async function saveCallDispositionApi(
+  callId: string,
+  payload: SaveCallDispositionPayload,
+): Promise<{
+  call: CallHistoryEntry;
+  followUpTaskId: string;
+}> {
+  const { data } = await apiClient.post<{
+    call: CallHistoryEntry;
+    followUpTaskId: string;
+  }>(`/calls/${callId}/disposition`, payload);
+  return data;
+}
+
+export async function createCallShareLinkApi(payload: {
+  entityType?: '' | 'lead' | 'deal' | 'ticket';
+  entityId?: string;
+  expiresInDays?: number;
+}): Promise<ShareCallLinkResponse> {
+  const { data } = await apiClient.post<ShareCallLinkResponse>(
+    '/calls/share-link',
+    payload,
+  );
+  return data;
+}
+
+export async function fetchPublicCallLinkInfoApi(
+  token: string,
+): Promise<PublicCallLinkInfo> {
+  const { data } = await axios.get<PublicCallLinkInfo>(
+    `/api/calls/public/link/${encodeURIComponent(token)}`,
+  );
+  return data;
+}
+
+export async function submitPublicCallCallbackApi(
+  token: string,
+  payload: {
+    customerName: string;
+    customerPhone: string;
+    preferredTime?: string;
+    message?: string;
+  },
+): Promise<{ ok: boolean; message: string; followUpTaskId: string }> {
+  const { data } = await axios.post<{
+    ok: boolean;
+    message: string;
+    followUpTaskId: string;
+  }>(`/api/calls/public/link/${encodeURIComponent(token)}/callback`, payload);
+  return data;
+}
+
+export async function resolveCallCallbackApi(
+  callId: string,
+  resolved?: boolean,
+): Promise<{ call: CallHistoryEntry }> {
+  const { data } = await apiClient.post<{ call: CallHistoryEntry }>(
+    `/calls/${callId}/resolve-callback`,
+    resolved === undefined ? {} : { resolved },
+  );
+  return data;
+}
+
+export async function uploadCallRecordingApi(
+  callId: string,
+  payload: { audioDataUrl: string; durationSeconds?: number },
+): Promise<{ call: CallHistoryEntry; recordingUrl: string }> {
+  const { data } = await apiClient.post<{
+    call: CallHistoryEntry;
+    recordingUrl: string;
+  }>(`/calls/${callId}/recording`, payload);
+  return data;
+}
+
+export async function logSimCallApi(payload: LogSimCallPayload): Promise<{
+  call: CallHistoryEntry;
+  followUpTaskId: string;
+}> {
+  const { data } = await apiClient.post<{
+    call: CallHistoryEntry;
+    followUpTaskId: string;
+  }>('/calls/sim-log', payload);
   return data;
 }

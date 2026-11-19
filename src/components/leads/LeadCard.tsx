@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import {
-  Phone,
   MessageSquare,
   MapPin,
   Sparkles,
@@ -10,6 +9,7 @@ import {
   Trash2,
   Edit3,
 } from 'lucide-react';
+import CallMobileButton from '@/components/calling/CallMobileButton';
 import type { Lead, LeadStatus } from '@/types/contracts';
 
 interface LeadCardProps {
@@ -159,13 +159,14 @@ export default function LeadCard({
               >
                 <MessageSquare className="w-3.5 h-3.5" />
               </a>
-              <a
-                href={`tel:${lead.phone}`}
-                title="Call Lead"
-                className="p-2 rounded-lg bg-blue-50 text-brand-blue hover:bg-blue-100 transition-colors"
-              >
-                <Phone className="w-3.5 h-3.5" />
-              </a>
+              <CallMobileButton
+                phone={lead.phone}
+                contactName={lead.name}
+                company={lead.company}
+                entityType="lead"
+                entityId={lead.id}
+                variant="icon"
+              />
             </>
           )}
           <button

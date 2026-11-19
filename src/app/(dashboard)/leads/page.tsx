@@ -13,7 +13,6 @@ import {
   LayoutGrid,
   List,
   MessageSquare,
-  Phone,
   Edit3,
   Trash2,
   ArrowUpRight,
@@ -27,6 +26,7 @@ import BulkCsvImportModal from '@/components/leads/BulkCsvImportModal';
 import VoiceCrmAuditModal from '@/components/ai/VoiceCrmAuditModal';
 import LeadForm from '@/components/leads/LeadForm';
 import LeadCard from '@/components/leads/LeadCard';
+import CallMobileButton from '@/components/calling/CallMobileButton';
 import type { CreateLeadPayload, Lead, LeadStatus } from '@/types/contracts';
 
 const statusTabs: { id: string; label: string }[] = [
@@ -505,13 +505,14 @@ export default function LeadsPage() {
                               >
                                 <MessageSquare className="w-4 h-4" />
                               </a>
-                              <a
-                                href={`tel:${lead.phone}`}
-                                title="Call Buyer"
-                                className="p-2 rounded-lg bg-blue-50 text-brand-blue hover:bg-blue-100 transition-colors"
-                              >
-                                <Phone className="w-4 h-4" />
-                              </a>
+                              <CallMobileButton
+                                phone={lead.phone}
+                                contactName={lead.name}
+                                company={lead.company}
+                                entityType="lead"
+                                entityId={lead.id}
+                                variant="icon"
+                              />
                             </>
                           )}
                           <button

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { apiClient, getErrorMessage } from '@/lib/api-client';
 import { verifyContactGstinApi, updateContactCreditApi } from '@/lib/invoices-api';
+import CallMobileButton from '@/components/calling/CallMobileButton';
 import type { Contact } from '@/types/contracts';
 
 export default function ContactsPage() {
@@ -425,15 +426,25 @@ export default function ContactsPage() {
                       {c.creditHold ? 'Release Hold' : 'Hold Credit'}
                     </button>
                     {c.phone && (
-                      <a
-                        href={waUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
-                        title="WhatsApp"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5" />
-                      </a>
+                      <>
+                        <CallMobileButton
+                          phone={c.phone}
+                          contactName={c.name}
+                          company={c.company}
+                          entityType="contact"
+                          entityId={c.id}
+                          variant="icon"
+                        />
+                        <a
+                          href={waUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                          title="WhatsApp"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                        </a>
+                      </>
                     )}
                     <button
                       type="button"
