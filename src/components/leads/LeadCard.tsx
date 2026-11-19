@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import {
-  MessageSquare,
   MapPin,
   Sparkles,
   ArrowUpRight,
@@ -10,6 +9,7 @@ import {
   Edit3,
 } from 'lucide-react';
 import CallMobileButton from '@/components/calling/CallMobileButton';
+import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
 import type { Lead, LeadStatus } from '@/types/contracts';
 
 interface LeadCardProps {
@@ -36,13 +36,6 @@ export default function LeadCard({
   onEdit,
   onDelete,
 }: LeadCardProps) {
-  const cleanPhone = (lead.phone || '').replace(/[^0-9]/g, '');
-  const waUrl = cleanPhone
-    ? `https://wa.me/${cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`}?text=${encodeURIComponent(
-        `Namaste ${lead.name} ji, connecting from Leadsetu regarding your inquiry.`
-      )}`
-    : '#';
-
   return (
     <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md hover:border-brand-blue/40 transition-all flex flex-col justify-between space-y-4">
       <div>
@@ -150,15 +143,16 @@ export default function LeadCard({
         <div className="flex items-center gap-1.5">
           {lead.phone && (
             <>
-              <a
-                href={waUrl}
-                target="_blank"
-                rel="noreferrer"
-                title="Chat on WhatsApp"
-                className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-              </a>
+              <WhatsAppActionButton
+                phone={lead.phone}
+                contactName={lead.name}
+                company={lead.company}
+                city={lead.city}
+                estimatedValue={lead.estimatedValue}
+                entityType="lead"
+                entityId={lead.id}
+                variant="icon"
+              />
               <CallMobileButton
                 phone={lead.phone}
                 contactName={lead.name}

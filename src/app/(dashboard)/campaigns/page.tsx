@@ -19,11 +19,15 @@ import {
   Loader2,
   X,
   Smartphone,
+  ShieldAlert,
+  BarChart3,
+  Ban,
 } from 'lucide-react';
 import {
   fetchCampaigns,
   createCampaign,
   launchCampaign,
+  toggleCampaignRecipientOptOut,
   deleteCampaign,
 } from '@/lib/campaigns-api';
 import { getErrorMessage } from '@/lib/api-client';
@@ -95,6 +99,7 @@ export default function CampaignsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState('');
   const [templateName, setTemplateName] = useState('ncr_industrial_pricelist_v2');
+  const [sendMode, setSendMode] = useState<'text' | 'meta_template'>('text');
   const [language, setLanguage] = useState<'hinglish' | 'english' | 'hindi'>('hinglish');
   const [channel, setChannel] = useState<'whatsapp_cloud' | 'whatsapp_ai_drip'>('whatsapp_cloud');
   const [targetSegment, setTargetSegment] = useState<CampaignSegment>('noida_delhi_ncr');
@@ -102,6 +107,10 @@ export default function CampaignsPage() {
   const [ctaLabel, setCtaLabel] = useState(PRESET_TEMPLATES[0].ctaLabel);
   const [statusMode, setStatusMode] = useState<CampaignStatus>('completed');
   const [scheduledFor, setScheduledFor] = useState('15 Nov 2026, 11:00 AM IST');
+
+  // Recipient Delivery Report Modal State
+  const [reportCampaign, setReportCampaign] = useState<Campaign | null>(null);
+  const [optOutPhoneBusy, setOptOutPhoneBusy] = useState<string | null>(null);
 
   const loadCampaigns = useCallback(async () => {
     setIsLoading(true);
@@ -146,6 +155,7 @@ export default function CampaignsPage() {
       await createCampaign({
         name: name.trim(),
         templateName: templateName.trim(),
+        sendMode,
         language,
         channel,
         targetSegment,
@@ -161,6 +171,27 @@ export default function CampaignsPage() {
       setErrorMsg(getErrorMessage(err));
     } finally {
       setIsMutating(false);
+    }
+  };
+
+  const handleToggleOptOut = async (
+    campaignId: string,
+    phone: string,
+    optOut: boolean,
+  ) => {
+    setOptOutPhoneBusy(phone);
+    setErrorMsg(null);
+    try {
+      const updated = await toggleCampaignRecipientOptOut(campaignId, {
+        phone,
+        optOut,
+      });
+      setReportCampaign(updated);
+      await loadCampaigns();
+    } catch (err) {
+      setErrorMsg(getErrorMessage(err));
+    } finally {
+      setOptOutPhoneBusy(null);
     }
   };
 
@@ -418,7 +449,18 @@ export default function CampaignsPage() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2 self-start lg:self-center">
+                <div className="flex flex-wrap items-center gap-2 self-start lg:self-center">
+                  <button
+                    type="button"
+                    onClick={() => setReportCampaign(camp)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-brand-light hover:border-brand-blue text-xs font-bold text-brand-navy transition-colors"
+                  >
+                    <BarChart3 className="w-3.5 h-3.5 text-brand-blue" />
+                    <span>
+                      Delivery Report ({camp.recipients?.length ?? camp.sentCount})
+                    </span>
+                  </button>
+
                   {camp.status !== 'completed' && (
                     <button
                       type="button"
@@ -440,6 +482,22 @@ export default function CampaignsPage() {
                   </button>
                 </div>
               </div>
+
+              {(Number(camp.failedCount || 0) > 0 ||
+                Number(camp.skippedDndCount || 0) > 0) && (
+                <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold">
+                  {Number(camp.skippedDndCount || 0) > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                      <Ban className="w-3 h-3" /> {camp.skippedDndCount} Skipped (DND / Opt-Out)
+                    </span>
+                  )}
+                  {Number(camp.failedCount || 0) > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                      <ShieldAlert className="w-3 h-3" /> {camp.failedCount} Failed Delivery
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Funnel Metrics Strip */}
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-3 border-t border-slate-100 text-xs">
@@ -570,25 +628,41 @@ export default function CampaignsPage() {
                       className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm bg-white font-semibold"
                     >
                       <option value="noida_delhi_ncr">
-                        Noida &amp; Delhi-NCR Buyers ({segCounts.noida_delhi_ncr || 112})
+                        Noida &amp; Delhi-NCR Buyers ({segCounts.noida_delhi_ncr || 0})
                       </option>
                       <option value="hot_leads">
-                        AI Score 75+ Hot Prospects ({segCounts.hot_leads || 48})
+                        AI Score 75+ Hot Prospects ({segCounts.hot_leads || 0})
                       </option>
                       <option value="indiamart_buyers">
-                        IndiaMART Inquiries ({segCounts.indiamart_buyers || 64})
+                        IndiaMART Inquiries ({segCounts.indiamart_buyers || 0})
                       </option>
                       <option value="gst_customers">
-                        GSTIN Verified B2B Accounts ({segCounts.gst_customers || 38})
+                        GSTIN Verified B2B Accounts ({segCounts.gst_customers || 0})
                       </option>
                       <option value="all_leads">
-                        All Active CRM Leads ({segCounts.all_leads || 140})
+                        All Active CRM Leads ({segCounts.all_leads || 0})
                       </option>
                     </select>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Dispatch Type
+                    </label>
+                    <select
+                      value={sendMode}
+                      onChange={(e) =>
+                        setSendMode(e.target.value as 'text' | 'meta_template')
+                      }
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white font-semibold"
+                    >
+                      <option value="text">Personalized Text (24h Window)</option>
+                      <option value="meta_template">Official Meta Template</option>
+                    </select>
+                  </div>
+
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       Meta Template Slug
@@ -758,6 +832,151 @@ export default function CampaignsPage() {
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── RECIPIENT DELIVERY REPORT & DND OPT-OUT MODAL ──── */}
+      {reportCampaign && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-4xl w-full border border-slate-200 shadow-2xl overflow-hidden my-8">
+            <div className="px-6 py-4 bg-brand-navy text-white flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-extrabold">
+                  Delivery Report &amp; DND Guard — {reportCampaign.name}
+                </h2>
+                <p className="text-[11px] text-slate-300">
+                  Live recipient status synced via Meta Cloud Webhooks (Sent &rarr; Delivered &rarr; Read &rarr; Replied)
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReportCampaign(null)}
+                className="p-1.5 rounded-lg hover:bg-white/10 text-slate-300"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[78vh] overflow-y-auto">
+              <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5 text-center text-xs">
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="text-[10px] font-bold uppercase text-slate-400">Sent</div>
+                  <div className="text-base font-extrabold text-brand-navy">{reportCampaign.sentCount}</div>
+                </div>
+                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
+                  <div className="text-[10px] font-bold uppercase text-emerald-700">Delivered</div>
+                  <div className="text-base font-extrabold text-emerald-700">{reportCampaign.deliveredCount}</div>
+                </div>
+                <div className="p-2.5 rounded-xl bg-sky-50 border border-sky-200">
+                  <div className="text-[10px] font-bold uppercase text-sky-700">Read</div>
+                  <div className="text-base font-extrabold text-sky-700">{reportCampaign.readCount}</div>
+                </div>
+                <div className="p-2.5 rounded-xl bg-indigo-50 border border-indigo-200">
+                  <div className="text-[10px] font-bold uppercase text-indigo-700">Replied</div>
+                  <div className="text-base font-extrabold text-indigo-700">{reportCampaign.repliedCount}</div>
+                </div>
+                <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200">
+                  <div className="text-[10px] font-bold uppercase text-rose-700">Failed</div>
+                  <div className="text-base font-extrabold text-rose-700">{reportCampaign.failedCount || 0}</div>
+                </div>
+                <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200">
+                  <div className="text-[10px] font-bold uppercase text-amber-700">Skipped DND</div>
+                  <div className="text-base font-extrabold text-amber-700">{reportCampaign.skippedDndCount || 0}</div>
+                </div>
+              </div>
+
+              {(reportCampaign.recipients || []).length === 0 ? (
+                <div className="p-8 rounded-2xl border border-slate-200 bg-slate-50 text-center text-xs text-slate-500">
+                  No matching recipients with 10-digit WhatsApp numbers were dispatched in this segment yet.
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden">
+                  {(reportCampaign.recipients || []).map((rec) => {
+                    const isOptedOut = rec.status === 'opted_out';
+                    return (
+                      <div
+                        key={`${rec.recipientId}-${rec.phone}`}
+                        className="p-3.5 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="space-y-0.5 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-extrabold text-brand-navy">
+                              {rec.contactName}
+                            </span>
+                            {rec.company && (
+                              <span className="text-slate-500">· {rec.company}</span>
+                            )}
+                            <span className="font-mono text-[11px] text-slate-600">
+                              {rec.phone}
+                            </span>
+                          </div>
+                          {rec.replyPreview && (
+                            <p className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded inline-block">
+                              Reply: &ldquo;{rec.replyPreview}&rdquo;
+                            </p>
+                          )}
+                          {rec.error && (
+                            <p className="text-[11px] text-rose-600">
+                              {rec.error}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 shrink-0">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
+                            {rec.deliveryProvider === 'meta_cloud'
+                              ? 'Meta Cloud'
+                              : rec.deliveryProvider === 'skipped_dnd'
+                                ? 'DND Skipped'
+                                : 'CRM Inbox'}
+                          </span>
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                              rec.status === 'replied'
+                                ? 'bg-indigo-100 text-indigo-700'
+                                : rec.status === 'read'
+                                  ? 'bg-sky-100 text-sky-700'
+                                  : rec.status === 'delivered'
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : rec.status === 'failed'
+                                      ? 'bg-rose-100 text-rose-700'
+                                      : rec.status === 'opted_out'
+                                        ? 'bg-amber-100 text-amber-800'
+                                        : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            {rec.status}
+                          </span>
+                          <button
+                            type="button"
+                            disabled={optOutPhoneBusy === rec.phone}
+                            onClick={() =>
+                              handleToggleOptOut(
+                                reportCampaign.id,
+                                rec.phone,
+                                !isOptedOut,
+                              )
+                            }
+                            className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold disabled:opacity-50 ${
+                              isOptedOut
+                                ? 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                : 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100'
+                            }`}
+                          >
+                            {optOutPhoneBusy === rec.phone
+                              ? 'Updating...'
+                              : isOptedOut
+                                ? 'Re-Subscribe'
+                                : 'Mark DND'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -9,6 +9,8 @@ import type {
   PlatformConfigData,
   PlatformFeatureKey,
   PlatformFeatureSpec,
+  PlatformWhatsAppProviderConfig,
+  PlatformWhatsAppProviderTestResponse,
   SaasCouponItem,
   SaasPartnerItem,
   SubscriptionInvoice,
@@ -557,6 +559,43 @@ export interface TerritoryAnalyticsResponse {
 export async function fetchTerritoryAnalyticsApi(): Promise<TerritoryAnalyticsResponse> {
   const { data } = await apiClient.get<TerritoryAnalyticsResponse>(
     '/super-admin/analytics/territories'
+  );
+  return data;
+}
+
+export async function fetchWhatsAppProviderApi(): Promise<PlatformWhatsAppProviderConfig> {
+  const { data } = await apiClient.get<PlatformWhatsAppProviderConfig>(
+    '/super-admin/whatsapp-provider',
+  );
+  return data;
+}
+
+export async function updateWhatsAppProviderApi(payload: {
+  metaAppId?: string;
+  metaAppSecret?: string;
+  embeddedSignupConfigId?: string;
+  webhookVerifyToken?: string;
+  clearMetaAppSecret?: boolean;
+  managedSenderEnabled?: boolean;
+  managedPhoneNumberId?: string;
+  managedWabaId?: string;
+  managedAccessToken?: string;
+  clearManagedAccessToken?: boolean;
+}): Promise<PlatformWhatsAppProviderConfig> {
+  const { data } = await apiClient.patch<PlatformWhatsAppProviderConfig>(
+    '/super-admin/whatsapp-provider',
+    payload,
+  );
+  return data;
+}
+
+export async function testWhatsAppProviderApi(payload?: {
+  phoneNumberId?: string;
+  accessToken?: string;
+}): Promise<PlatformWhatsAppProviderTestResponse> {
+  const { data } = await apiClient.post<PlatformWhatsAppProviderTestResponse>(
+    '/super-admin/whatsapp-provider/test',
+    payload || {},
   );
   return data;
 }

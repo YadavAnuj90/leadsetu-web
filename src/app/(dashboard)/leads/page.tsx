@@ -12,7 +12,6 @@ import {
   CheckCircle2,
   LayoutGrid,
   List,
-  MessageSquare,
   Edit3,
   Trash2,
   ArrowUpRight,
@@ -27,6 +26,7 @@ import VoiceCrmAuditModal from '@/components/ai/VoiceCrmAuditModal';
 import LeadForm from '@/components/leads/LeadForm';
 import LeadCard from '@/components/leads/LeadCard';
 import CallMobileButton from '@/components/calling/CallMobileButton';
+import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
 import type { CreateLeadPayload, Lead, LeadStatus } from '@/types/contracts';
 
 const statusTabs: { id: string; label: string }[] = [
@@ -396,17 +396,7 @@ export default function LeadsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm">
-                {leads.map((lead) => {
-                  const cleanPhone = (lead.phone || '').replace(/[^0-9]/g, '');
-                  const waUrl = cleanPhone
-                    ? `https://wa.me/${
-                        cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`
-                      }?text=${encodeURIComponent(
-                        `Namaste ${lead.name} ji, following up regarding your inquiry.`
-                      )}`
-                    : '#';
-
-                  return (
+                {leads.map((lead) => (
                     <tr
                       key={lead.id}
                       className="hover:bg-slate-50/70 transition-colors"
@@ -496,15 +486,16 @@ export default function LeadsPage() {
                         <div className="inline-flex items-center gap-1.5">
                           {lead.phone && (
                             <>
-                              <a
-                                href={waUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                title="WhatsApp Chat"
-                                className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
-                              >
-                                <MessageSquare className="w-4 h-4" />
-                              </a>
+                              <WhatsAppActionButton
+                                phone={lead.phone}
+                                contactName={lead.name}
+                                company={lead.company}
+                                city={lead.city}
+                                estimatedValue={lead.estimatedValue}
+                                entityType="lead"
+                                entityId={lead.id}
+                                variant="icon"
+                              />
                               <CallMobileButton
                                 phone={lead.phone}
                                 contactName={lead.name}
@@ -534,8 +525,7 @@ export default function LeadsPage() {
                         </div>
                       </td>
                     </tr>
-                  );
-                })}
+                  ))}
               </tbody>
             </table>
           </div>

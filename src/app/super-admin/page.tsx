@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   MapPin,
+  MessageSquare,
   PhoneCall,
   Receipt,
   RefreshCw,
@@ -30,6 +31,7 @@ import PoliciesMatrixSection from '@/components/super-admin/PoliciesMatrixSectio
 import TopupRequestsSection from '@/components/super-admin/TopupRequestsSection';
 import TerritoryAnalyticsSection from '@/components/super-admin/TerritoryAnalyticsSection';
 import CallingAnalyticsSection from '@/components/super-admin/CallingAnalyticsSection';
+import WhatsAppProviderSection from '@/components/super-admin/WhatsAppProviderSection';
 import {
   AuditLogsView,
   BillingLedgerView,
@@ -63,6 +65,7 @@ type SuperAdminTab =
   | 'topups'
   | 'territories'
   | 'calling'
+  | 'whatsapp'
   | 'policies'
   | 'billing'
   | 'audit'
@@ -103,6 +106,12 @@ const NAV_ITEMS: Array<{
     label: 'Calling Analytics',
     subtitle: 'WebRTC connection success, setup speed, TURN relay % & RTT telemetry',
     icon: PhoneCall,
+  },
+  {
+    id: 'whatsapp',
+    label: 'WhatsApp Provider',
+    subtitle: 'Central Meta Tech Provider App (1-Click Embedded Signup) & Leadsetu Managed Gateway',
+    icon: MessageSquare,
   },
   {
     id: 'policies',
@@ -605,6 +614,8 @@ export default function SuperAdminDashboardPage() {
               )}
 
               {activeTab === 'calling' && <CallingAnalyticsSection />}
+
+              {activeTab === 'whatsapp' && <WhatsAppProviderSection />}
 
               {activeTab === 'policies' && policiesConfig && (
                 <PoliciesMatrixSection

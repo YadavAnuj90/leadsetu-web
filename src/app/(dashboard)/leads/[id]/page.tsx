@@ -9,7 +9,6 @@ import {
   Mail,
   MapPin,
   Building2,
-  MessageSquare,
   Sparkles,
   IndianRupee,
   CheckCircle2,
@@ -27,6 +26,7 @@ import LeadTimeline from '@/components/leads/LeadTimeline';
 import VoiceCrmAuditModal from '@/components/ai/VoiceCrmAuditModal';
 import ShareVoiceCallLinkButton from '@/components/calling/ShareVoiceCallLinkButton';
 import CallMobileButton from '@/components/calling/CallMobileButton';
+import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
 import type { Deal, Lead, LeadActivity, LeadStatus } from '@/types/contracts';
 
 const stages: { id: LeadStatus; label: string }[] = [
@@ -72,14 +72,18 @@ export default function LeadDetailPage() {
   }, [loadLead]);
 
   useEffect(() => {
-    const onSimLogged = (ev: Event) => {
+    const onEntityActivityLogged = (ev: Event) => {
       const detail = (ev as CustomEvent<{ entityType?: string; entityId?: string }>).detail;
       if (detail?.entityType === 'lead' && detail?.entityId === leadId) {
         void loadLead();
       }
     };
-    window.addEventListener('leadsetu:sim-call-logged', onSimLogged);
-    return () => window.removeEventListener('leadsetu:sim-call-logged', onSimLogged);
+    window.addEventListener('leadsetu:sim-call-logged', onEntityActivityLogged);
+    window.addEventListener('leadsetu:whatsapp-logged', onEntityActivityLogged);
+    return () => {
+      window.removeEventListener('leadsetu:sim-call-logged', onEntityActivityLogged);
+      window.removeEventListener('leadsetu:whatsapp-logged', onEntityActivityLogged);
+    };
   }, [loadLead, leadId]);
 
   const handleStageChange = async (status: LeadStatus) => {
@@ -168,15 +172,6 @@ export default function LeadDetailPage() {
     );
   }
 
-  const cleanPhone = (lead.phone || '').replace(/[^0-9]/g, '');
-  const waUrl = cleanPhone
-    ? `https://wa.me/${
-        cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`
-      }?text=${encodeURIComponent(
-        `Namaste ${lead.name} ji, sharing updates regarding your inquiry with ${lead.company || 'us'}.`
-      )}`
-    : '#';
-
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Top Breadcrumb & Actions */}
@@ -228,14 +223,16 @@ export default function LeadDetailPage() {
           </Link>
 
           {lead.phone && (
-            <a
-              href={waUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-sm"
-            >
-              <MessageSquare className="w-3.5 h-3.5" /> Open in WhatsApp
-            </a>
+            <WhatsAppActionButton
+              phone={lead.phone}
+              contactName={lead.name}
+              company={lead.company}
+              city={lead.city}
+              estimatedValue={lead.estimatedValue}
+              entityType="lead"
+              entityId={lead.id}
+              label="WhatsApp"
+            />
           )}
           <CallMobileButton
             phone={lead.phone}

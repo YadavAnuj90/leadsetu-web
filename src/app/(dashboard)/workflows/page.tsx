@@ -24,6 +24,7 @@ import {
   createWorkflow,
   toggleWorkflowActive,
   executeWorkflowNow,
+  runStaleLeadFollowUpsApi,
   deleteWorkflow,
 } from '@/lib/workflows-api';
 import { getErrorMessage } from '@/lib/api-client';
@@ -35,12 +36,24 @@ import type {
 } from '@/types/contracts';
 
 const TRIGGER_LABELS: Record<WorkflowTriggerType, string> = {
-  'lead.created': 'New Lead Captured (IndiaMART / WhatsApp / Meta)',
+  'lead.created': 'New Lead Captured (IndiaMART / Website / Meta Ads)',
   'lead.hot_scored': 'SetuAI Scores Lead >= 80 (Hot Buyer)',
+  'lead.stale_followup': 'Lead Stays in New / Proposal Sent for X Hours (Auto Follow-Up)',
   'deal.stage_changed': 'Deal Stage Moved in Kanban Pipeline',
   'invoice.overdue': 'GST Tax Invoice Passes Due Date',
   'whatsapp.inbound': 'Inbound Buyer Message on WhatsApp',
 };
+
+const WHATSAPP_WORKFLOW_PRESETS = [
+  {
+    label: 'Instant Brochure & Welcome',
+    body: 'Namaste {{buyer_name}} ji 👋, thank you for inquiring for {{company}}. Sharing our latest B2B catalogue & GST quotation options right away!',
+  },
+  {
+    label: '24h Proposal Follow-Up',
+    body: 'Namaste {{buyer_name}} ji 👋, checking in on the GST quotation shared for {{company}} ({{deal_value}}). Reply YES if you need priority dispatch or any revisions!',
+  },
+];
 
 const ACTION_PRESETS: Record<
   WorkflowActionType,
@@ -95,6 +108,13 @@ export default function WorkflowsPage() {
   const [description, setDescription] = useState('');
   const [triggerType, setTriggerType] =
     useState<WorkflowTriggerType>('lead.created');
+  const [sourceFilter, setSourceFilter] = useState('all');
+  const [staleStage, setStaleStage] = useState('new');
+  const [staleHours, setStaleHours] = useState('24');
+  const [whatsappTemplateBody, setWhatsappTemplateBody] = useState(
+    WHATSAPP_WORKFLOW_PRESETS[0].body,
+  );
+  const [sweepingStale, setSweepingStale] = useState(false);
   const [conditionSummary, setConditionSummary] = useState(
     'Lead Source IN [IndiaMART, WhatsApp] AND City = Noida / Delhi-NCR',
   );
@@ -147,6 +167,10 @@ export default function WorkflowsPage() {
         name: name.trim(),
         description: description.trim(),
         triggerType,
+        sourceFilter,
+        staleStage,
+        staleHours: Math.max(0, Number(staleHours) || 0),
+        whatsappTemplateBody: whatsappTemplateBody.trim(),
         conditionSummary: conditionSummary.trim(),
         actionType,
         actionSummary: actionSummary.trim(),
@@ -161,6 +185,24 @@ export default function WorkflowsPage() {
       setErrorMsg(getErrorMessage(err));
     } finally {
       setIsMutating(false);
+    }
+  };
+
+  const handleRunStaleFollowUps = async () => {
+    setSweepingStale(true);
+    setErrorMsg(null);
+    try {
+      const res = await runStaleLeadFollowUpsApi({ forceImmediate: true });
+      showToast(
+        res.followUpsSent > 0
+          ? `Dispatched ${res.followUpsSent} automated WhatsApp follow-up(s) across ${res.workflowsProcessed} rule(s)!`
+          : `Checked ${res.workflowsProcessed} stale follow-up rule(s) — all eligible leads are already followed up.`,
+      );
+      await loadWorkflows();
+    } catch (err) {
+      setErrorMsg(getErrorMessage(err));
+    } finally {
+      setSweepingStale(false);
     }
   };
 
@@ -234,6 +276,20 @@ export default function WorkflowsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            disabled={sweepingStale}
+            onClick={handleRunStaleFollowUps}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs sm:text-sm font-bold shadow-sm disabled:opacity-50"
+          >
+            {sweepingStale ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Clock className="w-4 h-4" />
+            )}
+            Run Stale Follow-Ups Now
+          </button>
+
           <button
             type="button"
             onClick={() => setModalOpen(true)}
@@ -345,6 +401,7 @@ export default function WorkflowsPage() {
             <option value="all">All Event Triggers</option>
             <option value="lead.created">New Lead Captured</option>
             <option value="lead.hot_scored">Hot Lead Scored (AI &gt;= 80)</option>
+            <option value="lead.stale_followup">Stale Lead Follow-Up (New / Proposal)</option>
             <option value="deal.stage_changed">Deal Stage Changed</option>
             <option value="invoice.overdue">Overdue GST Invoice</option>
           </select>
@@ -469,6 +526,27 @@ export default function WorkflowsPage() {
                       <span className="font-semibold text-emerald-800">
                         {wf.actionSummary}
                       </span>
+                      {(wf.sourceFilter && wf.sourceFilter !== 'all') ||
+                      wf.triggerType === 'lead.stale_followup' ? (
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          {wf.sourceFilter && wf.sourceFilter !== 'all' && (
+                            <span className="px-2 py-0.5 rounded-full bg-white border border-slate-200 text-[10px] font-bold text-slate-600">
+                              Source: {wf.sourceFilter.toUpperCase()}
+                            </span>
+                          )}
+                          {wf.triggerType === 'lead.stale_followup' && (
+                            <span className="px-2 py-0.5 rounded-full bg-white border border-slate-200 text-[10px] font-bold text-amber-700">
+                              Stage: {wf.staleStage || 'new/proposal'} · After{' '}
+                              {wf.staleHours ?? 24}h
+                            </span>
+                          )}
+                        </div>
+                      ) : null}
+                      {wf.whatsappTemplateBody && (
+                        <p className="mt-1.5 text-[11px] text-slate-600 bg-white p-2 rounded-lg border border-slate-200/70 italic">
+                          &ldquo;{wf.whatsappTemplateBody}&rdquo;
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -539,7 +617,10 @@ export default function WorkflowsPage() {
               </button>
             </div>
 
-            <form onSubmit={handleCreate} className="p-6 space-y-4">
+            <form
+              onSubmit={handleCreate}
+              className="p-6 space-y-4 max-h-[82vh] overflow-y-auto"
+            >
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Workflow Rule Name *
@@ -549,7 +630,7 @@ export default function WorkflowsPage() {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Noida Hot Lead -> Instant WhatsApp Quote & Priority Call"
+                  placeholder="e.g. IndiaMART Hot Lead -> Instant WhatsApp Brochure & Call Task"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm"
                 />
               </div>
@@ -560,16 +641,28 @@ export default function WorkflowsPage() {
                 </label>
                 <select
                   value={triggerType}
-                  onChange={(e) =>
-                    setTriggerType(e.target.value as WorkflowTriggerType)
-                  }
+                  onChange={(e) => {
+                    const nextTrig = e.target.value as WorkflowTriggerType;
+                    setTriggerType(nextTrig);
+                    if (nextTrig === 'lead.stale_followup') {
+                      setWhatsappTemplateBody(WHATSAPP_WORKFLOW_PRESETS[1].body);
+                    } else if (
+                      nextTrig === 'lead.created' ||
+                      nextTrig === 'lead.hot_scored'
+                    ) {
+                      setWhatsappTemplateBody(WHATSAPP_WORKFLOW_PRESETS[0].body);
+                    }
+                  }}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm bg-white font-semibold"
                 >
                   <option value="lead.created">
-                    New Lead Captured (IndiaMART / WhatsApp / Meta Ads)
+                    New Lead Captured (IndiaMART / Website / Meta Ads)
                   </option>
                   <option value="lead.hot_scored">
                     SetuAI Scores Lead &gt;= 80 (Hot Buyer)
+                  </option>
+                  <option value="lead.stale_followup">
+                    Lead Stays in New / Proposal Sent for X Hours (Auto Follow-Up)
                   </option>
                   <option value="deal.stage_changed">
                     Deal Stage Moved in Kanban Pipeline
@@ -583,6 +676,63 @@ export default function WorkflowsPage() {
                 </select>
               </div>
 
+              {(triggerType === 'lead.created' ||
+                triggerType === 'lead.hot_scored') && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Lead Source Filter
+                  </label>
+                  <select
+                    value={sourceFilter}
+                    onChange={(e) => setSourceFilter(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm bg-white font-semibold"
+                  >
+                    <option value="all">
+                      All Sources (IndiaMART + Website + Meta Ads + Manual)
+                    </option>
+                    <option value="indiamart">IndiaMART Inquiries Only</option>
+                    <option value="website">Website Forms Only</option>
+                    <option value="meta_ads">Meta Lead Ads Only</option>
+                    <option value="whatsapp">WhatsApp Leads Only</option>
+                    <option value="justdial">Justdial Inquiries Only</option>
+                  </select>
+                </div>
+              )}
+
+              {triggerType === 'lead.stale_followup' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200">
+                  <div>
+                    <label className="block text-xs font-bold text-amber-900 mb-1">
+                      Target Lead Stage
+                    </label>
+                    <select
+                      value={staleStage}
+                      onChange={(e) => setStaleStage(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-amber-200 text-xs bg-white font-semibold"
+                    >
+                      <option value="new">New (Uncontacted)</option>
+                      <option value="proposal">Proposal Sent</option>
+                      <option value="contacted">Contacted</option>
+                      <option value="qualified">Qualified</option>
+                      <option value="any">Either New or Proposal Sent</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-amber-900 mb-1">
+                      Inactivity Delay (Hours)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={720}
+                      value={staleHours}
+                      onChange={(e) => setStaleHours(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-amber-200 text-xs bg-white font-bold"
+                    />
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   2. IF Condition Matches *
@@ -595,6 +745,38 @@ export default function WorkflowsPage() {
                   placeholder="e.g. Source = IndiaMART AND Estimated Value >= ₹1,00,000"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm"
                 />
+              </div>
+
+              <div>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                  <label className="text-xs font-bold text-slate-700">
+                    WhatsApp Auto-Message Template (sent via Built-In WhatsApp)
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    {WHATSAPP_WORKFLOW_PRESETS.map((p) => (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => setWhatsappTemplateBody(p.body)}
+                        className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-brand-light text-[10px] font-bold text-brand-blue"
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <textarea
+                  rows={3}
+                  value={whatsappTemplateBody}
+                  onChange={(e) => setWhatsappTemplateBody(e.target.value)}
+                  placeholder="Namaste {{buyer_name}} ji, thank you for inquiring for {{company}}..."
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm"
+                />
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Variables supported: <code>{'{{buyer_name}}'}</code>,{' '}
+                  <code>{'{{company}}'}</code>, <code>{'{{city}}'}</code>,{' '}
+                  <code>{'{{deal_value}}'}</code>
+                </p>
               </div>
 
               <div>

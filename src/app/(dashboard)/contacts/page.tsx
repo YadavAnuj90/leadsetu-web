@@ -9,7 +9,6 @@ import {
   Users,
   IndianRupee,
   Phone,
-  MessageSquare,
   Mail,
   MapPin,
   Trash2,
@@ -21,6 +20,7 @@ import {
 import { apiClient, getErrorMessage } from '@/lib/api-client';
 import { verifyContactGstinApi, updateContactCreditApi } from '@/lib/invoices-api';
 import CallMobileButton from '@/components/calling/CallMobileButton';
+import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
 import type { Contact } from '@/types/contracts';
 
 export default function ContactsPage() {
@@ -284,15 +284,7 @@ export default function ContactsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {contacts.map((c) => {
-            const cleanPhone = (c.phone || '').replace(/[^0-9]/g, '');
-            const waUrl = cleanPhone
-              ? `https://wa.me/${
-                  cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`
-                }?text=${encodeURIComponent(`Namaste ${c.name} ji`)}`
-              : '#';
-
-            return (
+          {contacts.map((c) => (
               <div
                 key={c.id}
                 className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm hover:shadow-md hover:border-brand-blue/40 transition-all flex flex-col justify-between space-y-4"
@@ -435,15 +427,16 @@ export default function ContactsPage() {
                           entityId={c.id}
                           variant="icon"
                         />
-                        <a
-                          href={waUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
-                          title="WhatsApp"
-                        >
-                          <MessageSquare className="w-3.5 h-3.5" />
-                        </a>
+                        <WhatsAppActionButton
+                          phone={c.phone}
+                          contactName={c.name}
+                          company={c.company}
+                          city={c.city}
+                          estimatedValue={c.lifetimeValue}
+                          entityType="contact"
+                          entityId={c.id}
+                          variant="icon"
+                        />
                       </>
                     )}
                     <button
@@ -457,8 +450,7 @@ export default function ContactsPage() {
                   </div>
                 </div>
               </div>
-            );
-          })}
+            ))}
         </div>
       )}
 

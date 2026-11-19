@@ -93,7 +93,7 @@ export type DealStage =
 
 export interface DealActivity {
   id: string;
-  type: 'created' | 'stage_change' | 'note' | 'quote' | 'call';
+  type: 'created' | 'stage_change' | 'note' | 'quote' | 'call' | 'whatsapp';
   description: string;
   authorName: string;
   createdAt: string;
@@ -209,14 +209,160 @@ export interface Task {
   updatedAt: string;
 }
 
-// ─── Unified Inbox ────────────────────────────────────
+// ─── Unified Inbox & WhatsApp Templates ───────────────
+export type LinkedCrmEntityType = '' | 'lead' | 'contact' | 'deal' | 'ticket';
+
+export type WhatsAppTemplateCategory =
+  | 'greeting'
+  | 'quotation'
+  | 'followup'
+  | 'payment'
+  | 'support'
+  | 'custom';
+
+export type WhatsAppTemplateLanguage = 'English' | 'Hinglish' | 'Hindi';
+
+export interface WhatsAppVariableMeta {
+  key: string;
+  token: string;
+  label: string;
+  example: string;
+}
+
+export interface WhatsAppTemplate {
+  id: string;
+  tenantId: string;
+  name: string;
+  slug: string;
+  category: WhatsAppTemplateCategory;
+  language: WhatsAppTemplateLanguage;
+  body: string;
+  variables: string[];
+  usageCount: number;
+  isActive: boolean;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InboxLinkableEntity {
+  id: string;
+  type: 'lead' | 'contact' | 'deal' | 'ticket';
+  label: string;
+  sublabel: string;
+  contactName: string;
+  company: string;
+  phone: string;
+  city: string;
+  estimatedValue: number;
+}
+
+export interface InboxCrmEntitiesResponse {
+  leads: InboxLinkableEntity[];
+  contacts: InboxLinkableEntity[];
+  deals: InboxLinkableEntity[];
+  tickets: InboxLinkableEntity[];
+}
+
+export interface ChatAttachment {
+  type: 'document' | 'image';
+  url: string;
+  filename?: string;
+  mimeType?: string;
+}
+
+export interface WhatsAppCloudConfig {
+  enabled: boolean;
+  configured: boolean;
+  connectionMode?: 'not_connected' | 'own_embedded' | 'leadsetu_managed' | 'manual';
+  embeddedSignupAvailable?: boolean;
+  metaAppId?: string;
+  embeddedSignupConfigId?: string;
+  managedAvailable?: boolean;
+  managedDisplayNumber?: string;
+  managedDisplayName?: string;
+  phoneNumberId: string;
+  wabaId: string;
+  businessDisplayName: string;
+  verifiedPhoneNumber: string;
+  hasAccessToken: boolean;
+  accessTokenMask: string;
+  hasAppSecret: boolean;
+  appSecretMask: string;
+  verifyToken: string;
+  webhookPath: string;
+  lastTestedAt: string;
+  lastTestStatus: 'untested' | 'connected' | 'error';
+  lastError: string;
+  updatedAt: string;
+}
+
+export interface PlatformWhatsAppProviderConfig {
+  metaAppId: string;
+  hasMetaAppSecret: boolean;
+  metaAppSecretMask: string;
+  embeddedSignupConfigId: string;
+  embeddedSignupReady: boolean;
+  webhookPath: string;
+  webhookVerifyToken: string;
+  managedSenderEnabled: boolean;
+  managedPhoneNumberId: string;
+  managedWabaId: string;
+  hasManagedAccessToken: boolean;
+  managedAccessTokenMask: string;
+  managedGatewayReady: boolean;
+  managedDisplayNumber: string;
+  managedDisplayName: string;
+  managedLastTestedAt: string;
+  managedLastTestStatus: 'untested' | 'connected' | 'error';
+  managedLastError: string;
+  updatedAt: string;
+}
+
+export interface PlatformWhatsAppProviderTestResponse {
+  ok: boolean;
+  verifiedPhoneNumber: string;
+  businessDisplayName: string;
+  qualityRating: string;
+  error: string;
+  config: PlatformWhatsAppProviderConfig;
+}
+
+export interface WhatsAppCloudTestResponse {
+  ok: boolean;
+  verifiedPhoneNumber: string;
+  businessDisplayName: string;
+  qualityRating: string;
+  error: string;
+  config: WhatsAppCloudConfig;
+}
+
+export interface MetaApprovedTemplate {
+  id: string;
+  name: string;
+  status: string;
+  category: string;
+  language: string;
+  bodyText: string;
+  parameterCount: number;
+}
+
 export interface Message {
   id: string;
   direction: 'inbound' | 'outbound';
   content: string;
   senderName: string;
-  status: 'sent' | 'delivered' | 'read';
+  status: 'sent' | 'delivered' | 'read' | 'failed';
   isAiDrafted?: boolean;
+  templateId?: string;
+  templateName?: string;
+  via?: 'inbox' | 'wa_me';
+  externalMessageId?: string;
+  deliveryProvider?: 'meta_cloud' | 'crm_local' | 'wa_me';
+  deliveryError?: string;
+  metaTemplateName?: string;
+  attachment?: ChatAttachment;
+  statusUpdatedAt?: string;
   createdAt: string;
 }
 
@@ -233,6 +379,11 @@ export interface Conversation {
   estimatedValue: number;
   aiSummary: string;
   aiSuggestedReply: string;
+  linkedEntityType?: LinkedCrmEntityType;
+  linkedEntityId?: string;
+  linkedEntityLabel?: string;
+  unreadCount?: number;
+  lastInboundAt?: string;
   lastMessage: string;
   lastMessageAt: string;
   messages: Message[];
@@ -665,11 +816,32 @@ export type CampaignSegment =
 
 export type CampaignStatus = 'completed' | 'running' | 'scheduled' | 'draft';
 
+export interface CampaignRecipientEntry {
+  recipientId: string;
+  entityType: 'lead' | 'contact';
+  contactName: string;
+  company: string;
+  phone: string;
+  status: 'sent' | 'delivered' | 'read' | 'replied' | 'failed' | 'opted_out';
+  deliveryProvider: 'meta_cloud' | 'crm_local' | 'skipped_dnd';
+  externalMessageId: string;
+  conversationId: string;
+  messageId: string;
+  renderedMessage: string;
+  error: string;
+  replyPreview: string;
+  sentAt: string;
+  deliveredAt: string;
+  readAt: string;
+  repliedAt: string;
+}
+
 export interface Campaign {
   id: string;
   tenantId: string;
   name: string;
   templateName: string;
+  sendMode?: 'text' | 'meta_template';
   language: 'hinglish' | 'english' | 'hindi';
   channel: 'whatsapp_cloud' | 'whatsapp_ai_drip';
   targetSegment: CampaignSegment;
@@ -680,6 +852,9 @@ export interface Campaign {
   deliveredCount: number;
   readCount: number;
   repliedCount: number;
+  failedCount?: number;
+  skippedDndCount?: number;
+  recipients?: CampaignRecipientEntry[];
   deliveryRate: number;
   readRate: number;
   replyRate: number;
@@ -705,6 +880,7 @@ export interface CampaignStats {
 export interface CreateCampaignPayload {
   name: string;
   templateName?: string;
+  sendMode?: 'text' | 'meta_template';
   language?: 'hinglish' | 'english' | 'hindi';
   channel?: 'whatsapp_cloud' | 'whatsapp_ai_drip';
   targetSegment?: CampaignSegment;
@@ -720,6 +896,7 @@ export interface CreateCampaignPayload {
 export type WorkflowTriggerType =
   | 'lead.created'
   | 'lead.hot_scored'
+  | 'lead.stale_followup'
   | 'deal.stage_changed'
   | 'invoice.overdue'
   | 'whatsapp.inbound';
@@ -743,6 +920,10 @@ export interface WorkflowRule {
   name: string;
   description: string;
   triggerType: WorkflowTriggerType;
+  sourceFilter?: string;
+  staleStage?: string;
+  staleHours?: number;
+  whatsappTemplateBody?: string;
   conditionSummary: string;
   actionType: WorkflowActionType;
   actionSummary: string;
@@ -766,6 +947,10 @@ export interface CreateWorkflowPayload {
   name: string;
   description?: string;
   triggerType?: WorkflowTriggerType;
+  sourceFilter?: string;
+  staleStage?: string;
+  staleHours?: number;
+  whatsappTemplateBody?: string;
   conditionSummary: string;
   actionType?: WorkflowActionType;
   actionSummary: string;

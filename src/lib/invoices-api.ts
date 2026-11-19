@@ -270,3 +270,32 @@ export async function respondToPublicQuoteApi(
   );
   return data;
 }
+
+export async function sendDocumentWhatsAppApi(
+  id: string,
+  payload?: {
+    phone?: string;
+    customMessage?: string;
+    publicBaseUrl?: string;
+  },
+): Promise<{
+  invoice: Invoice;
+  sent: boolean;
+  deliveryProvider: 'meta_cloud' | 'crm_local';
+  status: string;
+  externalMessageId: string;
+  conversationId: string;
+  filename: string;
+  paymentLink: string;
+  publicUrl: string;
+  linkedDealId: string;
+  linkedLeadId: string;
+  message: string;
+  error: string;
+}> {
+  const { data } = await apiClient.post(
+    `/invoices/${id}/send-whatsapp`,
+    payload || {},
+  );
+  return data;
+}

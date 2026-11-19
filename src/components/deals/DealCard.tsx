@@ -3,12 +3,12 @@
 import Link from 'next/link';
 import {
   Building2,
-  MessageSquare,
   Calendar,
   ArrowUpRight,
   Trash2,
 } from 'lucide-react';
 import CallMobileButton from '@/components/calling/CallMobileButton';
+import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
 import type { Deal, DealStage } from '@/types/contracts';
 
 interface DealCardProps {
@@ -22,15 +22,6 @@ export default function DealCard({
   onMoveStage,
   onDelete,
 }: DealCardProps) {
-  const cleanPhone = (deal.contactPhone || '').replace(/[^0-9]/g, '');
-  const waUrl = cleanPhone
-    ? `https://wa.me/${
-        cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`
-      }?text=${encodeURIComponent(
-        `Namaste ${deal.contactName || 'Sir'}, following up on our proposal for ${deal.title}.`
-      )}`
-    : '#';
-
   return (
     <div
       draggable
@@ -114,15 +105,18 @@ export default function DealCard({
         <div className="flex items-center gap-1 flex-shrink-0">
           {deal.contactPhone && (
             <>
-              <a
-                href={waUrl}
-                target="_blank"
-                rel="noreferrer"
-                title="WhatsApp Client"
+              <WhatsAppActionButton
+                phone={deal.contactPhone}
+                contactName={deal.contactName || deal.title}
+                company={deal.company}
+                city={deal.city}
+                estimatedValue={deal.value}
+                entityType="deal"
+                entityId={deal.id}
+                entityLabel={deal.company ? `${deal.title} (${deal.company})` : deal.title}
+                variant="icon"
                 className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-              </a>
+              />
               <CallMobileButton
                 phone={deal.contactPhone}
                 contactName={deal.contactName || deal.title}

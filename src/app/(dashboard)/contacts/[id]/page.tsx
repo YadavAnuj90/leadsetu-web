@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import CallMobileButton from '@/components/calling/CallMobileButton';
+import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
 import type { Contact } from '@/types/contracts';
 
 export default function ContactDetailPage() {
@@ -41,14 +42,18 @@ export default function ContactDetailPage() {
   }, [loadContact]);
 
   useEffect(() => {
-    const onSimLogged = (ev: Event) => {
+    const onEntityActivityLogged = (ev: Event) => {
       const detail = (ev as CustomEvent<{ entityType?: string; entityId?: string }>).detail;
       if (detail?.entityType === 'contact' && detail?.entityId === params?.id) {
         void loadContact();
       }
     };
-    window.addEventListener('leadsetu:sim-call-logged', onSimLogged);
-    return () => window.removeEventListener('leadsetu:sim-call-logged', onSimLogged);
+    window.addEventListener('leadsetu:sim-call-logged', onEntityActivityLogged);
+    window.addEventListener('leadsetu:whatsapp-logged', onEntityActivityLogged);
+    return () => {
+      window.removeEventListener('leadsetu:sim-call-logged', onEntityActivityLogged);
+      window.removeEventListener('leadsetu:whatsapp-logged', onEntityActivityLogged);
+    };
   }, [loadContact, params?.id]);
 
   if (isLoading) {
@@ -129,14 +134,16 @@ export default function ContactDetailPage() {
                 entityType="contact"
                 entityId={contact.id}
               />
-              <a
-                href={`https://wa.me/${contact.phone.replace(/[^0-9]/g, '')}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-xs font-bold"
-              >
-                <MessageSquare className="w-4 h-4" /> Message on WhatsApp
-              </a>
+              <WhatsAppActionButton
+                phone={contact.phone}
+                contactName={contact.name}
+                company={contact.company}
+                city={contact.city}
+                estimatedValue={contact.lifetimeValue}
+                entityType="contact"
+                entityId={contact.id}
+                label="WhatsApp"
+              />
             </div>
           )}
         </div>
@@ -209,8 +216,16 @@ export default function ContactDetailPage() {
                   key={act.id}
                   className="flex items-start gap-3 p-3.5 rounded-2xl border border-slate-100 bg-slate-50/70"
                 >
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-brand-blue flex items-center justify-center shrink-0 mt-0.5">
-                    {act.type === 'call' ? (
+                  <div
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                      act.type === 'whatsapp'
+                        ? 'bg-emerald-50 text-emerald-600'
+                        : 'bg-blue-50 text-brand-blue'
+                    }`}
+                  >
+                    {act.type === 'whatsapp' ? (
+                      <MessageSquare className="w-3.5 h-3.5" />
+                    ) : act.type === 'call' ? (
                       <Phone className="w-3.5 h-3.5" />
                     ) : (
                       <Clock className="w-3.5 h-3.5" />

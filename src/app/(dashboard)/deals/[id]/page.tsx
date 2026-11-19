@@ -9,7 +9,6 @@ import {
   Phone,
   Mail,
   MapPin,
-  MessageSquare,
   CheckCircle2,
   Loader2,
   Send,
@@ -19,6 +18,7 @@ import {
 import { apiClient, getErrorMessage } from '@/lib/api-client';
 import ShareVoiceCallLinkButton from '@/components/calling/ShareVoiceCallLinkButton';
 import CallMobileButton from '@/components/calling/CallMobileButton';
+import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
 import type { Deal, DealStage } from '@/types/contracts';
 
 const stages: { id: DealStage; label: string }[] = [
@@ -56,14 +56,18 @@ export default function DealDetailPage() {
   }, [loadDeal]);
 
   useEffect(() => {
-    const onSimLogged = (ev: Event) => {
+    const onEntityActivityLogged = (ev: Event) => {
       const detail = (ev as CustomEvent<{ entityType?: string; entityId?: string }>).detail;
       if (detail?.entityType === 'deal' && detail?.entityId === dealId) {
         void loadDeal();
       }
     };
-    window.addEventListener('leadsetu:sim-call-logged', onSimLogged);
-    return () => window.removeEventListener('leadsetu:sim-call-logged', onSimLogged);
+    window.addEventListener('leadsetu:sim-call-logged', onEntityActivityLogged);
+    window.addEventListener('leadsetu:whatsapp-logged', onEntityActivityLogged);
+    return () => {
+      window.removeEventListener('leadsetu:sim-call-logged', onEntityActivityLogged);
+      window.removeEventListener('leadsetu:whatsapp-logged', onEntityActivityLogged);
+    };
   }, [loadDeal, dealId]);
 
   const handleStageChange = async (stage: DealStage) => {
@@ -144,6 +148,18 @@ export default function DealDetailPage() {
           >
             <FileText className="w-3.5 h-3.5" /> Generate GST Invoice
           </Link>
+
+          <WhatsAppActionButton
+            phone={deal.contactPhone}
+            contactName={deal.contactName || deal.title}
+            company={deal.company}
+            city={deal.city}
+            estimatedValue={deal.value}
+            entityType="deal"
+            entityId={deal.id}
+            entityLabel={deal.company ? `${deal.title} (${deal.company})` : deal.title}
+            label="WhatsApp"
+          />
 
           <CallMobileButton
             phone={deal.contactPhone}

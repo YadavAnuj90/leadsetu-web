@@ -42,6 +42,22 @@ export async function executeWorkflowNow(id: string): Promise<WorkflowRule> {
   return data;
 }
 
+export async function runStaleLeadFollowUpsApi(payload?: {
+  workflowId?: string;
+  forceImmediate?: boolean;
+}): Promise<{
+  workflowsProcessed: number;
+  followUpsSent: number;
+  details: Array<{ workflowId: string; name: string; sentCount: number }>;
+}> {
+  const { data } = await apiClient.post<{
+    workflowsProcessed: number;
+    followUpsSent: number;
+    details: Array<{ workflowId: string; name: string; sentCount: number }>;
+  }>('/workflows/run-stale-followups', payload || {});
+  return data;
+}
+
 export async function deleteWorkflow(
   id: string,
 ): Promise<{ success: boolean }> {

@@ -33,6 +33,17 @@ export async function launchCampaign(id: string): Promise<Campaign> {
   return data;
 }
 
+export async function toggleCampaignRecipientOptOut(
+  campaignId: string,
+  payload: { phone: string; optOut: boolean },
+): Promise<Campaign> {
+  const { data } = await apiClient.post<Campaign>(
+    `/campaigns/${campaignId}/opt-out`,
+    payload,
+  );
+  return data;
+}
+
 export async function deleteCampaign(
   id: string,
 ): Promise<{ success: boolean }> {

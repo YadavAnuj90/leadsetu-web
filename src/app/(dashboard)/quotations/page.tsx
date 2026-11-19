@@ -32,6 +32,7 @@ import {
   createInvoice,
   deleteInvoice,
   convertQuoteToInvoiceApi,
+  sendDocumentWhatsAppApi,
 } from '@/lib/invoices-api';
 import { fetchProductsApi } from '@/lib/products-api';
 import { apiClient, getErrorMessage } from '@/lib/api-client';
@@ -398,25 +399,44 @@ export default function QuotationsPage() {
     }
   };
 
-  const handleShareProposalWhatsApp = (quote: Invoice) => {
-    const digits = (quote.phone || '').replace(/\D/g, '');
-    const waPhone =
-      digits.length === 10 ? `91${digits}` : digits.length >= 11 ? digits : '';
-    const publicUrl =
-      quote.publicToken && typeof window !== 'undefined'
-        ? `${window.location.origin}/quote/${quote.publicToken}`
-        : '';
-    const discountLine =
-      quote.discount > 0
-        ? `\n• Special Discount: - ₹${quote.discount.toLocaleString('en-IN')}`
-        : '';
-    const text = encodeURIComponent(
-      `Namaste ${quote.contactPerson || quote.clientName},\n\nPlease find your B2B Commercial Quotation *${quote.invoiceNumber}* from *${tenant?.companyName?.trim() || 'Leadsetu Technologies'}*.\n\n• Sub-Total: ₹${quote.subTotal.toLocaleString('en-IN')}${discountLine}\n• Taxable Value: ₹${quote.taxableAmount.toLocaleString('en-IN')}\n• GST (${quote.gstRate}%): ₹${quote.gstAmount.toLocaleString('en-IN')}\n• *Net Proposal Total: ₹${quote.grandTotal.toLocaleString('en-IN')}*\n• Valid Till: ${quote.dueDate || '15 Days'}${
-        publicUrl ? `\n\nReview & Approve Quotation Online:\n${publicUrl}` : ''
-      }`,
-    );
-    const base = waPhone ? `https://wa.me/${waPhone}` : 'https://wa.me/';
-    window.open(`${base}?text=${text}`, '_blank');
+  const [sendingWaId, setSendingWaId] = useState<string | null>(null);
+
+  const handleShareProposalWhatsApp = async (quote: Invoice) => {
+    let targetPhone = (quote.phone || '').trim();
+    if (targetPhone.replace(/\D/g, '').length < 10 && typeof window !== 'undefined') {
+      const entered = window.prompt(
+        `Enter buyer 10-digit WhatsApp number for ${quote.clientName} (${quote.invoiceNumber}):`,
+        '+91 ',
+      );
+      if (!entered || entered.replace(/\D/g, '').length < 10) return;
+      targetPhone = entered.trim();
+    }
+
+    setSendingWaId(quote.id);
+    setErrorMsg(null);
+    try {
+      const res = await sendDocumentWhatsAppApi(quote.id, {
+        phone: targetPhone || undefined,
+        publicBaseUrl:
+          typeof window !== 'undefined' ? window.location.origin : undefined,
+      });
+      await loadQuotations();
+      if (selectedQuote?.id === quote.id) {
+        setSelectedQuote(res.invoice);
+      }
+      setToastMsg(
+        `Sent ${res.filename} + Razorpay Link (${res.paymentLink}) on WhatsApp (${
+          res.deliveryProvider === 'meta_cloud'
+            ? 'WhatsApp Cloud Live'
+            : 'CRM Inbox'
+        }) & logged to Deal/Lead timeline!`,
+      );
+      setTimeout(() => setToastMsg(null), 4500);
+    } catch (err) {
+      setErrorMsg(getErrorMessage(err));
+    } finally {
+      setSendingWaId(null);
+    }
   };
 
   return (
@@ -751,11 +771,17 @@ export default function QuotationsPage() {
 
                           <button
                             type="button"
+                            disabled={sendingWaId === q.id}
                             onClick={() => handleShareProposalWhatsApp(q)}
-                            title="Share Quotation on WhatsApp"
-                            className="p-2 rounded-lg border border-emerald-200 bg-emerald-50/60 hover:bg-emerald-100 text-emerald-700 transition-colors"
+                            title="1-Click Send Quotation PDF + Razorpay Link on WhatsApp & Log to Deal/Lead Timeline"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50/80 hover:bg-emerald-100 text-emerald-700 text-[11px] font-bold transition-colors disabled:opacity-50"
                           >
-                            <MessageSquare className="w-3.5 h-3.5" />
+                            {sendingWaId === q.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <MessageSquare className="w-3.5 h-3.5" />
+                            )}
+                            <span>Send on WhatsApp</span>
                           </button>
 
                           {!q.convertedToInvoiceId ? (
@@ -1308,10 +1334,16 @@ export default function QuotationsPage() {
 
                 <button
                   type="button"
+                  disabled={sendingWaId === selectedQuote.id}
                   onClick={() => handleShareProposalWhatsApp(selectedQuote)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white disabled:opacity-50"
                 >
-                  <MessageSquare className="w-3.5 h-3.5" /> WhatsApp Proposal
+                  {sendingWaId === selectedQuote.id ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <MessageSquare className="w-3.5 h-3.5" />
+                  )}
+                  Send PDF on WhatsApp
                 </button>
 
                 <button

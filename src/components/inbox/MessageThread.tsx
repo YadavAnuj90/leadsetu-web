@@ -1,55 +1,106 @@
 'use client';
 
+import Link from 'next/link';
 import {
-  Phone,
-  CheckCircle2,
-  Sparkles,
+  AlertCircle,
+  Check,
   CheckCheck,
+  CheckCircle2,
   ExternalLink,
+  FileText,
+  Image as ImageIcon,
+  Link2,
   Mic,
   PackageSearch,
+  Phone,
+  Sparkles,
 } from 'lucide-react';
-import type { Conversation } from '@/types/contracts';
+import { buildWhatsAppMeUrl } from '@/lib/whatsapp-templates';
+import type { Conversation, LinkedCrmEntityType } from '@/types/contracts';
 
 interface MessageThreadProps {
   conversation: Conversation;
   onToggleStatus: (id: string, nextStatus: 'open' | 'resolved') => void;
+  onOpenLinkModal: () => void;
   onOpenVoiceAudit?: () => void;
   onOpenRfqParser?: () => void;
+}
+
+function getEntityHref(type?: LinkedCrmEntityType, id?: string): string {
+  if (!type || !id) return '#';
+  if (type === 'lead') return `/leads/${id}`;
+  if (type === 'contact') return `/contacts/${id}`;
+  if (type === 'deal') return `/deals/${id}`;
+  if (type === 'ticket') return '/tickets';
+  return '#';
 }
 
 export default function MessageThread({
   conversation,
   onToggleStatus,
+  onOpenLinkModal,
   onOpenVoiceAudit,
   onOpenRfqParser,
 }: MessageThreadProps) {
-  const cleanPhone = (conversation.phone || '').replace(/[^0-9]/g, '');
+  const waUrl = buildWhatsAppMeUrl(conversation.phone);
 
   return (
     <div className="flex-1 flex flex-col bg-[#F4F7FC] dark:bg-[#081020] overflow-hidden">
       {/* Top Thread Header */}
-      <div className="px-6 py-3.5 bg-white dark:bg-[#0D1628] border-b border-slate-200/80 dark:border-white/10 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+      <div className="px-6 py-3.5 bg-white dark:bg-[#0D1628] border-b border-slate-200/80 dark:border-white/10 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <div
-            className="w-10 h-10 rounded-2xl flex items-center justify-center font-extrabold text-sm text-white"
+            className="w-10 h-10 rounded-2xl flex items-center justify-center font-extrabold text-sm text-white shrink-0"
             style={{
               background: 'linear-gradient(135deg, #17243A 0%, #3978EA 100%)',
             }}
           >
             {conversation.contactName[0]?.toUpperCase()}
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-extrabold text-sm text-brand-navy dark:text-white">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-extrabold text-sm text-brand-navy dark:text-white truncate">
                 {conversation.contactName}
               </h3>
               <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30">
                 {conversation.channel}
               </span>
+              {conversation.linkedEntityType && conversation.linkedEntityId ? (
+                <div className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-500/15 border border-blue-200 dark:border-blue-500/30 px-2.5 py-0.5 text-[10px] font-bold text-brand-blue dark:text-blue-300">
+                  <Link
+                    href={getEntityHref(
+                      conversation.linkedEntityType,
+                      conversation.linkedEntityId,
+                    )}
+                    className="hover:underline inline-flex items-center gap-1"
+                  >
+                    <Link2 className="w-3 h-3" />
+                    <span className="capitalize">{conversation.linkedEntityType}:</span>
+                    <span className="max-w-[140px] truncate">
+                      {conversation.linkedEntityLabel || conversation.linkedEntityId}
+                    </span>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={onOpenLinkModal}
+                    className="ml-1 text-[10px] underline hover:text-brand-navy dark:hover:text-white"
+                  >
+                    Change
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onOpenLinkModal}
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-white/15 text-[10px] font-bold text-slate-600 dark:text-slate-300 hover:border-brand-blue hover:text-brand-blue"
+                >
+                  <Link2 className="w-3 h-3" /> Link CRM
+                </button>
+              )}
             </div>
-            <div className="text-xs text-slate-500 dark:text-slate-400">
-              {conversation.company} · {conversation.phone} · {conversation.city}
+            <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+              {conversation.company || 'B2B Account'} ·{' '}
+              {conversation.phone || 'No phone'} · {conversation.city}
             </div>
           </div>
         </div>
@@ -75,11 +126,9 @@ export default function MessageThread({
               <Mic className="w-3.5 h-3.5" /> Call Audit AI
             </button>
           )}
-          {cleanPhone && (
+          {waUrl && (
             <a
-              href={`https://wa.me/${
-                cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`
-              }`}
+              href={waUrl}
               target="_blank"
               rel="noreferrer"
               className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300 dark:hover:bg-emerald-500/25"
@@ -87,7 +136,7 @@ export default function MessageThread({
               <ExternalLink className="w-3.5 h-3.5" /> WhatsApp Web
             </a>
           )}
-          {conversation.phone && (
+          {conversation.phone && !conversation.phone.includes('*') && (
             <a
               href={`tel:${conversation.phone}`}
               className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:text-brand-blue hover:bg-slate-50 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/10"
@@ -101,7 +150,7 @@ export default function MessageThread({
             onClick={() =>
               onToggleStatus(
                 conversation.id,
-                conversation.status === 'open' ? 'resolved' : 'open'
+                conversation.status === 'open' ? 'resolved' : 'open',
               )
             }
             className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
@@ -112,9 +161,7 @@ export default function MessageThread({
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>
-              {conversation.status === 'resolved'
-                ? 'Resolved ✓'
-                : 'Mark Resolved'}
+              {conversation.status === 'resolved' ? 'Resolved ✓' : 'Mark Resolved'}
             </span>
           </button>
         </div>
@@ -131,7 +178,9 @@ export default function MessageThread({
           <div className="flex items-center gap-2 truncate">
             <Sparkles className="w-4 h-4 text-brand-sky flex-shrink-0" />
             <span className="font-semibold text-brand-sky">SetuAI Summary:</span>
-            <span className="text-slate-200 truncate">{conversation.aiSummary}</span>
+            <span className="text-slate-200 truncate">
+              {conversation.aiSummary}
+            </span>
           </div>
           <span className="font-extrabold text-emerald-400 whitespace-nowrap">
             Est. ₹{(conversation.estimatedValue || 0).toLocaleString('en-IN')}
@@ -141,45 +190,161 @@ export default function MessageThread({
 
       {/* Messages Scroll Area */}
       <div className="flex-1 p-6 overflow-y-auto space-y-4">
-        {(conversation.messages || []).map((msg) => {
-          const isOutbound = msg.direction === 'outbound';
-          return (
-            <div
-              key={msg.id}
-              className={`flex flex-col ${
-                isOutbound ? 'items-end' : 'items-start'
-              }`}
-            >
+        {(conversation.messages || []).length === 0 ? (
+          <div className="h-full flex items-center justify-center text-xs text-slate-400 text-center">
+            No messages yet in this thread. Pick a WhatsApp template below to send the first message.
+          </div>
+        ) : (
+          (conversation.messages || []).map((msg) => {
+            const isOutbound = msg.direction === 'outbound';
+            const canPreviewAttachment =
+              msg.attachment?.url && !msg.attachment.url.startsWith('meta-media://');
+
+            return (
               <div
-                className={`max-w-lg rounded-2xl px-4 py-3 text-xs sm:text-sm leading-relaxed shadow-sm ${
-                  isOutbound
-                    ? 'bg-brand-blue text-white rounded-tr-sm'
-                    : 'bg-white text-brand-navy border border-slate-200/80 rounded-tl-sm dark:bg-[#111D33] dark:text-slate-100 dark:border-white/10'
+                key={msg.id}
+                className={`flex flex-col ${
+                  isOutbound ? 'items-end' : 'items-start'
                 }`}
               >
-                {msg.isAiDrafted && (
-                  <div className="text-[10px] font-bold text-blue-100 mb-1 flex items-center gap-1">
-                    <Sparkles className="w-3 h-3" /> SetuAI Smart Reply
-                  </div>
-                )}
-                <div>{msg.content}</div>
                 <div
-                  className={`text-[10px] mt-1.5 flex items-center justify-end gap-1 ${
-                    isOutbound ? 'text-blue-100' : 'text-slate-400'
+                  className={`max-w-lg rounded-2xl px-4 py-3 text-xs sm:text-sm leading-relaxed shadow-sm ${
+                    isOutbound
+                      ? msg.status === 'failed'
+                        ? 'bg-rose-600 text-white rounded-tr-sm'
+                        : 'bg-brand-blue text-white rounded-tr-sm'
+                      : 'bg-white text-brand-navy border border-slate-200/80 rounded-tl-sm dark:bg-[#111D33] dark:text-slate-100 dark:border-white/10'
                   }`}
                 >
-                  <span>
-                    {new Date(msg.createdAt).toLocaleTimeString('en-IN', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </span>
-                  {isOutbound && <CheckCheck className="w-3.5 h-3.5" />}
+                  {(msg.isAiDrafted ||
+                    msg.templateName ||
+                    msg.metaTemplateName ||
+                    msg.via === 'wa_me' ||
+                    msg.deliveryProvider === 'meta_cloud') && (
+                    <div
+                      className={`text-[10px] font-bold mb-1.5 flex flex-wrap items-center gap-1.5 ${
+                        isOutbound ? 'text-blue-100' : 'text-emerald-600 dark:text-emerald-300'
+                      }`}
+                    >
+                      {msg.deliveryProvider === 'meta_cloud' && (
+                        <span className="px-1.5 py-0.5 rounded bg-emerald-500/25">
+                          Meta Cloud API
+                        </span>
+                      )}
+                      {msg.isAiDrafted && (
+                        <span className="inline-flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" /> SetuAI Smart Reply
+                        </span>
+                      )}
+                      {msg.templateName && (
+                        <span className="px-1.5 py-0.5 rounded bg-white/15">
+                          Template: {msg.templateName}
+                        </span>
+                      )}
+                      {msg.metaTemplateName && (
+                        <span className="px-1.5 py-0.5 rounded bg-white/15">
+                          Meta Template: {msg.metaTemplateName}
+                        </span>
+                      )}
+                      {msg.via === 'wa_me' && (
+                        <span className="px-1.5 py-0.5 rounded bg-emerald-500/30">
+                          via WhatsApp Web
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {msg.attachment && (
+                    <div className="mb-2">
+                      {msg.attachment.type === 'image' && canPreviewAttachment ? (
+                        <a
+                          href={msg.attachment.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block rounded-xl overflow-hidden border border-white/20"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={msg.attachment.url}
+                            alt={msg.attachment.filename || 'WhatsApp image'}
+                            className="max-h-52 w-auto object-cover"
+                          />
+                        </a>
+                      ) : (
+                        <div
+                          className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold ${
+                            isOutbound
+                              ? 'bg-white/15 text-white'
+                              : 'bg-slate-100 dark:bg-white/10 text-brand-navy dark:text-white'
+                          }`}
+                        >
+                          {msg.attachment.type === 'image' ? (
+                            <ImageIcon className="w-4 h-4 shrink-0" />
+                          ) : (
+                            <FileText className="w-4 h-4 shrink-0" />
+                          )}
+                          <span className="truncate max-w-[200px]">
+                            {msg.attachment.filename || 'Attachment'}
+                          </span>
+                          {canPreviewAttachment && (
+                            <a
+                              href={msg.attachment.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="underline ml-1 shrink-0"
+                            >
+                              Open
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {msg.content && (
+                    <div className="whitespace-pre-line">{msg.content}</div>
+                  )}
+
+                  {msg.status === 'failed' && msg.deliveryError && (
+                    <div className="mt-2 px-2.5 py-1.5 rounded-lg bg-black/20 text-[11px] flex items-center gap-1.5 text-rose-100">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{msg.deliveryError}</span>
+                    </div>
+                  )}
+
+                  <div
+                    className={`text-[10px] mt-1.5 flex items-center justify-end gap-1 ${
+                      isOutbound ? 'text-blue-100' : 'text-slate-400'
+                    }`}
+                  >
+                    <span>
+                      {new Date(msg.createdAt).toLocaleTimeString('en-IN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                    {isOutbound &&
+                      (msg.status === 'failed' ? (
+                        <AlertCircle className="w-3.5 h-3.5 text-rose-200" />
+                      ) : msg.status === 'read' ? (
+                        <span className="inline-flex items-center gap-0.5 text-cyan-200 font-bold" title="Read by buyer">
+                          <CheckCheck className="w-3.5 h-3.5" /> Read
+                        </span>
+                      ) : msg.status === 'delivered' ? (
+                        <span title="Delivered">
+                          <CheckCheck className="w-3.5 h-3.5" />
+                        </span>
+                      ) : (
+                        <span title="Sent to Meta Cloud">
+                          <Check className="w-3.5 h-3.5" />
+                        </span>
+                      ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </div>
   );
