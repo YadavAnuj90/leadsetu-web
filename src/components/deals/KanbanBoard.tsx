@@ -1,40 +1,51 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { Plus } from 'lucide-react';
 import DealCard from './DealCard';
-import type { Deal, DealStage } from '@/types/contracts';
+import { FALLBACK_PIPELINE_STAGES } from '@/hooks/usePipelines';
+import type { Deal, DealStage, PipelineStage } from '@/types/contracts';
 
 interface KanbanBoardProps {
   deals: Deal[];
+  stages?: PipelineStage[];
+  showLostColumn?: boolean;
   onMoveStage: (id: string, stage: DealStage) => void;
   onDelete: (id: string) => void;
+  onQuickAdd?: (stageId: DealStage) => void;
 }
-
-const columns: {
-  id: DealStage;
-  title: string;
-  accent: string;
-}[] = [
-  { id: 'qualified', title: 'Qualified (25%)', accent: '#3978EA' },
-  { id: 'discovery', title: 'Discovery & Sample (45%)', accent: '#8B5CF6' },
-  { id: 'proposal', title: 'GST Proposal Sent (65%)', accent: '#F59E0B' },
-  { id: 'negotiation', title: 'Negotiation (85%)', accent: '#EC4899' },
-  { id: 'won', title: 'Closed Won ✓ (100%)', accent: '#10B981' },
-];
 
 export default function KanbanBoard({
   deals,
+  stages = FALLBACK_PIPELINE_STAGES,
+  showLostColumn = false,
   onMoveStage,
   onDelete,
+  onQuickAdd,
 }: KanbanBoardProps) {
   const [dragOverStage, setDragOverStage] = useState<DealStage | null>(null);
 
+  const visibleColumns = useMemo(() => {
+    const filtered = stages.filter((st) =>
+      showLostColumn ? true : st.category !== 'lost',
+    );
+    return filtered.length > 0 ? filtered : FALLBACK_PIPELINE_STAGES;
+  }, [stages, showLostColumn]);
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 items-start">
-      {columns.map((col) => {
-        const colDeals = deals.filter((d) => d.stage === col.id);
-        const colTotal = colDeals.reduce((s, d) => s + (Number(d.value) || 0), 0);
+    <div className="flex gap-4 overflow-x-auto pb-4 items-stretch snap-x snap-mandatory">
+      {visibleColumns.map((col, idx) => {
+        const colDeals = deals.filter((d) => {
+          if (d.stage === col.id) return true;
+          const stageKnown = stages.some((s) => s.id === d.stage);
+          return !stageKnown && idx === 0;
+        });
+        const colTotal = colDeals.reduce(
+          (s, d) => s + (Number(d.value) || 0),
+          0,
+        );
         const isOver = dragOverStage === col.id;
+        const accent = col.color || '#3978EA';
 
         return (
           <div
@@ -52,50 +63,89 @@ export default function KanbanBoard({
                 onMoveStage(dealId, col.id);
               }
             }}
-            className={`rounded-3xl p-3.5 border transition-all min-h-[460px] flex flex-col ${
+            className={`snap-start w-[290px] sm:w-[300px] xl:min-w-[275px] xl:flex-1 flex-shrink-0 rounded-3xl border transition-all min-h-[560px] flex flex-col overflow-hidden ${
               isOver
-                ? 'bg-brand-light/70 border-brand-blue ring-2 ring-brand-blue/20'
-                : 'bg-slate-100/80 border-slate-200/80'
+                ? 'bg-brand-light/70 dark:bg-sky-950/40 border-brand-blue ring-2 ring-brand-blue/25'
+                : 'bg-slate-100/85 dark:bg-[#0B1528]/90 border-slate-200/80 dark:border-slate-800'
             }`}
           >
-            {/* Column Header */}
-            <div className="p-2 mb-3 border-b border-slate-200/70">
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <div className="flex items-center gap-2">
+            {/* Top Colored Stage Accent Strip */}
+            <div className="h-1.5 w-full" style={{ background: accent }} />
+
+            {/* Clean Two-Row Column Header */}
+            <div className="px-4 pt-3.5 pb-3 border-b border-slate-200/70 dark:border-slate-800/90 space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
                   <span
-                    className="w-2.5 h-2.5 rounded-full"
-                    style={{ background: col.accent }}
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                    style={{ background: accent }}
                   />
-                  <h3 className="font-extrabold text-xs text-brand-navy">
-                    {col.title}
+                  <h3
+                    className="font-extrabold text-[13px] text-brand-navy dark:text-white leading-tight truncate"
+                    title={col.name}
+                  >
+                    {col.name}
                   </h3>
                 </div>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white text-slate-600 border border-slate-200">
+                <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 flex-shrink-0">
                   {colDeals.length}
                 </span>
               </div>
-              <div className="text-xs font-extrabold text-slate-600 pl-4">
-                ₹{colTotal.toLocaleString('en-IN')}
+
+              <div className="flex items-center justify-between gap-2 pl-4">
+                <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300">
+                  ₹{colTotal.toLocaleString('en-IN')}
+                </span>
+                <span
+                  className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md ${
+                    col.category === 'won'
+                      ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border border-emerald-500/25'
+                      : col.category === 'lost'
+                        ? 'bg-rose-500/15 text-rose-500 dark:text-rose-300 border border-rose-500/20'
+                        : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  {col.category === 'won'
+                    ? 'WON · 100%'
+                    : col.category === 'lost'
+                      ? 'LOST'
+                      : `${col.probability}% WIN`}
+                </span>
               </div>
             </div>
 
             {/* Cards Stack */}
-            <div className="space-y-3 flex-1">
+            <div className="p-3 space-y-3 flex-1">
               {colDeals.length === 0 ? (
-                <div className="h-32 rounded-2xl border border-dashed border-slate-300 flex items-center justify-center text-[11px] text-slate-400 text-center px-3">
-                  Drag a deal card here
+                <div className="h-36 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700/80 flex items-center justify-center text-xs font-medium text-slate-400 text-center px-4">
+                  Drop a deal here or add one below
                 </div>
               ) : (
                 colDeals.map((deal) => (
                   <DealCard
                     key={deal.id}
                     deal={deal}
+                    stages={stages}
                     onMoveStage={onMoveStage}
                     onDelete={onDelete}
                   />
                 ))
               )}
             </div>
+
+            {/* Column Footer Quick Add */}
+            {onQuickAdd && (
+              <div className="px-3 pb-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => onQuickAdd(col.id)}
+                  className="w-full py-2 px-3 rounded-xl border border-dashed border-slate-300/90 dark:border-slate-700 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-brand-blue dark:hover:text-sky-400 hover:border-brand-blue/50 hover:bg-white/70 dark:hover:bg-slate-800/60 transition-all inline-flex items-center justify-center gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add deal here</span>
+                </button>
+              </div>
+            )}
           </div>
         );
       })}

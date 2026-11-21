@@ -30,6 +30,7 @@ import {
   PlugZap,
   Save,
   ShieldCheck,
+  SlidersHorizontal,
   Sparkles,
   Sun,
   Trash2,
@@ -1191,6 +1192,46 @@ export default function SettingsPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          </Link>
+
+          {/* 4B. Custom Fields Builder */}
+          <Link
+            href="/settings/custom-fields"
+            className="group bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm hover:shadow-xl hover:border-brand-blue/50 transition-all flex flex-col justify-between gap-4"
+          >
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-md shadow-sky-500/20">
+                  <SlidersHorizontal className="w-5 h-5" />
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-sky-50 dark:bg-sky-950/60 text-brand-blue dark:text-sky-300 border border-sky-200/70 dark:border-sky-500/30">
+                  Leads · Contacts · Deals
+                </span>
+              </div>
+
+              <div>
+                <h3 className="font-extrabold text-base text-brand-navy group-hover:text-brand-blue transition-colors flex items-center justify-between">
+                  <span>Custom Fields Builder</span>
+                  <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-brand-blue group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                  Add industry-specific fields (MOQ, Credit Days, Plant Location,
+                  Drug License No.) rendered dynamically across CRM forms &amp; views.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-100 dark:border-white/10 text-[10px] font-bold">
+              <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300">
+                Text &amp; Number
+              </span>
+              <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300">
+                Dropdown &amp; Date
+              </span>
+              <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300">
+                Checkbox
+              </span>
             </div>
           </Link>
 

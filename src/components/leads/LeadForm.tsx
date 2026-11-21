@@ -13,6 +13,8 @@ import {
   Loader2,
   Tag,
 } from 'lucide-react';
+import { useCustomFields } from '@/hooks/useCustomFields';
+import CustomFieldsInputs from '@/components/custom-fields/CustomFieldsInputs';
 import type {
   CreateLeadPayload,
   Lead,
@@ -51,6 +53,10 @@ export default function LeadForm({
     initialData?.tags?.join(', ') || ''
   );
   const [notes, setNotes] = useState(initialData?.notes || '');
+  const { fields: customFieldDefs } = useCustomFields('lead');
+  const [customFields, setCustomFields] = useState<Record<string, unknown>>(
+    initialData?.customFields || {}
+  );
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -70,6 +76,7 @@ export default function LeadForm({
       estimatedValue: Number(estimatedValue) || 0,
       tags,
       notes,
+      customFields,
     });
   };
 
@@ -274,6 +281,12 @@ export default function LeadForm({
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-brand-navy focus:outline-none focus:border-brand-blue"
             />
           </div>
+
+          <CustomFieldsInputs
+            fields={customFieldDefs}
+            values={customFields}
+            onChange={setCustomFields}
+          />
 
           <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
             <button

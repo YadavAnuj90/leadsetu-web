@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import Link from 'next/link';
 import {
   Mail,
@@ -24,6 +24,16 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [resetSuccessBanner, setResetSuccessBanner] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('reset') === 'success') {
+        setResetSuccessBanner(true);
+      }
+    }
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -134,6 +144,13 @@ export default function LoginPage() {
                   </p>
                 </div>
 
+                {resetSuccessBanner && (
+                  <div className="mb-5 p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900 flex items-start gap-2.5 text-xs sm:text-sm text-emerald-700 dark:text-emerald-300">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+                    <span>Password updated successfully. Sign in with your new password.</span>
+                  </div>
+                )}
+
                 {error && (
                   <div className="mb-5 p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 flex items-start gap-2.5 text-xs sm:text-sm text-rose-700 dark:text-rose-300">
                     <AlertCircle className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
@@ -165,10 +182,10 @@ export default function LoginPage() {
                         Password
                       </label>
                       <Link
-                        href="/signup"
+                        href="/forgot-password"
                         className="text-xs font-bold text-[#0057FF] dark:text-sky-400 hover:underline"
                       >
-                        Need workspace?
+                        Forgot password?
                       </Link>
                     </div>
                     <div className="relative">

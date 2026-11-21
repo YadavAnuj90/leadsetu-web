@@ -32,6 +32,7 @@ import VoiceCrmAuditModal from '@/components/ai/VoiceCrmAuditModal';
 import ShareVoiceCallLinkButton from '@/components/calling/ShareVoiceCallLinkButton';
 import CallMobileButton from '@/components/calling/CallMobileButton';
 import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
+import CustomFieldsDisplayCard from '@/components/custom-fields/CustomFieldsDisplayCard';
 import type { Deal, Lead, LeadActivity, LeadStatus } from '@/types/contracts';
 
 const stages: { id: LeadStatus; label: string }[] = [
@@ -387,6 +388,17 @@ export default function LeadDetailPage() {
               </div>
             )}
           </div>
+
+          <CustomFieldsDisplayCard
+            entity="lead"
+            values={lead.customFields}
+            onSave={async (nextValues) => {
+              const { data } = await apiClient.patch<Lead>(`/leads/${lead.id}`, {
+                customFields: nextValues,
+              });
+              setLead(data);
+            }}
+          />
 
           {/* SetuAI Next-Best-Action Card */}
           <div

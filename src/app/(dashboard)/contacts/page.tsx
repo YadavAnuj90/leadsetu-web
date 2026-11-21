@@ -21,6 +21,8 @@ import { apiClient, getErrorMessage } from '@/lib/api-client';
 import { verifyContactGstinApi, updateContactCreditApi } from '@/lib/invoices-api';
 import CallMobileButton from '@/components/calling/CallMobileButton';
 import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
+import { useCustomFields } from '@/hooks/useCustomFields';
+import CustomFieldsInputs from '@/components/custom-fields/CustomFieldsInputs';
 import type { Contact } from '@/types/contracts';
 
 export default function ContactsPage() {
@@ -49,6 +51,8 @@ export default function ContactsPage() {
   const [creditLimitInr, setCreditLimitInr] = useState('500000');
   const [creditTermDays, setCreditTermDays] = useState('30');
   const [contactNotice, setContactNotice] = useState<string | null>(null);
+  const { fields: contactFieldDefs } = useCustomFields('contact');
+  const [customFields, setCustomFields] = useState<Record<string, unknown>>({});
 
   const fetchContacts = useCallback(async () => {
     setIsLoading(true);
@@ -89,6 +93,7 @@ export default function ContactsPage() {
         creditLimitInr: Number(creditLimitInr) || 0,
         creditTermDays: Number(creditTermDays) || 15,
         tags: gstin ? ['GST Registered', 'B2B'] : ['B2B'],
+        customFields,
       });
       setModalOpen(false);
       setName('');
@@ -98,6 +103,7 @@ export default function ContactsPage() {
       setEmail('');
       setGstin('');
       setLifetimeValue('');
+      setCustomFields({});
       await fetchContacts();
     } finally {
       setIsMutating(false);
@@ -626,6 +632,12 @@ export default function ContactsPage() {
                   />
                 </div>
               </div>
+
+              <CustomFieldsInputs
+                fields={contactFieldDefs}
+                values={customFields}
+                onChange={setCustomFields}
+              />
 
               <div className="flex justify-end gap-2 pt-3">
                 <button

@@ -19,24 +19,19 @@ import {
 } from 'lucide-react';
 import { apiClient, getErrorMessage } from '@/lib/api-client';
 import { analyzeDealAiApi } from '@/hooks/useDeals';
+import { FALLBACK_PIPELINE_STAGES, usePipelines } from '@/hooks/usePipelines';
 import ShareVoiceCallLinkButton from '@/components/calling/ShareVoiceCallLinkButton';
 import CallMobileButton from '@/components/calling/CallMobileButton';
 import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
+import CustomFieldsDisplayCard from '@/components/custom-fields/CustomFieldsDisplayCard';
 import type { Deal, DealStage } from '@/types/contracts';
-
-const stages: { id: DealStage; label: string }[] = [
-  { id: 'qualified', label: 'Qualified (25%)' },
-  { id: 'discovery', label: 'Discovery (45%)' },
-  { id: 'proposal', label: 'Proposal Sent (65%)' },
-  { id: 'negotiation', label: 'Negotiation (85%)' },
-  { id: 'won', label: 'Closed Won ✓' },
-];
 
 export default function DealDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const dealId = params?.id;
 
+  const { pipelines, defaultPipeline } = usePipelines();
   const [deal, setDeal] = useState<Deal | null>(null);
   const [note, setNote] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -77,6 +72,12 @@ export default function DealDetailPage() {
   const handleStageChange = async (stage: DealStage) => {
     if (!deal) return;
     const { data } = await apiClient.patch<Deal>(`/deals/${deal.id}`, { stage });
+    setDeal(data);
+  };
+
+  const handlePipelineChange = async (pipelineId: string) => {
+    if (!deal || !pipelineId) return;
+    const { data } = await apiClient.patch<Deal>(`/deals/${deal.id}`, { pipelineId });
     setDeal(data);
   };
 
@@ -207,29 +208,95 @@ export default function DealDetailPage() {
         </div>
       </div>
 
-      {/* Stage Bar */}
-      <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm">
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-          {stages.map((st) => {
-            const active = deal.stage === st.id;
-            return (
-              <button
-                key={st.id}
-                type="button"
-                onClick={() => handleStageChange(st.id)}
-                className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-                  active
-                    ? 'bg-brand-blue text-white shadow-md'
-                    : 'bg-slate-50 text-slate-600 hover:bg-brand-light hover:text-brand-blue'
-                }`}
+      {/* Connected Pipeline Stepper */}
+      {(() => {
+        const dealPipeline =
+          pipelines.find((p) => p.id === deal.pipelineId) || defaultPipeline;
+        const dynamicStages = dealPipeline?.stages?.length
+          ? dealPipeline.stages
+          : FALLBACK_PIPELINE_STAGES;
+        const activeIdx = dynamicStages.findIndex((s) => s.id === deal.stage);
+        return (
+          <div className="bg-white dark:bg-[#0D172B] rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 text-xs">
+                <span className="font-bold uppercase tracking-wider text-slate-400">
+                  Pipeline
+                </span>
+                {pipelines.length > 1 ? (
+                  <select
+                    value={dealPipeline?.id || ''}
+                    onChange={(e) => handlePipelineChange(e.target.value)}
+                    className="px-3 py-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-bold text-brand-navy dark:text-white text-xs"
+                  >
+                    {pipelines.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <strong className="text-brand-navy dark:text-white text-xs">
+                    {dealPipeline?.name || 'B2B Sales Pipeline'}
+                  </strong>
+                )}
+              </div>
+              <Link
+                href="/settings/pipelines"
+                className="text-xs font-bold text-brand-blue dark:text-sky-400 hover:underline"
               >
-                {active && <CheckCircle2 className="w-3.5 h-3.5" />}
-                <span>{st.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+                Configure Stages
+              </Link>
+            </div>
+
+            <div className="flex flex-wrap lg:flex-nowrap items-stretch gap-1.5 bg-slate-100/80 dark:bg-slate-900/80 p-1.5 rounded-2xl border border-slate-200/60 dark:border-slate-800">
+              {dynamicStages.map((st, idx) => {
+                const active = deal.stage === st.id;
+                const passed = activeIdx > idx && st.category === 'open';
+                return (
+                  <button
+                    key={st.id}
+                    type="button"
+                    onClick={() => handleStageChange(st.id)}
+                    className={`flex-1 min-w-[130px] py-2 px-3 rounded-xl text-left transition-all flex items-center gap-2 ${
+                      active
+                        ? 'text-white shadow-md'
+                        : passed
+                          ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-white/80 dark:hover:bg-slate-800/80'
+                    }`}
+                    style={
+                      active
+                        ? { background: st.color || '#0057FF' }
+                        : undefined
+                    }
+                  >
+                    <span
+                      className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                        active ? 'bg-white' : ''
+                      }`}
+                      style={!active ? { background: st.color || '#3978EA' } : undefined}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-extrabold truncate">
+                        {st.name}
+                      </div>
+                      <div
+                        className={`text-[10px] font-semibold ${
+                          active ? 'text-white/85' : 'text-slate-400'
+                        }`}
+                      >
+                        {st.probability}% probability
+                      </div>
+                    </div>
+                    {active && <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-5 space-y-6">
@@ -278,6 +345,17 @@ export default function DealDetailPage() {
               </div>
             </div>
           </div>
+
+          <CustomFieldsDisplayCard
+            entity="deal"
+            values={deal.customFields}
+            onSave={async (nextValues) => {
+              const { data } = await apiClient.patch<Deal>(`/deals/${deal.id}`, {
+                customFields: nextValues,
+              });
+              setDeal(data);
+            }}
+          />
 
           {/* SetuAI Deal Intelligence & Next-Best-Action Card */}
           <div
@@ -368,13 +446,23 @@ export default function DealDetailPage() {
             </button>
           </form>
 
-          <div className="space-y-3">
+          <div className="relative pl-6 space-y-5 before:content-[''] before:absolute before:left-[9px] before:top-2 before:bottom-2 before:w-px before:bg-slate-200 dark:before:bg-slate-700/80">
             {(deal.activities || []).map((act) => (
-              <div
-                key={act.id}
-                className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100"
-              >
-                <div className="text-xs sm:text-sm font-medium text-brand-navy">
+              <div key={act.id} className="relative pb-4 border-b border-slate-100 dark:border-slate-800/70 last:border-b-0 last:pb-0">
+                <span
+                  className={`absolute -left-6 top-1 w-[18px] h-[18px] rounded-full border-2 border-white dark:border-[#0D172B] flex items-center justify-center ${
+                    act.type === 'stage_change'
+                      ? 'bg-brand-blue'
+                      : act.type === 'quote'
+                        ? 'bg-emerald-500'
+                        : act.type === 'whatsapp'
+                          ? 'bg-emerald-600'
+                          : act.type === 'call'
+                            ? 'bg-violet-500'
+                            : 'bg-slate-400'
+                  }`}
+                />
+                <div className="text-xs sm:text-sm font-medium text-brand-navy dark:text-slate-100 leading-relaxed">
                   {act.description}
                 </div>
                 <div className="text-[11px] text-slate-400 mt-1">

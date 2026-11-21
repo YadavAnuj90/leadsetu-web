@@ -19,10 +19,11 @@ const defaultStats: DealsStats = {
   wonRevenue: 0,
 };
 
-export function useDeals(initialSearch = '') {
+export function useDeals(initialSearch = '', initialPipelineId = 'all') {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [stats, setStats] = useState<DealsStats>(defaultStats);
   const [search, setSearch] = useState(initialSearch);
+  const [pipelineId, setPipelineId] = useState(initialPipelineId);
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
   const [analyzingDealId, setAnalyzingDealId] = useState<string | null>(null);
@@ -34,7 +35,12 @@ export function useDeals(initialSearch = '') {
     try {
       const { data } = await apiClient.get<{ data: Deal[]; stats: DealsStats }>(
         '/deals',
-        { params: { search } }
+        {
+          params: {
+            search,
+            ...(pipelineId && pipelineId !== 'all' ? { pipelineId } : {}),
+          },
+        }
       );
       setDeals(data.data || []);
       setStats(data.stats || defaultStats);
@@ -43,7 +49,7 @@ export function useDeals(initialSearch = '') {
     } finally {
       setIsLoading(false);
     }
-  }, [search]);
+  }, [search, pipelineId]);
 
   useEffect(() => {
     fetchDeals();
@@ -140,6 +146,8 @@ export function useDeals(initialSearch = '') {
     stats,
     search,
     setSearch,
+    pipelineId,
+    setPipelineId,
     isLoading,
     isMutating,
     analyzingDealId,

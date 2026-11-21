@@ -16,6 +16,7 @@ import {
 import { apiClient } from '@/lib/api-client';
 import CallMobileButton from '@/components/calling/CallMobileButton';
 import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
+import CustomFieldsDisplayCard from '@/components/custom-fields/CustomFieldsDisplayCard';
 import type { Contact } from '@/types/contracts';
 
 export default function ContactDetailPage() {
@@ -191,6 +192,17 @@ export default function ContactDetailPage() {
           </div>
         </div>
       </div>
+
+      <CustomFieldsDisplayCard
+        entity="contact"
+        values={contact.customFields}
+        onSave={async (nextValues) => {
+          const res = await apiClient.patch<Contact>(`/contacts/${contact.id}`, {
+            customFields: nextValues,
+          });
+          setContact(res.data);
+        }}
+      />
 
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm space-y-4">
         <div className="flex items-center justify-between gap-3">

@@ -54,6 +54,7 @@ export interface Lead {
   aiScoredAt?: string;
   tags: string[];
   notes?: string;
+  customFields?: Record<string, unknown>;
   activities: LeadActivity[];
   createdAt: string;
   updatedAt: string;
@@ -84,16 +85,53 @@ export interface CreateLeadPayload {
   estimatedValue?: number;
   tags?: string[];
   notes?: string;
+  customFields?: Record<string, unknown>;
 }
 
-// ─── Deals & Pipeline ─────────────────────────────────
-export type DealStage =
-  | 'qualified'
-  | 'discovery'
-  | 'proposal'
-  | 'negotiation'
-  | 'won'
-  | 'lost';
+// ─── Deals & Multi-Pipeline ───────────────────────────
+export type DealStage = string;
+
+export type PipelineStageCategory = 'open' | 'won' | 'lost';
+
+export interface PipelineStage {
+  id: string;
+  name: string;
+  probability: number;
+  color: string;
+  category: PipelineStageCategory;
+  rottenAfterDays?: number;
+  requireNoteOnEnter?: boolean;
+}
+
+export interface Pipeline {
+  id: string;
+  tenantId: string;
+  name: string;
+  description: string;
+  isDefault: boolean;
+  stages: PipelineStage[];
+  dealCount: number;
+  totalValue: number;
+  stageCounts: Record<string, number>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePipelinePayload {
+  name: string;
+  description?: string;
+  template?: 'b2b_sales' | 'dealer_onboarding' | 'amc_renewals' | 'blank';
+  isDefault?: boolean;
+  stages?: PipelineStage[];
+}
+
+export interface UpdatePipelinePayload {
+  name?: string;
+  description?: string;
+  isDefault?: boolean;
+  stages?: PipelineStage[];
+  stageMigrations?: Record<string, string>;
+}
 
 export interface DealActivity {
   id: string;
@@ -114,6 +152,7 @@ export interface Deal {
   id: string;
   tenantId: string;
   ownerId: string;
+  pipelineId?: string;
   title: string;
   company: string;
   contactName: string;
@@ -122,12 +161,14 @@ export interface Deal {
   city: string;
   value: number;
   stage: DealStage;
+  stageCategory?: PipelineStageCategory;
   probability: number;
   expectedCloseDate: string;
   source: string;
   gstApplicable: boolean;
   notes: string;
   tags: string[];
+  customFields?: Record<string, unknown>;
   aiScore?: number;
   aiLabel?: 'Hot' | 'Warm' | 'Cold';
   aiInsight?: string;
@@ -177,6 +218,7 @@ export interface DealsStats {
 
 export interface CreateDealPayload {
   title: string;
+  pipelineId?: string;
   company?: string;
   contactName?: string;
   contactPhone?: string;
@@ -190,6 +232,7 @@ export interface CreateDealPayload {
   gstApplicable?: boolean;
   notes?: string;
   tags?: string[];
+  customFields?: Record<string, unknown>;
 }
 
 // ─── Contacts ─────────────────────────────────────────
@@ -231,9 +274,56 @@ export interface Contact {
   creditUtilizationPct?: number;
   tags: string[];
   notes: string;
+  customFields?: Record<string, unknown>;
   activities?: ContactActivity[];
   createdAt: string;
   updatedAt: string;
+}
+
+// ─── Custom Fields Builder ────────────────────────────
+export type CustomFieldEntity = 'lead' | 'contact' | 'deal';
+export type CustomFieldType = 'text' | 'number' | 'dropdown' | 'date' | 'checkbox';
+
+export interface CustomFieldDef {
+  id: string;
+  tenantId: string;
+  entity: CustomFieldEntity;
+  key: string;
+  label: string;
+  type: CustomFieldType;
+  options: string[];
+  required: boolean;
+  placeholder: string;
+  defaultValue?: string | number | boolean | null;
+  showInCard: boolean;
+  order: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCustomFieldPayload {
+  entity: CustomFieldEntity;
+  label: string;
+  key?: string;
+  type: CustomFieldType;
+  options?: string[];
+  required?: boolean;
+  placeholder?: string;
+  defaultValue?: string | number | boolean | null;
+  showInCard?: boolean;
+}
+
+export interface UpdateCustomFieldPayload {
+  label?: string;
+  type?: CustomFieldType;
+  options?: string[];
+  required?: boolean;
+  placeholder?: string;
+  defaultValue?: string | number | boolean | null;
+  showInCard?: boolean;
+  isActive?: boolean;
+  order?: number;
 }
 
 // ─── Tasks ────────────────────────────────────────────

@@ -77,3 +77,49 @@ export async function changePasswordApi(payload: {
   );
   return data;
 }
+
+export async function forgotPasswordApi(email: string): Promise<{
+  success: boolean;
+  message: string;
+  devPreviewUrl?: string;
+}> {
+  const { data } = await apiClient.post<{
+    success: boolean;
+    message: string;
+    devPreviewUrl?: string;
+  }>('/auth/forgot-password', { email });
+  return data;
+}
+
+export async function verifyResetTokenApi(token: string): Promise<{
+  valid: boolean;
+  maskedEmail: string;
+  workspaceName: string;
+  expiresAt: string;
+}> {
+  const { data } = await apiClient.get<{
+    valid: boolean;
+    maskedEmail: string;
+    workspaceName: string;
+    expiresAt: string;
+  }>('/auth/reset-password/verify', {
+    params: { token },
+  });
+  return data;
+}
+
+export async function resetPasswordApi(payload: {
+  token: string;
+  newPassword: string;
+}): Promise<{
+  success: boolean;
+  maskedEmail: string;
+  message: string;
+}> {
+  const { data } = await apiClient.post<{
+    success: boolean;
+    maskedEmail: string;
+    message: string;
+  }>('/auth/reset-password', payload);
+  return data;
+}
