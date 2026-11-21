@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   Sparkles,
   ChevronDown,
@@ -15,27 +16,15 @@ import {
   Receipt,
   ShieldCheck,
   Send,
-  Search,
-  Globe,
   Headphones,
   FileText,
   BarChart3,
   Building2,
   Layers,
   CheckCircle2,
-  LayoutDashboard,
 } from 'lucide-react';
 import ThemeToggle from '@/components/shared/ThemeToggle';
 import { useAuthStore } from '@/store/auth.store';
-
-const suiteModules = [
-  { label: 'WhatsApp Cloud', href: '/#features' },
-  { label: 'IndiaMART Sync', href: '/#integrations' },
-  { label: '18% GST Billing', href: '/#orbit-360' },
-  { label: 'CPQ Quotes', href: '/#orbit-360' },
-  { label: 'SLA Desk', href: '/#team-views' },
-  { label: 'SetuAI Agents', href: '/#features' },
-];
 
 const productHighlights = [
   {
@@ -127,17 +116,16 @@ const aiQuickPrompts = [
 ];
 
 export default function Navbar() {
-  const { isAuthenticated, user } = useAuthStore();
+  const pathname = usePathname();
+  const { isAuthenticated } = useAuthStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [openMenu, setOpenMenu] = useState<
-    null | 'features' | 'resources' | 'suite'
+    null | 'features' | 'resources'
   >(null);
   const [askAiOpen, setAskAiOpen] = useState(false);
   const [selectedPromptIdx, setSelectedPromptIdx] = useState(0);
   const [customQuery, setCustomQuery] = useState('');
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [langLabel, setLangLabel] = useState<'English (India)' | 'Hinglish (NCR)'>('English (India)');
 
   useEffect(() => {
     const onScroll = () => {
@@ -155,175 +143,55 @@ export default function Navbar() {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
-        {/* ─── TIER 1: Global Suite Utility Bar (Zoho-style Top Bar) ─────── */}
+        {/* ─── Subtle Luminous Top Accent Line ─────────────────────────── */}
         <div
-          className={`hidden md:block border-b border-slate-200/80 dark:border-slate-800/90 bg-white/95 dark:bg-[#08101D]/95 backdrop-blur-md transition-all duration-300 ${
-            scrolled ? 'h-0 overflow-hidden opacity-0 border-b-0' : 'h-11 opacity-100'
-          }`}
-        >
-          <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between text-xs">
-            {/* Left Suite Brand + Quick Module Links */}
-            <div className="flex items-center gap-5">
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2 font-extrabold tracking-tight text-slate-900 dark:text-white"
-              >
-                <img
-                  src="/logo.png"
-                  alt="Leadsetu Logo"
-                  className="w-5 h-5 rounded-md object-cover shadow-sm ring-1 ring-[#0057FF]/30"
-                />
-                <span className="text-[11px] font-black tracking-[0.14em] text-slate-800 dark:text-slate-100 uppercase">
-                  Leadsetu
-                </span>
-              </Link>
+          className="h-[2px] w-full opacity-90"
+          style={{
+            background:
+              'linear-gradient(90deg, transparent 0%, #0057FF 25%, #38BDF8 50%, #E42527 80%, transparent 100%)',
+          }}
+        />
 
-              <div className="hidden lg:flex items-center gap-4 text-slate-600 dark:text-slate-300 font-medium">
-                {suiteModules.map((mod) => (
-                  <Link
-                    key={mod.label}
-                    href={mod.href}
-                    className="hover:text-[#0057FF] dark:hover:text-sky-400 transition-colors whitespace-nowrap"
-                  >
-                    {mod.label}
-                  </Link>
-                ))}
-                <div
-                  className="relative"
-                  onMouseEnter={() => setOpenMenu('suite')}
-                  onMouseLeave={() => setOpenMenu(null)}
-                >
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 font-semibold text-slate-700 dark:text-slate-200 hover:text-[#0057FF]"
-                  >
-                    All Modules <ChevronDown className="w-3 h-3" />
-                  </button>
-                  {openMenu === 'suite' && (
-                    <div className="absolute top-full left-0 pt-2 w-72 z-50">
-                      <div className="rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 shadow-2xl p-3 space-y-1">
-                        <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                          14 Integrated CRM Modules
-                        </div>
-                        {[
-                          { name: 'AI Command & Analytics', tag: 'CEO Cockpit', href: '/#orbit-360' },
-                          { name: 'WhatsApp Cloud & Inbox', tag: 'Meta Official', href: '/#features' },
-                          { name: 'GST Tax Invoices & AR Ledger', tag: 'Rule 46', href: '/#features' },
-                          { name: 'Proforma Quotes (CPQ)', tag: 'Buyer Sign-off', href: '/#orbit-360' },
-                          { name: 'SLA Service & AMC Tickets', tag: 'Field Desk', href: '/#team-views' },
-                          { name: 'Document Center & Audit Shield', tag: 'DPDP 2023', href: '/#integrations' },
-                        ].map((item) => (
-                          <Link
-                            key={item.name}
-                            href={item.href}
-                            onClick={() => setOpenMenu(null)}
-                            className="flex items-center justify-between px-2.5 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors"
-                          >
-                            <span className="text-xs font-semibold text-slate-800 dark:text-slate-100">
-                              {item.name}
-                            </span>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-[#0057FF] dark:text-sky-400">
-                              {item.tag}
-                            </span>
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Right Utility Controls */}
-            <div className="flex items-center gap-4">
-              <button
-                type="button"
-                onClick={() => setSearchOpen(!searchOpen)}
-                aria-label="Quick module search"
-                className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
-              >
-                <Search className="w-3.5 h-3.5" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setLangLabel((prev) =>
-                    prev === 'English (India)' ? 'Hinglish (NCR)' : 'English (India)'
-                  )
-                }
-                className="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium transition-colors"
-              >
-                <Globe className="w-3.5 h-3.5 text-slate-400" />
-                <span>{langLabel}</span>
-              </button>
-
-              {isAuthenticated && user ? (
-                <Link
-                  href="/dashboard"
-                  className="inline-flex items-center gap-1 font-bold text-[#0057FF] dark:text-sky-400 hover:underline"
-                >
-                  <LayoutDashboard className="w-3.5 h-3.5" />
-                  <span>Go to Dashboard</span>
-                </Link>
-              ) : (
-                <div className="flex items-center gap-3">
-                  <Link
-                    href="/login"
-                    className="font-bold text-[#E42527] hover:text-[#C81E1E] transition-colors"
-                  >
-                    Sign In
-                  </Link>
-                  <span className="text-slate-300 dark:text-slate-700">|</span>
-                  <Link
-                    href="/signup"
-                    className="font-semibold text-slate-700 dark:text-slate-200 hover:text-[#0057FF] transition-colors"
-                  >
-                    Sign Up Free
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* ─── TIER 2: Main Sticky Product Navigation Bar ────────────────── */}
+        {/* ─── Main Sticky Product Navigation Bar ───────────────────────── */}
         <nav
           className={`transition-all duration-300 ${
             scrolled
-              ? 'bg-white/95 dark:bg-[#0B1320]/95 backdrop-blur-xl shadow-lg shadow-slate-900/5 border-b border-slate-200/80 dark:border-slate-800 py-2.5'
-              : 'bg-white/90 dark:bg-[#0B1320]/90 backdrop-blur-lg border-b border-slate-200/60 dark:border-slate-800/80 py-3'
+              ? 'bg-white/95 dark:bg-[#070E1C]/95 backdrop-blur-2xl shadow-[0_12px_36px_-14px_rgba(15,23,42,0.28)] border-b border-slate-200/80 dark:border-white/10 py-2.5'
+              : 'bg-white/80 dark:bg-[#070E1C]/80 backdrop-blur-xl border-b border-slate-200/60 dark:border-white/[0.08] py-3'
           }`}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-3">
               {/* Brand Mark (Infinity Bridge CRM emblem + Leadsetu CRM) */}
-              <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0">
-                <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-sm ring-1 ring-[#0057FF]/25 bg-gradient-to-br from-[#0057FF] to-[#17243A] flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
+              <Link
+                href="/"
+                className="flex items-center gap-2.5 group shrink-0 whitespace-nowrap"
+              >
+                <div className="relative w-9 h-9 rounded-xl overflow-hidden shadow-md shadow-[#0057FF]/15 ring-1 ring-[#0057FF]/30 bg-gradient-to-br from-[#0057FF] to-[#0D1628] flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
                   <img
                     src="/logo.png"
                     alt="Leadsetu Logo"
                     className="w-full h-full object-cover"
                   />
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-white dark:ring-slate-900" />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-white dark:ring-[#070E1C]" />
                 </div>
                 <div className="flex flex-col leading-none">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-extrabold tracking-tight text-slate-800 dark:text-slate-100">
                       Leadsetu
                     </span>
-                    <span className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
+                    <span className="px-1.5 py-0.5 rounded-md text-[11px] font-black tracking-wide bg-gradient-to-r from-[#0057FF] to-[#2563EB] text-white shadow-sm">
                       CRM
                     </span>
                   </div>
-                  <span className="text-[10px] font-semibold text-[#0057FF] dark:text-sky-400 tracking-wide mt-0.5 hidden sm:block">
+                  <span className="text-[10px] font-semibold text-slate-500 dark:text-sky-400/90 tracking-wide mt-0.5 hidden xl:block">
                     Bridge Every Lead to Revenue
                   </span>
                 </div>
               </Link>
 
-              {/* Center Links */}
-              <div className="hidden lg:flex items-center gap-1">
+              {/* Center Pill Navigation */}
+              <div className="hidden lg:flex items-center gap-0.5 rounded-full px-1.5 py-1 bg-slate-100/80 dark:bg-white/[0.045] border border-slate-200/80 dark:border-white/[0.08]">
                 {/* Features Mega Menu */}
                 <div
                   className="relative"
@@ -332,19 +200,23 @@ export default function Navbar() {
                 >
                   <button
                     type="button"
-                    className="flex items-center gap-1 px-3.5 py-2 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-[#0057FF] dark:hover:text-sky-400 hover:bg-slate-50 dark:hover:bg-slate-800/70 transition-all"
+                    className={`flex items-center gap-1 whitespace-nowrap px-3.5 py-1.5 rounded-full text-[13px] font-semibold transition-all ${
+                      openMenu === 'features'
+                        ? 'bg-white dark:bg-white/10 text-[#0057FF] dark:text-white shadow-sm'
+                        : 'text-slate-700 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white hover:bg-white/70 dark:hover:bg-white/[0.06]'
+                    }`}
                   >
-                    Features
+                    <span>Features</span>
                     <ChevronDown
                       className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
-                        openMenu === 'features' ? 'rotate-180 text-[#0057FF]' : ''
+                        openMenu === 'features' ? 'rotate-180 text-[#0057FF] dark:text-sky-400' : ''
                       }`}
                     />
                   </button>
 
                   {openMenu === 'features' && (
-                    <div className="absolute top-full left-0 pt-2 w-[640px] z-50">
-                      <div className="bg-white dark:bg-[#0F1829] rounded-2xl shadow-2xl border border-slate-200/80 dark:border-slate-800 p-4 space-y-2.5">
+                    <div className="absolute top-full left-0 pt-2.5 w-[640px] z-50">
+                      <div className="bg-white dark:bg-[#0D1628] rounded-2xl shadow-2xl border border-slate-200/80 dark:border-slate-800 p-4 space-y-2.5">
                         <div className="px-3 py-1.5 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
                           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                             Leadsetu 360° AI Revenue Suite
@@ -407,28 +279,32 @@ export default function Navbar() {
 
                 <Link
                   href="/#orbit-360"
-                  className="px-3.5 py-2 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-[#0057FF] dark:hover:text-sky-400 hover:bg-slate-50 dark:hover:bg-slate-800/70 transition-all"
+                  className="whitespace-nowrap px-3.5 py-1.5 rounded-full text-[13px] font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white hover:bg-white/70 dark:hover:bg-white/[0.06] transition-all"
                 >
                   360° Orbit
                 </Link>
 
                 <Link
                   href="/#team-views"
-                  className="px-3.5 py-2 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-[#0057FF] dark:hover:text-sky-400 hover:bg-slate-50 dark:hover:bg-slate-800/70 transition-all"
+                  className="whitespace-nowrap px-3.5 py-1.5 rounded-full text-[13px] font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white hover:bg-white/70 dark:hover:bg-white/[0.06] transition-all"
                 >
                   Team Views
                 </Link>
 
                 <Link
-                  href="/#pricing"
-                  className="px-3.5 py-2 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-[#0057FF] dark:hover:text-sky-400 hover:bg-slate-50 dark:hover:bg-slate-800/70 transition-all"
+                  href="/pricing"
+                  className={`whitespace-nowrap px-3.5 py-1.5 rounded-full text-[13px] font-semibold transition-all ${
+                    pathname === '/pricing'
+                      ? 'bg-white dark:bg-[#0057FF]/25 text-[#0057FF] dark:text-sky-300 shadow-sm ring-1 ring-[#0057FF]/25'
+                      : 'text-slate-700 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white hover:bg-white/70 dark:hover:bg-white/[0.06]'
+                  }`}
                 >
                   Pricing
                 </Link>
 
                 <Link
                   href="/#testimonials"
-                  className="px-3.5 py-2 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-[#0057FF] dark:hover:text-sky-400 hover:bg-slate-50 dark:hover:bg-slate-800/70 transition-all"
+                  className="whitespace-nowrap px-3.5 py-1.5 rounded-full text-[13px] font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white hover:bg-white/70 dark:hover:bg-white/[0.06] transition-all"
                 >
                   Customers
                 </Link>
@@ -441,19 +317,23 @@ export default function Navbar() {
                 >
                   <button
                     type="button"
-                    className="flex items-center gap-1 px-3.5 py-2 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-[#0057FF] dark:hover:text-sky-400 hover:bg-slate-50 dark:hover:bg-slate-800/70 transition-all"
+                    className={`flex items-center gap-1 whitespace-nowrap px-3.5 py-1.5 rounded-full text-[13px] font-semibold transition-all ${
+                      openMenu === 'resources'
+                        ? 'bg-white dark:bg-white/10 text-[#0057FF] dark:text-white shadow-sm'
+                        : 'text-slate-700 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white hover:bg-white/70 dark:hover:bg-white/[0.06]'
+                    }`}
                   >
-                    Resources
+                    <span>Resources</span>
                     <ChevronDown
                       className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
-                        openMenu === 'resources' ? 'rotate-180 text-[#0057FF]' : ''
+                        openMenu === 'resources' ? 'rotate-180 text-[#0057FF] dark:text-sky-400' : ''
                       }`}
                     />
                   </button>
 
                   {openMenu === 'resources' && (
-                    <div className="absolute top-full right-0 pt-2 w-80 z-50">
-                      <div className="bg-white dark:bg-[#0F1829] rounded-2xl shadow-2xl border border-slate-200/80 dark:border-slate-800 p-3 space-y-1">
+                    <div className="absolute top-full right-0 pt-2.5 w-80 z-50">
+                      <div className="bg-white dark:bg-[#0D1628] rounded-2xl shadow-2xl border border-slate-200/80 dark:border-slate-800 p-3 space-y-1">
                         {resourceLinks.map((res) => {
                           const Icon = res.icon;
                           return (
@@ -483,28 +363,28 @@ export default function Navbar() {
                 </div>
               </div>
 
-              {/* Right CTAs: ThemeToggle + Ask Setu AI + Get Started (Crimson CTA) */}
-              <div className="hidden lg:flex items-center gap-2.5">
-                <ThemeToggle />
+              {/* Right CTAs: Compact ThemeToggle + Ask Setu AI + Sign In + Get Started */}
+              <div className="hidden lg:flex items-center gap-2 shrink-0">
+                <ThemeToggle compact />
 
-                {/* Ask Setu AI Pill (inspired by Ask Zia) */}
+                {/* Ask Setu AI Pill */}
                 <button
                   type="button"
                   onClick={() => setAskAiOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-slate-800 dark:text-white bg-white dark:bg-slate-900 border border-[#0057FF]/35 shadow-sm hover:shadow-md hover:border-[#0057FF] transition-all"
+                  className="whitespace-nowrap inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold text-slate-800 dark:text-white bg-white dark:bg-[#0E1A30] border border-[#0057FF]/35 dark:border-sky-400/30 shadow-sm hover:shadow-md hover:border-[#0057FF] dark:hover:border-sky-400 transition-all"
                   style={{
                     backgroundImage:
-                      'linear-gradient(135deg, rgba(0,87,255,0.06) 0%, rgba(168,85,247,0.08) 100%)',
+                      'linear-gradient(135deg, rgba(0,87,255,0.08) 0%, rgba(168,85,247,0.10) 100%)',
                   }}
                 >
+                  <Sparkles className="w-3.5 h-3.5 text-fuchsia-600 dark:text-fuchsia-400 shrink-0" />
                   <span>Ask Setu AI</span>
-                  <Sparkles className="w-3.5 h-3.5 text-fuchsia-600 dark:text-fuchsia-400" />
                 </button>
 
-                {scrolled && !isAuthenticated && (
+                {!isAuthenticated && (
                   <Link
                     href="/login"
-                    className="px-3.5 py-2 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-[#E42527] transition-colors"
+                    className="whitespace-nowrap px-3.5 py-2 rounded-full text-[13px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-950 dark:hover:text-white transition-all"
                   >
                     Sign In
                   </Link>
@@ -512,25 +392,26 @@ export default function Navbar() {
 
                 <Link
                   href={isAuthenticated ? '/dashboard' : '/signup'}
-                  className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-xs sm:text-sm font-bold text-white bg-[#E42527] hover:bg-[#C81E1E] shadow-md shadow-rose-600/20 transition-all hover:-translate-y-0.5"
+                  className="whitespace-nowrap inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-extrabold text-white bg-gradient-to-r from-[#E42527] to-[#D61F3C] hover:from-[#C81E1E] hover:to-[#B81632] shadow-lg shadow-rose-600/25 transition-all hover:-translate-y-0.5"
                 >
                   <span>{isAuthenticated ? 'Open CRM' : 'Get Started'}</span>
+                  <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                 </Link>
               </div>
 
               {/* Mobile Controls */}
-              <div className="flex items-center gap-2 lg:hidden">
-                <ThemeToggle />
+              <div className="flex items-center gap-2 lg:hidden shrink-0">
+                <ThemeToggle compact />
                 <button
                   type="button"
                   onClick={() => setAskAiOpen(true)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold bg-blue-50 dark:bg-slate-800 text-[#0057FF] dark:text-sky-400 border border-blue-200 dark:border-slate-700"
+                  className="whitespace-nowrap inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold bg-blue-50 dark:bg-slate-800 text-[#0057FF] dark:text-sky-400 border border-blue-200 dark:border-slate-700"
                 >
                   <Sparkles className="w-3 h-3" /> AI
                 </button>
                 <Link
                   href={isAuthenticated ? '/dashboard' : '/signup'}
-                  className="text-xs font-bold px-3 py-2 rounded-lg text-white bg-[#E42527]"
+                  className="whitespace-nowrap text-xs font-bold px-3.5 py-2 rounded-full text-white bg-gradient-to-r from-[#E42527] to-[#D61F3C]"
                 >
                   {isAuthenticated ? 'CRM' : 'Get Started'}
                 </Link>
@@ -544,31 +425,6 @@ export default function Navbar() {
                 </button>
               </div>
             </div>
-
-            {/* Expandable Top Bar Search Strip */}
-            {searchOpen && (
-              <div className="mt-3 pt-3 border-t border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center gap-2">
-                <span className="text-xs font-bold text-slate-500">Jump to:</span>
-                {[
-                  { label: '360° Concentric Orbit', href: '/#orbit-360' },
-                  { label: 'Department Role Views', href: '/#team-views' },
-                  { label: '18% GST & CPQ Quotes', href: '/#features' },
-                  { label: 'WhatsApp & IndiaMART', href: '/#integrations' },
-                  { label: 'INR Pricing', href: '/#pricing' },
-                  { label: 'Sign In', href: '/login' },
-                  { label: 'Create Free Workspace', href: '/signup' },
-                ].map((tag) => (
-                  <Link
-                    key={tag.label}
-                    href={tag.href}
-                    onClick={() => setSearchOpen(false)}
-                    className="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-[#0057FF] hover:text-white transition-colors"
-                  >
-                    {tag.label}
-                  </Link>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Mobile Drawer */}
@@ -599,7 +455,7 @@ export default function Navbar() {
                   { label: 'Department Role Views', href: '/#team-views' },
                   { label: '14-Module Interactive Tour', href: '/#features' },
                   { label: 'Integrations', href: '/#integrations' },
-                  { label: 'Pricing & FAQ', href: '/#pricing' },
+                  { label: 'Pricing & Q&A', href: '/pricing' },
                   { label: 'Customer Stories', href: '/#testimonials' },
                 ].map((nav) => (
                   <Link

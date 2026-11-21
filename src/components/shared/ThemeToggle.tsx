@@ -53,7 +53,13 @@ function applyDomTheme(dark: boolean, colorTheme: ColorThemeId) {
   root.setAttribute('data-color-theme', colorTheme);
 }
 
-export default function ThemeToggle({ className = '' }: { className?: string }) {
+export default function ThemeToggle({
+  className = '',
+  compact = false,
+}: {
+  className?: string;
+  compact?: boolean;
+}) {
   const [isDark, setIsDark] = useState(false);
   const [colorTheme, setColorTheme] = useState<ColorThemeId>('static-blue');
   const [open, setOpen] = useState(false);
@@ -166,20 +172,24 @@ export default function ThemeToggle({ className = '' }: { className?: string }) 
       <button
         type="button"
         onClick={() => setOpen((p) => !p)}
-        title="Choose Live or Static Colour Theme"
-        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#0F1829] text-xs font-bold text-brand-navy dark:text-slate-200 hover:border-brand-blue transition-all cursor-pointer select-none shadow-sm"
+        title={`Theme: ${activePreset.name} — Click to switch palette`}
+        className={`inline-flex items-center whitespace-nowrap rounded-xl border border-slate-200 dark:border-white/15 bg-white dark:bg-[#0F1829] text-xs font-bold text-brand-navy dark:text-slate-200 hover:border-brand-blue transition-all cursor-pointer select-none shadow-sm ${
+          compact ? 'gap-1.5 px-2.5 py-2' : 'gap-2 px-3 py-2'
+        }`}
       >
         <span
-          className="w-3 h-3 rounded-full ring-2 ring-white dark:ring-slate-800 shrink-0"
+          className="w-3.5 h-3.5 rounded-full ring-2 ring-white dark:ring-slate-800 shrink-0"
           style={{ background: activePreset.swatchStyle }}
         />
-        <span className="hidden sm:inline">{activePreset.name}</span>
-        {activePreset.badge === 'LIVE' && (
+        {!compact && (
+          <span className="hidden sm:inline">{activePreset.name}</span>
+        )}
+        {!compact && activePreset.badge === 'LIVE' && (
           <span className="px-1.5 py-0.5 rounded bg-brand-blue/15 text-brand-blue text-[9px] font-extrabold">
             LIVE
           </span>
         )}
-        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+        <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
       </button>
 
       {/* Quick Light / Dark Toggle */}

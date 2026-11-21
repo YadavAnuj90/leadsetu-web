@@ -10,11 +10,13 @@ import {
   FileText,
   Image as ImageIcon,
   Link2,
+  Loader2,
   Mic,
   PackageSearch,
   Phone,
   Sparkles,
 } from 'lucide-react';
+import AISummaryCard from '@/components/ai/AISummaryCard';
 import { buildWhatsAppMeUrl } from '@/lib/whatsapp-templates';
 import type { Conversation, LinkedCrmEntityType } from '@/types/contracts';
 
@@ -24,6 +26,8 @@ interface MessageThreadProps {
   onOpenLinkModal: () => void;
   onOpenVoiceAudit?: () => void;
   onOpenRfqParser?: () => void;
+  onRefreshAiSummary?: () => void;
+  isGeneratingAi?: boolean;
 }
 
 function getEntityHref(type?: LinkedCrmEntityType, id?: string): string {
@@ -41,6 +45,8 @@ export default function MessageThread({
   onOpenLinkModal,
   onOpenVoiceAudit,
   onOpenRfqParser,
+  onRefreshAiSummary,
+  isGeneratingAi = false,
 }: MessageThreadProps) {
   const waUrl = buildWhatsAppMeUrl(conversation.phone);
 
@@ -106,6 +112,22 @@ export default function MessageThread({
         </div>
 
         <div className="flex items-center gap-2">
+          {onRefreshAiSummary && (
+            <button
+              type="button"
+              disabled={isGeneratingAi}
+              onClick={onRefreshAiSummary}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-amber-400/40 bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500 hover:text-white transition-colors disabled:opacity-50"
+              title="Summarize Thread & Generate AI Reply Draft"
+            >
+              {isGeneratingAi ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5" />
+              )}
+              <span>{conversation.aiSummary ? 'Refresh AI' : 'Summarize AI'}</span>
+            </button>
+          )}
           {onOpenRfqParser && (
             <button
               type="button"
@@ -169,23 +191,12 @@ export default function MessageThread({
 
       {/* SetuAI Context Banner */}
       {conversation.aiSummary && (
-        <div
-          className="px-6 py-2.5 text-xs text-white flex items-center justify-between gap-4"
-          style={{
-            background: 'linear-gradient(90deg, #17243A 0%, #243B61 100%)',
-          }}
-        >
-          <div className="flex items-center gap-2 truncate">
-            <Sparkles className="w-4 h-4 text-brand-sky flex-shrink-0" />
-            <span className="font-semibold text-brand-sky">SetuAI Summary:</span>
-            <span className="text-slate-200 truncate">
-              {conversation.aiSummary}
-            </span>
-          </div>
-          <span className="font-extrabold text-emerald-400 whitespace-nowrap">
-            Est. ₹{(conversation.estimatedValue || 0).toLocaleString('en-IN')}
-          </span>
-        </div>
+        <AISummaryCard
+          summary={conversation.aiSummary}
+          estimatedValue={conversation.estimatedValue}
+          isRefreshing={isGeneratingAi}
+          onRefresh={onRefreshAiSummary}
+        />
       )}
 
       {/* Messages Scroll Area */}

@@ -4,23 +4,29 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   Activity,
   AlertTriangle,
+  Building2,
   CheckCircle2,
   Clock,
+  Eye,
   HardDrive,
   Loader2,
+  Lock,
   PhoneCall,
   PhoneOff,
   Radio,
   RefreshCw,
   Server,
+  ShieldCheck,
   Wifi,
   X,
 } from 'lucide-react';
 import {
   fetchCallAnalyticsApi,
   fetchCallTelemetryApi,
-  type CallAnalyticsRecentRow,
+  requestCallSupportRevealApi,
+  type AnonymizedCallTelemetryRow,
   type CallAnalyticsResponse,
+  type CallSupportRevealResponse,
   type CallTelemetrySampleRecord,
 } from '@/lib/calls-api';
 import { formatCallDuration } from '@/store/call-ui.store';
@@ -45,10 +51,18 @@ export default function CallingAnalyticsSection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedCall, setSelectedCall] =
-    useState<CallAnalyticsRecentRow | null>(null);
-  const [samples, setSamples] = useState<CallTelemetrySampleRecord[]>([]);
+  const [pendingInspectRow, setPendingInspectRow] =
+    useState<AnonymizedCallTelemetryRow | null>(null);
+  const [supportReason, setSupportReason] = useState('');
   const [loadingSamples, setLoadingSamples] = useState(false);
+  const [supportSamples, setSupportSamples] = useState<
+    CallTelemetrySampleRecord[]
+  >([]);
+  const [activeCallMeta, setActiveCallMeta] =
+    useState<AnonymizedCallTelemetryRow | null>(null);
+  const [revealedInfo, setRevealedInfo] =
+    useState<CallSupportRevealResponse | null>(null);
+  const [activeSupportReason, setActiveSupportReason] = useState('');
 
   const loadAnalytics = useCallback(async () => {
     setLoading(true);
@@ -67,14 +81,39 @@ export default function CallingAnalyticsSection() {
     void loadAnalytics();
   }, [loadAnalytics]);
 
-  const inspectCallSamples = async (row: CallAnalyticsRecentRow) => {
-    setSelectedCall(row);
+  const handleConfirmTechnicalInspect = async () => {
+    if (!pendingInspectRow || supportReason.trim().length < 5) return;
     setLoadingSamples(true);
+    setError(null);
     try {
-      const res = await fetchCallTelemetryApi(row.id);
-      setSamples(res.samples || []);
-    } catch {
-      setSamples([]);
+      const cleanReason = supportReason.trim();
+      const res = await fetchCallTelemetryApi(pendingInspectRow.id, cleanReason);
+      setActiveCallMeta(pendingInspectRow);
+      setActiveSupportReason(cleanReason);
+      setSupportSamples(res.samples || []);
+      setRevealedInfo(null);
+      setPendingInspectRow(null);
+      setSupportReason('');
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setLoadingSamples(false);
+    }
+  };
+
+  const handleRevealParticipantNames = async () => {
+    if (!activeCallMeta || !activeSupportReason) return;
+    setLoadingSamples(true);
+    setError(null);
+    try {
+      const revealed = await requestCallSupportRevealApi(
+        activeCallMeta.id,
+        activeSupportReason,
+      );
+      setRevealedInfo(revealed);
+      setSupportSamples(revealed.samples || []);
+    } catch (err) {
+      setError(getErrorMessage(err));
     } finally {
       setLoadingSamples(false);
     }
@@ -143,7 +182,8 @@ export default function CallingAnalyticsSection() {
     },
   ];
 
-  const recentCalls = data?.recentCalls || [];
+  const tenantAggregates = data?.tenantAggregates || [];
+  const anonymizedCalls = data?.anonymizedCalls || [];
   const breakdown = data?.protocolBreakdown || {
     direct: 0,
     udp: 0,
@@ -247,30 +287,121 @@ export default function CallingAnalyticsSection() {
         </div>
       </div>
 
-      {/* Recent Call Logs & Per-Call Telemetry Table */}
+      {/* Privacy Notice Banner */}
+      <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-xs text-emerald-700 dark:text-emerald-300 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 font-bold">
+          <ShieldCheck className="w-4 h-4 shrink-0" />
+          <span>
+            DPDP Privacy Mode Active: Caller/callee names and per-person call timestamps are hidden from Platform Super Admin.
+          </span>
+        </div>
+        <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400">
+          Support inspection writes an immutable audit log
+        </span>
+      </div>
+
+      {/* Per-Tenant Aggregate Reliability & TURN Cost Table */}
+      <div className="rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-brand-blue" />
+              Per-Tenant Relay &amp; Reliability Summary
+            </h3>
+            <p className="text-[11px] text-slate-400">
+              Aggregated call volume, failure counts, TURN relay % and estimated relay bandwidth per workspace (zero user PII)
+            </p>
+          </div>
+          <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+            {tenantAggregates.length}{' '}
+            {tenantAggregates.length === 1 ? 'workspace' : 'workspaces'}
+          </span>
+        </div>
+
+        {tenantAggregates.length === 0 ? (
+          <div className="p-8 text-center text-xs text-slate-400">
+            No workspace call totals recorded yet.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                  <th className="px-5 py-3">Workspace</th>
+                  <th className="px-4 py-3">Total Calls</th>
+                  <th className="px-4 py-3">Connected</th>
+                  <th className="px-4 py-3">Failed</th>
+                  <th className="px-4 py-3">TURN %</th>
+                  <th className="px-4 py-3">Avg RTT</th>
+                  <th className="px-5 py-3 text-right">Relay Bandwidth</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {tenantAggregates.map((row) => (
+                  <tr
+                    key={row.tenantId}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                  >
+                    <td className="px-5 py-3.5">
+                      <div className="font-extrabold text-slate-900 dark:text-white">
+                        {row.tenantName}
+                      </div>
+                      {row.accountId && (
+                        <div className="text-[10px] font-mono text-slate-400">
+                          ID #{row.accountId}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3.5 font-mono font-bold text-slate-700 dark:text-slate-200">
+                      {row.totalCalls}
+                    </td>
+                    <td className="px-4 py-3.5 font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                      {row.connectedCalls}
+                    </td>
+                    <td className="px-4 py-3.5 font-mono text-rose-600 dark:text-rose-400 font-bold">
+                      {row.failedCalls}
+                    </td>
+                    <td className="px-4 py-3.5 font-mono text-amber-600 dark:text-amber-400 font-bold">
+                      {row.turnUsagePct}% ({row.turnRelayCalls})
+                    </td>
+                    <td className="px-4 py-3.5 font-mono text-slate-600 dark:text-slate-300">
+                      {row.avgRttMs ? `${row.avgRttMs} ms` : '—'}
+                    </td>
+                    <td className="px-5 py-3.5 text-right font-mono font-bold text-slate-700 dark:text-slate-200">
+                      {formatBytes(row.estimatedRelayBytes)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Anonymized Technical Telemetry Table (No Caller/Callee Names or Conversation Timestamps) */}
       <div className="rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div>
             <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-              Recent Call Sessions &amp; Selected-Pair Telemetry
+              Anonymized WebRTC Technical Sessions
             </h3>
             <p className="text-[11px] text-slate-400">
-              Click any call row to inspect time-series `call_telemetry_samples`
+              Identities masked (`call_...`, `u_***`). Full caller logs live in Tenant Admin `/calls`; deep packet inspection requires a support reason.
             </p>
           </div>
           <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-            {recentCalls.length} recent records
+            {anonymizedCalls.length} recent records
           </span>
         </div>
 
-        {recentCalls.length === 0 ? (
+        {anonymizedCalls.length === 0 ? (
           <div className="p-12 text-center space-y-2">
             <PhoneCall className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
             <div className="text-sm font-bold text-slate-700 dark:text-slate-200">
-              No voice calls logged across the platform yet
+              No voice telemetry logged across the platform yet
             </div>
             <p className="text-xs text-slate-400">
-              Once agents place calls on `/calls`, connection paths (`direct` vs `turn_relay`), RTT, setup speed, and bytes appear here.
+              Once workspaces place WebRTC calls, anonymized ICE path (`direct` vs `turn_relay`), RTT, and setup speed appear here.
             </p>
           </div>
         ) : (
@@ -278,32 +409,34 @@ export default function CallingAnalyticsSection() {
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                  <th className="px-5 py-3">Caller → Callee</th>
+                  <th className="px-5 py-3">Call Ref &amp; Workspace</th>
                   <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Duration</th>
                   <th className="px-4 py-3">Setup Time</th>
                   <th className="px-4 py-3">ICE Path</th>
                   <th className="px-4 py-3">RTT / Loss</th>
-                  <th className="px-4 py-3">Media Bytes</th>
-                  <th className="px-5 py-3 text-right">Samples</th>
+                  <th className="px-4 py-3">Failure / End Reason</th>
+                  <th className="px-5 py-3 text-right">Support Debug</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {recentCalls.map((row) => {
+                {anonymizedCalls.map((row) => {
                   const turn = Boolean(row.connection?.turnUsed);
                   const failed = row.status === 'failed';
                   return (
                     <tr
                       key={row.id}
-                      onClick={() => void inspectCallSamples(row)}
-                      className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
                     >
                       <td className="px-5 py-3.5">
-                        <div className="font-extrabold text-slate-900 dark:text-white">
-                          {row.callerName} → {row.calleeName}
+                        <div className="font-mono font-extrabold text-slate-900 dark:text-white">
+                          {row.callRef}{' '}
+                          <span className="text-slate-400 font-normal">
+                            ({row.callerRef} → {row.calleeRef})
+                          </span>
                         </div>
                         <div className="text-[10px] text-slate-400">
-                          {new Date(row.startedAt).toLocaleString('en-IN')}
+                          {row.tenantName}
+                          {row.accountId ? ` · #${row.accountId}` : ''}
                         </div>
                       </td>
                       <td className="px-4 py-3.5">
@@ -318,9 +451,6 @@ export default function CallingAnalyticsSection() {
                         >
                           {row.status}
                         </span>
-                      </td>
-                      <td className="px-4 py-3.5 font-mono font-bold text-slate-700 dark:text-slate-200">
-                        {formatCallDuration(row.durationSeconds)}
                       </td>
                       <td className="px-4 py-3.5 font-mono text-slate-600 dark:text-slate-300">
                         {row.setupTimeMs > 0 ? formatMs(row.setupTimeMs) : '—'}
@@ -348,14 +478,21 @@ export default function CallingAnalyticsSection() {
                           ? ` · ${row.connection.packetsLost} lost`
                           : ''}
                       </td>
-                      <td className="px-4 py-3.5 font-mono text-slate-600 dark:text-slate-300">
-                        {formatBytes(
-                          (row.connection?.bytesSent || 0) +
-                            (row.connection?.bytesReceived || 0),
-                        )}
+                      <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">
+                        {row.connection?.iceFailureReason || row.endReason || '—'}
                       </td>
-                      <td className="px-5 py-3.5 text-right font-bold text-brand-blue dark:text-sky-400">
-                        Inspect →
+                      <td className="px-5 py-3.5 text-right">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPendingInspectRow(row);
+                            setSupportReason('');
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-brand-blue hover:text-white text-[11px] font-bold text-slate-700 dark:text-slate-200 transition-colors"
+                        >
+                          <Lock className="w-3 h-3" />
+                          Support Access →
+                        </button>
                       </td>
                     </tr>
                   );
@@ -366,35 +503,120 @@ export default function CallingAnalyticsSection() {
         )}
       </div>
 
-      {/* Time-Series Telemetry Sample Drawer/Modal */}
-      {selectedCall && (
+      {/* Mandatory Audited Support Reason Modal */}
+      {pendingInspectRow && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setPendingInspectRow(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden"
+          >
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-amber-500" />
+                  Request Support Telemetry Access
+                </h4>
+                <p className="text-[11px] text-slate-400">
+                  Target: {pendingInspectRow.callRef} ({pendingInspectRow.tenantName})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPendingInspectRow(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4 text-xs">
+              <div className="rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700/40 p-3 text-amber-800 dark:text-amber-200">
+                Inspecting tenant call telemetry writes a permanent audit event visible to both HQ Security and the customer workspace.
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  Support Ticket # or Debug Reason (min 5 chars)
+                </label>
+                <input
+                  type="text"
+                  value={supportReason}
+                  onChange={(e) => setSupportReason(e.target.value)}
+                  placeholder="e.g. Ticket #412 — investigating TURN UDP timeout"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-900 dark:text-white outline-none focus:border-brand-blue"
+                />
+              </div>
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPendingInspectRow(null)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={loadingSamples || supportReason.trim().length < 5}
+                  onClick={() => void handleConfirmTechnicalInspect()}
+                  className="px-4 py-2 rounded-xl bg-brand-blue hover:bg-blue-700 text-white text-xs font-extrabold disabled:opacity-50 inline-flex items-center gap-1.5"
+                >
+                  {loadingSamples && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Log &amp; View Samples
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Audited Telemetry Sample Modal */}
+      {activeCallMeta && (
         <div
           className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => setSelectedCall(null)}
+          onClick={() => setActiveCallMeta(null)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-2xl rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden"
           >
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
               <div>
                 <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                  Call Telemetry Samples · {selectedCall.callerName} →{' '}
-                  {selectedCall.calleeName}
+                  Technical Telemetry ·{' '}
+                  {revealedInfo
+                    ? `${revealedInfo.callerName} → ${revealedInfo.calleeName}`
+                    : `${activeCallMeta.callRef} (${activeCallMeta.callerRef} → ${activeCallMeta.calleeRef})`}
                 </h4>
                 <p className="text-[11px] text-slate-400">
-                  Selected ICE path: {selectedCall.connection?.icePath || 'direct'} · Avg RTT:{' '}
-                  {selectedCall.connection?.rttMs || 0} ms · Max RTT:{' '}
-                  {selectedCall.connection?.maxRttMs || 0} ms
+                  Audit Reason: &ldquo;{activeSupportReason}&rdquo; · ICE:{' '}
+                  {activeCallMeta.connection?.icePath || 'direct'} · RTT:{' '}
+                  {activeCallMeta.connection?.rttMs || 0} ms
+                  {revealedInfo
+                    ? ` · Duration: ${formatCallDuration(revealedInfo.durationSeconds)}`
+                    : ''}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setSelectedCall(null)}
-                className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                {!revealedInfo && (
+                  <button
+                    type="button"
+                    disabled={loadingSamples}
+                    onClick={() => void handleRevealParticipantNames()}
+                    className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 text-[11px] font-extrabold inline-flex items-center gap-1"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    Reveal Identities (Critical Audit)
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setActiveCallMeta(null)}
+                  className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             <div className="p-5 max-h-[60vh] overflow-y-auto space-y-2">
@@ -403,19 +625,18 @@ export default function CallingAnalyticsSection() {
                   <Loader2 className="w-4 h-4 animate-spin text-brand-blue" />
                   <span>Loading periodic WebRTC stats samples...</span>
                 </div>
-              ) : samples.length === 0 ? (
+              ) : supportSamples.length === 0 ? (
                 <div className="py-10 text-center text-xs text-slate-400">
-                  No periodic WebRTC samples stored for this call (e.g. call was missed, declined, or ended before ICE stats interval).
+                  No periodic WebRTC samples stored for this call (e.g. call missed, declined, or ended before ICE stats interval).
                 </div>
               ) : (
-                samples.map((s) => (
+                supportSamples.map((s) => (
                   <div
                     key={s.id}
                     className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs"
                   >
                     <div>
                       <div className="font-mono font-bold text-slate-900 dark:text-white">
-                        {new Date(s.sampledAt).toLocaleTimeString('en-IN')} ·{' '}
                         {s.icePath.toUpperCase()}
                         {s.relayProtocol ? ` (${s.relayProtocol})` : ''}
                       </div>

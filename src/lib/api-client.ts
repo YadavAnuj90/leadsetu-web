@@ -45,11 +45,20 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        // The browser automatically sends the HttpOnly `leadsetu_refresh_token` cookie
+        const isSuperAdminConsole =
+          typeof window !== 'undefined' &&
+          (window.location.pathname.startsWith('/super-admin') ||
+            useAuthStore.getState().user?.role === 'super_admin');
+        // The browser automatically sends the HttpOnly scoped refresh cookie on /api/auth/refresh
         const { data } = await axios.post(
           '/api/auth/refresh',
           {},
-          { withCredentials: true }
+          {
+            withCredentials: true,
+            headers: {
+              'X-Auth-Scope': isSuperAdminConsole ? 'super_admin' : 'workspace',
+            },
+          }
         );
         useAuthStore.getState().setAuth({
           user: data.user,

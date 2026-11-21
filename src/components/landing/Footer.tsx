@@ -9,19 +9,21 @@ import {
   ShieldCheck,
   Sparkles,
   ArrowRight,
+  ArrowUpRight,
   Lock,
   CheckCircle2,
   Building2,
+  Globe,
+  Cpu,
 } from 'lucide-react';
 
 const footerLinks = {
-  'Product Suite': [
-    { label: '360° Orbit Ecosystem', href: '/#orbit-360' },
-    { label: 'Department Role Views', href: '/#team-views' },
-    { label: 'AI Lead Scoring (1–100)', href: '/#features' },
-    { label: '18% GST Invoices & CPQ', href: '/#features' },
-    { label: 'SLA Field Service Desk', href: '/#team-views' },
-    { label: 'INR Flat Team Pricing', href: '/#pricing' },
+  'About Company': [
+    { label: 'About Us', href: '/company' },
+    { label: 'Careers', href: '/company/careers' },
+    { label: 'Leadership & Mission', href: '/company/leadership' },
+    { label: 'Customer Stories', href: '/#testimonials' },
+    { label: 'Contact & Offices', href: '/company/contact' },
   ],
   'Indian Integrations': [
     { label: 'WhatsApp Business Cloud', href: '/#integrations' },
@@ -30,19 +32,20 @@ const footerLinks = {
     { label: 'Razorpay UPI & NEFT', href: '/#integrations' },
     { label: 'Rule-46 GSTR-1 & Tally CSV', href: '/#features' },
   ],
-  'Quick Access': [
-    { label: 'Sign In to Workspace', href: '/login' },
-    { label: 'Start 14-Day Free Trial', href: '/signup' },
-    { label: 'Register Company Account', href: '/register' },
-    { label: 'Compare Plans', href: '/#pricing' },
+  'Company & Plans': [
+    { label: 'Plans & Billing FAQ', href: '/pricing' },
+    { label: 'Compare All Plans', href: '/pricing#compare' },
     { label: 'Customer Case Studies', href: '/#testimonials' },
+    { label: 'Start 14-Day Free Trial', href: '/signup' },
+    { label: 'Sign In to Workspace', href: '/login' },
+    { label: 'Register Company Account', href: '/register' },
   ],
   'Trust & Compliance': [
     { label: 'DPDP Act 2023 Shield', href: '/#integrations' },
     { label: 'Anti-Data-Leak Phone Masking', href: '/#features' },
     { label: 'Immutable Audit Trail', href: '/#features' },
-    { label: '256-Bit SSL Encryption', href: '/#pricing' },
-    { label: '99.9% Uptime SLA Policy', href: '/#pricing' },
+    { label: '256-Bit SSL Encryption', href: '/pricing#faq' },
+    { label: '99.9% Uptime SLA Policy', href: '/pricing#faq' },
   ],
 };
 
@@ -59,33 +62,55 @@ export default function Footer() {
 
   return (
     <footer
-      className="text-slate-300 border-t border-white/10"
-      style={{ background: 'linear-gradient(180deg, #0D1829 0%, #070E1A 100%)' }}
+      className="relative overflow-hidden text-slate-300"
+      style={{
+        background:
+          'linear-gradient(180deg, #091224 0%, #060C18 60%, #040812 100%)',
+      }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Top Playbook & Quick-Launch Strip */}
-        <div className="py-12 border-b border-white/10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div>
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-sky-400 mb-1.5">
+      {/* Luminous Top Accent Line */}
+      <div
+        className="h-[2px] w-full opacity-90"
+        style={{
+          background:
+            'linear-gradient(90deg, transparent 0%, #0057FF 25%, #38BDF8 50%, #E42527 80%, transparent 100%)',
+        }}
+      />
+
+      {/* Ambient Corporate Radial Glows */}
+      <div
+        className="pointer-events-none absolute -top-28 left-1/4 w-[520px] h-[280px] rounded-full opacity-25 blur-3xl"
+        style={{ background: 'radial-gradient(circle, #0057FF 0%, transparent 70%)' }}
+      />
+      <div
+        className="pointer-events-none absolute top-16 right-1/5 w-[420px] h-[240px] rounded-full opacity-15 blur-3xl"
+        style={{ background: 'radial-gradient(circle, #10B981 0%, transparent 70%)' }}
+      />
+
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-8">
+        {/* ─── 1. Frosted Newsletter & Executive Brief Card ───────────── */}
+        <div className="rounded-3xl p-6 sm:p-8 lg:p-10 bg-white/[0.03] border border-white/[0.09] backdrop-blur-xl shadow-2xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-7">
+          <div className="max-w-xl">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-[#0057FF]/15 text-sky-300 border border-[#0057FF]/30 mb-3">
               <Sparkles className="w-3.5 h-3.5" /> Weekly Indian B2B Growth Playbook
             </div>
-            <h3 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
-              Get high-converting Hinglish WhatsApp templates &amp; GST sales checklists
+            <h3 className="text-xl sm:text-2xl lg:text-[26px] font-black text-white tracking-tight leading-snug">
+              High-converting WhatsApp templates &amp; GST sales checklists, delivered every Monday.
             </h3>
-            <p className="text-slate-400 text-sm mt-1">
-              Trusted by 4,500+ founders and sales directors across Noida, New Delhi &amp; Gurugram.
+            <p className="text-slate-400 text-xs sm:text-sm mt-2">
+              Read by 4,500+ founders, sales heads, and finance teams across Noida, New Delhi &amp; Gurugram.
             </p>
           </div>
 
           {subscribed ? (
-            <div className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-sm font-semibold">
-              <CheckCircle2 className="w-4 h-4" />
+            <div className="inline-flex items-center gap-2.5 px-5 py-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs sm:text-sm font-bold">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
               <span>Subscribed! Check your inbox for this week&apos;s WhatsApp templates.</span>
             </div>
           ) : (
             <form
               onSubmit={handleSubscribe}
-              className="w-full lg:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5"
+              className="w-full lg:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-1.5 rounded-2xl sm:rounded-full bg-white/[0.04] border border-white/15 focus-within:border-[#0057FF]/70 transition-colors"
             >
               <input
                 type="email"
@@ -93,11 +118,11 @@ export default function Footer() {
                 value={subEmail}
                 onChange={(e) => setSubEmail(e.target.value)}
                 placeholder="Enter your work email..."
-                className="w-full sm:w-72 px-5 py-3 rounded-full text-sm text-white placeholder-slate-400 bg-white/5 border border-white/15 focus:outline-none focus:border-[#0057FF]"
+                className="w-full sm:w-64 lg:w-72 px-4 py-2.5 rounded-full text-sm text-white placeholder-slate-400 bg-transparent focus:outline-none"
               />
               <button
                 type="submit"
-                className="px-6 py-3 rounded-full text-sm font-bold text-white bg-[#E42527] hover:bg-[#C81E1E] inline-flex items-center justify-center gap-2 whitespace-nowrap shadow-lg shadow-rose-600/20 transition-all"
+                className="px-5 py-2.5 rounded-full text-xs sm:text-sm font-extrabold text-white bg-gradient-to-r from-[#E42527] to-[#D61F3C] hover:from-[#C81E1E] hover:to-[#B81632] inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-lg shadow-rose-600/25 transition-all hover:-translate-y-0.5"
               >
                 <span>Subscribe Free</span>
                 <ArrowRight className="w-4 h-4" />
@@ -106,75 +131,84 @@ export default function Footer() {
           )}
         </div>
 
-        {/* Main Footer Columns */}
-        <div className="py-16 grid grid-cols-2 md:grid-cols-6 lg:grid-cols-12 gap-10">
-          {/* Brand & Offices Column */}
+        {/* ─── 2. Corporate Profile & Sitemap Grid ────────────────────── */}
+        <div className="py-14 grid grid-cols-2 md:grid-cols-6 lg:grid-cols-12 gap-10">
+          {/* Corporate Column */}
           <div className="col-span-2 md:col-span-6 lg:col-span-4 space-y-5">
-            <Link href="/" className="inline-flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl overflow-hidden shadow-md ring-1 ring-white/20 flex-shrink-0">
+            <Link href="/" className="inline-flex items-center gap-2.5 group">
+              <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-md ring-1 ring-white/20 bg-gradient-to-br from-[#0057FF] to-[#0D1628] flex-shrink-0">
                 <img
                   src="/logo.png"
                   alt="Leadsetu Logo"
                   className="w-full h-full object-cover"
                 />
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-[#070E1A]" />
               </div>
               <div>
-                <span className="font-extrabold text-xl text-white tracking-tight">
-                  Lead<span style={{ color: '#68A0FF' }}>setu</span>{' '}
-                  <span className="text-sm font-bold text-slate-300">CRM</span>
-                </span>
-                <span className="block text-[10px] text-slate-400 font-medium -mt-0.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-extrabold text-lg text-white tracking-tight">
+                    Leadsetu
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded-md text-[10px] font-black tracking-wide bg-gradient-to-r from-[#0057FF] to-[#2563EB] text-white">
+                    CRM
+                  </span>
+                </div>
+                <span className="block text-[11px] text-sky-400/90 font-semibold mt-0.5">
                   Bridge Every Lead to Revenue
                 </span>
               </div>
             </Link>
 
-            <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
-              India&apos;s flagship AI-powered CRM engineered for high-velocity B2B teams. Capture,
-              qualify, quote with 18% GST, and collect payments faster across WhatsApp &amp; field sales.
+            <p className="text-slate-400 text-[13px] leading-relaxed max-w-sm">
+              Built by <strong className="text-slate-200 font-semibold">Leadsetu Technologies (Anujali Technologies Pvt. Ltd.)</strong> — India&apos;s flagship AI revenue platform combining Official WhatsApp Cloud, SetuAI Intent Scoring, and Rule-46 18% GST collections.
             </p>
 
-            {/* Dual Corporate Office Info */}
-            <div className="space-y-2.5 text-xs text-slate-400 pt-1">
+            {/* Corporate Office Cards */}
+            <div className="rounded-2xl p-4 bg-white/[0.025] border border-white/[0.08] space-y-2.5 text-xs text-slate-400">
               <div className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-sky-400 flex-shrink-0 mt-0.5" />
                 <span>
-                  <strong className="text-slate-200">Noida HQ:</strong> Sector 62, Noida Electronic
-                  City, Uttar Pradesh – 201309
+                  <strong className="text-slate-200">Noida HQ:</strong> Sector 62, Noida Electronic City, UP – 201309
                 </span>
               </div>
               <div className="flex items-start gap-2.5">
                 <Building2 className="w-4 h-4 text-sky-400 flex-shrink-0 mt-0.5" />
                 <span>
-                  <strong className="text-slate-200">Delhi Office:</strong> Connaught Place, New
-                  Delhi – 110001
+                  <strong className="text-slate-200">Delhi Desk:</strong> Connaught Place, New Delhi – 110001
                 </span>
               </div>
-              <div className="flex items-center gap-2.5">
-                <Mail className="w-4 h-4 text-sky-400 flex-shrink-0" />
-                <span>hello@leadsetu.in · billing@leadsetu.in</span>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <Phone className="w-4 h-4 text-sky-400 flex-shrink-0" />
-                <a href="tel:+918851520832" className="hover:text-white transition-colors">
-                  +91 8851520832 (Mon–Sat, 9 AM – 8 PM IST)
+              <div className="pt-2 border-t border-white/[0.07] flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                <a
+                  href="mailto:hello@leadsetu.in"
+                  className="inline-flex items-center gap-1.5 hover:text-white transition-colors"
+                >
+                  <Mail className="w-3.5 h-3.5 text-sky-400" />
+                  <span>hello@leadsetu.in</span>
+                </a>
+                <a
+                  href="tel:+918851520832"
+                  className="inline-flex items-center gap-1.5 hover:text-white transition-colors"
+                >
+                  <Phone className="w-3.5 h-3.5 text-sky-400" />
+                  <span>+91 8851520832</span>
                 </a>
               </div>
             </div>
 
-            {/* Quick Auth Actions inside Footer */}
-            <div className="flex items-center gap-2.5 pt-2">
-              <Link
-                href="/login"
-                className="px-4 py-2 rounded-full text-xs font-bold border border-white/20 text-white hover:bg-white/10 transition-colors"
-              >
-                Sign In
-              </Link>
+            {/* Quick Auth Actions */}
+            <div className="flex flex-wrap items-center gap-2.5 pt-1">
               <Link
                 href="/signup"
-                className="px-4 py-2 rounded-full text-xs font-bold bg-[#E42527] hover:bg-[#C81E1E] text-white transition-colors"
+                className="px-4 py-2 rounded-full text-xs font-extrabold bg-gradient-to-r from-[#E42527] to-[#D61F3C] hover:from-[#C81E1E] hover:to-[#B81632] text-white shadow-md shadow-rose-600/20 inline-flex items-center gap-1.5 transition-all hover:-translate-y-0.5"
               >
-                Get Started Free
+                <span>Start 14-Day Trial</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </Link>
+              <Link
+                href="/login"
+                className="px-4 py-2 rounded-full text-xs font-bold border border-white/15 bg-white/[0.03] text-white hover:bg-white/10 transition-colors"
+              >
+                Workspace Sign In
               </Link>
             </div>
           </div>
@@ -182,15 +216,16 @@ export default function Footer() {
           {/* 4 Navigation Columns */}
           {Object.entries(footerLinks).map(([category, items]) => (
             <div key={category} className="col-span-1 md:col-span-3 lg:col-span-2">
-              <h4 className="font-bold text-white text-xs uppercase tracking-wider mb-4">
+              <h4 className="font-extrabold text-white text-[11px] uppercase tracking-[0.14em] mb-4 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#0057FF]" />
                 {category}
               </h4>
-              <ul className="space-y-3">
+              <ul className="space-y-2.5">
                 {items.map((item) => (
                   <li key={item.label}>
                     <Link
                       href={item.href}
-                      className="text-slate-400 text-sm hover:text-sky-400 transition-colors"
+                      className="text-slate-400 text-[13px] hover:text-white hover:translate-x-0.5 inline-flex items-center transition-all"
                     >
                       {item.label}
                     </Link>
@@ -201,44 +236,46 @@ export default function Footer() {
           ))}
         </div>
 
-        {/* Compliance & System Status Strip */}
-        <div className="py-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/10 text-slate-300">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" /> DPDP Act 2023 Compliant
+        {/* ─── 3. Enterprise Trust & Regional Cloud Status Bar ─────────── */}
+        <div className="py-5 border-t border-white/[0.08] flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-slate-300">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> DPDP Act 2023 Ready
             </span>
-            <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/10 text-slate-300">
-              <Lock className="w-4 h-4 text-sky-400" /> 256-Bit SSL &amp; GST Rule-46
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-slate-300">
+              <Lock className="w-3.5 h-3.5 text-sky-400" /> 256-Bit TLS &amp; SAC 998314 GST
             </span>
-            <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/10 text-slate-300">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Meta Cloud Partner Ready
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-slate-300">
+              <Globe className="w-3.5 h-3.5 text-indigo-400" /> Meta Cloud Partner API
             </span>
           </div>
 
-          <div className="inline-flex items-center gap-2 text-xs text-slate-300 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+          <div className="inline-flex items-center gap-2 text-[11px] font-bold text-emerald-300 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>All 14 Modules Operational · Mumbai &amp; Delhi-NCR Cloud</span>
+            <span>All Systems Operational · Mumbai &amp; Delhi-NCR Region</span>
           </div>
         </div>
 
-        {/* Bottom Copyright Bar */}
-        <div className="py-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>
-            © {new Date().getFullYear()} Leadsetu Technologies (Anujalite Tech Pvt. Ltd.). All rights
-            reserved. Crafted in Delhi-NCR, India.
+        {/* Subtle Architectural Brand Wordmark Accent */}
+        <div
+          aria-hidden="true"
+          className="pt-4 pb-2 text-center select-none overflow-hidden"
+        >
+          <div className="text-[48px] sm:text-[84px] lg:text-[108px] font-black tracking-[-0.04em] leading-none text-white/[0.028]">
+            LEADSETU TECHNOLOGIES
+          </div>
+        </div>
+
+        {/* ─── 4. Bottom Copyright Bar ────────────────────────────────── */}
+        <div className="pt-4 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+          <p className="text-center sm:text-left">
+            © {new Date().getFullYear()} Leadsetu Technologies (Anujali Technologies Pvt. Ltd.) · CIN &amp; GSTIN Compliance Ready · Built in Delhi-NCR, India.
           </p>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <span>Intelligence powered by</span>
-            <span
-              className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-md border"
-              style={{
-                background: 'rgba(57, 120, 234, 0.16)',
-                borderColor: 'rgba(104, 160, 255, 0.3)',
-                color: '#93C5FD',
-              }}
-            >
-              <Sparkles className="w-3 h-3" /> SetuAI Neural Core
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold px-3 py-1 rounded-full bg-[#0057FF]/15 border border-[#0057FF]/35 text-sky-300">
+              <Cpu className="w-3.5 h-3.5 text-sky-400" /> SetuAI Neural Core
             </span>
           </div>
         </div>

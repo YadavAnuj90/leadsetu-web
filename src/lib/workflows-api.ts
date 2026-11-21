@@ -3,11 +3,29 @@ import type {
   WorkflowRule,
   WorkflowStats,
   CreateWorkflowPayload,
+  WorkflowTriggerType,
+  WorkflowActionType,
 } from '@/types/contracts';
 
 export interface WorkflowsListResponse {
   data: WorkflowRule[];
   stats: WorkflowStats;
+}
+
+export interface WorkflowAiDraftResponse {
+  prompt: string;
+  name: string;
+  description: string;
+  triggerType: WorkflowTriggerType;
+  sourceFilter: string;
+  staleStage: string;
+  staleHours: number;
+  conditionSummary: string;
+  actionType: WorkflowActionType;
+  actionSummary: string;
+  whatsappTemplateBody: string;
+  provider: string;
+  model: string;
 }
 
 export async function fetchWorkflows(params?: {
@@ -63,6 +81,17 @@ export async function deleteWorkflow(
 ): Promise<{ success: boolean }> {
   const { data } = await apiClient.delete<{ success: boolean }>(
     `/workflows/${id}`,
+  );
+  return data;
+}
+
+export async function draftWorkflowWithAiApi(payload: {
+  prompt: string;
+  language?: string;
+}): Promise<WorkflowAiDraftResponse> {
+  const { data } = await apiClient.post<WorkflowAiDraftResponse>(
+    '/workflows/ai-draft',
+    payload,
   );
   return data;
 }

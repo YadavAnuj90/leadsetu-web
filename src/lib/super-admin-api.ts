@@ -509,6 +509,61 @@ export async function resolveTopupRequestApi(
   return data;
 }
 
+export interface SuperAdminRefundRequestItem {
+  id: string;
+  tenantId: string;
+  tenantName: string;
+  accountId?: string;
+  plan?: string;
+  tenantStatus?: string;
+  city?: string;
+  invoiceId: string;
+  invoiceNumber: string;
+  amountInr: number;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+  requestedByEmail?: string;
+  requestedByName?: string;
+  createdAt: string;
+  resolvedByEmail?: string;
+  resolvedAt?: string;
+  resolutionNote?: string;
+}
+
+export interface SuperAdminRefundRequestsResponse {
+  data: SuperAdminRefundRequestItem[];
+  stats: {
+    pending: number;
+    approved: number;
+    rejected: number;
+  };
+}
+
+export async function fetchSuperAdminRefundRequestsApi(
+  status?: 'pending' | 'approved' | 'rejected'
+): Promise<SuperAdminRefundRequestsResponse> {
+  const { data } = await apiClient.get<SuperAdminRefundRequestsResponse>(
+    '/super-admin/billing/refund-requests',
+    { params: status ? { status } : undefined }
+  );
+  return data;
+}
+
+export async function resolveSuperAdminRefundRequestApi(
+  tenantId: string,
+  requestId: string,
+  payload: {
+    action: 'approve' | 'reject';
+    note?: string;
+  }
+): Promise<SuperAdminRefundRequestsResponse> {
+  const { data } = await apiClient.post<SuperAdminRefundRequestsResponse>(
+    `/super-admin/billing/refund-requests/${tenantId}/${requestId}/resolve`,
+    payload
+  );
+  return data;
+}
+
 export interface TerritoryAnalyticsItem {
   city: string;
   tenants: number;

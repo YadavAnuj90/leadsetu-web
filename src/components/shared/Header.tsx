@@ -105,7 +105,7 @@ function timeAgo(iso: string) {
 export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, tenant, logout } = useAuth();
+  const { user, tenant, requestLogout } = useAuth();
   const {
     myStatus: callPresence,
     callState,
@@ -540,7 +540,7 @@ export default function Header() {
 
             <button
               type="button"
-              onClick={logout}
+              onClick={requestLogout}
               className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
             >
               <LogOut className="w-3.5 h-3.5" />

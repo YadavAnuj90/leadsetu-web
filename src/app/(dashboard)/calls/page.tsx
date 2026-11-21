@@ -46,6 +46,7 @@ import {
 } from '@/lib/calls-api';
 import { CALL_OUTCOME_OPTIONS } from '@/components/calling/CallDispositionModal';
 import RoundCallMetricRing from '@/components/calling/RoundCallMetricRing';
+import WorkspaceCallTelemetryCard from '@/components/calling/WorkspaceCallTelemetryCard';
 import {
   useCallUiStore,
   formatCallDuration,
@@ -1625,6 +1626,9 @@ export default function CrmPhonePage() {
           )}
         </div>
       )}
+
+      {/* ─── SECTION E: WORKSPACE CALL LOGS & WEBRTC TELEMETRY (ADMIN / MANAGER) ─── */}
+      {isAdminViewer && <WorkspaceCallTelemetryCard />}
     </div>
   );
 }

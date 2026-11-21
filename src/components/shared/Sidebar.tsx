@@ -63,7 +63,7 @@ const navItems: Array<{
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { user, tenant, logout } = useAuth();
+  const { user, tenant, requestLogout } = useAuth();
   const pendingMissed = useCallUiStore(
     (s) => s.historyStats.pendingCallbacks || 0,
   );
@@ -216,7 +216,7 @@ export default function Sidebar() {
 
           <button
             type="button"
-            onClick={logout}
+            onClick={requestLogout}
             title="Sign Out"
             className="p-2 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-white/5 transition-colors"
           >

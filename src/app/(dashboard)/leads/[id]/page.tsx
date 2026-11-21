@@ -17,8 +17,13 @@ import {
   Briefcase,
   FileText,
   Mic,
+  RefreshCw,
 } from 'lucide-react';
-import { fetchSingleLead, addLeadActivityApi } from '@/hooks/useLeads';
+import {
+  fetchSingleLead,
+  addLeadActivityApi,
+  analyzeLeadAiApi,
+} from '@/hooks/useLeads';
 import { apiClient, getErrorMessage } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth.store';
 import { isFeatureEnabled } from '@/lib/feature-access';
@@ -50,6 +55,7 @@ export default function LeadDetailPage() {
   const [lead, setLead] = useState<Lead | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isConvertingDeal, setIsConvertingDeal] = useState(false);
+  const [isAnalyzingAi, setIsAnalyzingAi] = useState(false);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -105,6 +111,22 @@ export default function LeadDetailPage() {
     if (!lead) return;
     const updated = await addLeadActivityApi(lead.id, payload);
     setLead(updated);
+  };
+
+  const handleAnalyzeAi = async () => {
+    if (!lead || isAnalyzingAi) return;
+    setIsAnalyzingAi(true);
+    setError(null);
+    try {
+      const res = await analyzeLeadAiApi(lead.id);
+      if (res?.lead) {
+        setLead(res.lead);
+      }
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setIsAnalyzingAi(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -368,23 +390,69 @@ export default function LeadDetailPage() {
 
           {/* SetuAI Next-Best-Action Card */}
           <div
-            className="rounded-3xl p-6 text-white space-y-3 shadow-lg"
+            className="rounded-3xl p-6 text-white space-y-4 shadow-lg"
             style={{
               background: 'linear-gradient(135deg, #17243A 0%, #1E3358 100%)',
             }}
           >
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-sky">
-                <Sparkles className="w-4 h-4" /> SetuAI Recommendation
+                <Sparkles className="w-4 h-4" /> SetuAI 360° Lead Intelligence
               </span>
-              <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">
-                Score {lead.aiScore}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">
+                  Score {lead.aiScore} · {lead.aiLabel}
+                </span>
+                <button
+                  type="button"
+                  disabled={isAnalyzingAi}
+                  onClick={() => void handleAnalyzeAi()}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-bold text-white disabled:opacity-60 transition-colors"
+                >
+                  {isAnalyzingAi ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-3 h-3" />
+                  )}
+                  Rescore AI
+                </button>
+              </div>
             </div>
-            <p className="text-sm text-slate-200 leading-relaxed">
-              {lead.aiInsight ||
-                'Send introductory WhatsApp message and share GST quotation.'}
-            </p>
+
+            {lead.aiSummary && (
+              <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  AI Context Summary
+                </div>
+                <p className="text-xs text-slate-200 leading-relaxed">
+                  {lead.aiSummary}
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-brand-sky">
+                Recommended Next Best Action
+              </div>
+              <p className="text-sm font-semibold text-white leading-relaxed">
+                {lead.aiNextAction ||
+                  lead.aiInsight ||
+                  'Send introductory WhatsApp message and share GST quotation.'}
+              </p>
+            </div>
+
+            {lead.aiReasons && lead.aiReasons.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {lead.aiReasons.map((reason, idx) => (
+                  <span
+                    key={`${reason}-${idx}`}
+                    className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-white/10 text-slate-200"
+                  >
+                    {reason}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

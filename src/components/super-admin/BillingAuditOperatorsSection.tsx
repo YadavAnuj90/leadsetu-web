@@ -28,13 +28,16 @@ import {
   createSaasPartnerApi,
   createSuperAdminOperatorApi,
   exportSuperAdminBillingCsvApi,
+  fetchSuperAdminRefundRequestsApi,
   issueTenantSubscriptionApi,
   recordPartnerPayoutApi,
+  resolveSuperAdminRefundRequestApi,
   runDunningSweepApi,
   toggleSuperAdminOperatorStatusApi,
   updateDunningPolicyApi,
   updateSaasCouponApi,
   updateSubscriptionInvoiceStatusApi,
+  type SuperAdminRefundRequestItem,
 } from '@/lib/super-admin-api';
 import { getErrorMessage } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth.store';
@@ -166,6 +169,22 @@ export function BillingLedgerView({
     summary: string;
     actions: Array<{ tenantName: string; accountId: string; outcome: string }>;
   } | null>(null);
+  const [refundRequests, setRefundRequests] = useState<SuperAdminRefundRequestItem[]>([]);
+  const [refundPendingCount, setRefundPendingCount] = useState(0);
+
+  const loadRefundRequests = async () => {
+    try {
+      const res = await fetchSuperAdminRefundRequestsApi();
+      setRefundRequests(res.data || []);
+      setRefundPendingCount(res.stats?.pending || 0);
+    } catch {
+      // Non-fatal fallback
+    }
+  };
+
+  useEffect(() => {
+    void loadRefundRequests();
+  }, []);
 
   useEffect(() => {
     if (!grantTenantId && tenants[0]?.id) {
@@ -191,6 +210,38 @@ export function BillingLedgerView({
   const refreshAll = async (m = monthFilter) => {
     if (onRefreshBilling) {
       await onRefreshBilling(m || 'all');
+    }
+    await loadRefundRequests();
+  };
+
+  const handleResolveRefundRequest = async (
+    reqItem: SuperAdminRefundRequestItem,
+    action: 'approve' | 'reject'
+  ) => {
+    const notePrompt = window.prompt(
+      action === 'approve'
+        ? `Approve GST Credit Note & Refund ₹${(reqItem.amountInr || 0).toLocaleString('en-IN')} for ${reqItem.tenantName} (${reqItem.invoiceNumber})? Optional note:`
+        : `Reject refund request for ${reqItem.invoiceNumber}? Reason:`,
+      action === 'approve' ? 'Approved & refunded via GST Credit Note' : 'Outside refund eligibility window'
+    );
+    if (notePrompt === null) return;
+    setBusyKey(`refund-req-${reqItem.id}`);
+    setErrorMsg(null);
+    try {
+      await resolveSuperAdminRefundRequestApi(reqItem.tenantId, reqItem.id, {
+        action,
+        note: notePrompt.trim() || undefined,
+      });
+      notify(
+        action === 'approve'
+          ? `Refund approved & invoice ${reqItem.invoiceNumber} marked refunded.`
+          : `Refund request for ${reqItem.invoiceNumber} rejected.`
+      );
+      await refreshAll();
+    } catch (err) {
+      setErrorMsg(getErrorMessage(err));
+    } finally {
+      setBusyKey(null);
     }
   };
 
@@ -528,14 +579,96 @@ export function BillingLedgerView({
 
       {/* SUBTAB 1: GST LEDGER & CA EXPORTS */}
       {subTab === 'ledger' && (
-        <div className="rounded-2xl bg-white dark:bg-[#0D1628] border border-slate-200/85 dark:border-slate-800 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Receipt className="w-4 h-4 text-[#0057FF]" />
-              <div>
-                <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                  Cross-Tenant SaaS Subscription GST Ledger (SAC 998314)
-                </h3>
+        <div className="space-y-4">
+          {refundRequests.length > 0 && (
+            <div className="rounded-2xl bg-white dark:bg-[#0D1628] border border-amber-300/70 dark:border-amber-500/30 shadow-sm overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-amber-100 dark:border-amber-500/20 bg-amber-50/60 dark:bg-amber-950/20 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <RotateCcw className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <div>
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                      Customer GST Credit Note & Refund Queue
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Self-serve refund requests submitted from tenant workspaces — approving marks the invoice refunded.
+                    </p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-amber-500/15 text-amber-700 dark:text-amber-300">
+                  {refundPendingCount} Pending
+                </span>
+              </div>
+              <div className="divide-y divide-slate-100 dark:divide-slate-800/70">
+                {refundRequests.map((reqItem) => (
+                  <div
+                    key={`${reqItem.tenantId}-${reqItem.id}`}
+                    className="px-5 py-3 flex flex-wrap items-center justify-between gap-3 text-xs"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-extrabold text-slate-900 dark:text-white">
+                          {reqItem.tenantName}
+                        </span>
+                        <span className="font-mono font-bold text-[#0057FF] dark:text-[#408BFF]">
+                          {reqItem.invoiceNumber}
+                        </span>
+                        <span className="font-bold text-slate-700 dark:text-slate-200 tabular-nums">
+                          {formatINR(reqItem.amountInr)}
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                            reqItem.status === 'pending'
+                              ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                              : reqItem.status === 'approved'
+                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                                : 'bg-rose-500/15 text-rose-700 dark:text-rose-300'
+                          }`}
+                        >
+                          {reqItem.status}
+                        </span>
+                      </div>
+                      <p className="text-slate-500 dark:text-slate-400 mt-0.5">
+                        Reason: {reqItem.reason}
+                        {reqItem.requestedByEmail ? ` · By ${reqItem.requestedByEmail}` : ''}
+                        {reqItem.resolutionNote ? ` · Review: ${reqItem.resolutionNote}` : ''}
+                      </p>
+                    </div>
+                    {reqItem.status === 'pending' && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={busyKey === `refund-req-${reqItem.id}`}
+                          onClick={() => void handleResolveRefundRequest(reqItem, 'approve')}
+                          className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-[11px] font-bold inline-flex items-center gap-1"
+                        >
+                          <CheckCircle2 className="w-3 h-3" />
+                          Approve & Refund
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busyKey === `refund-req-${reqItem.id}`}
+                          onClick={() => void handleResolveRefundRequest(reqItem, 'reject')}
+                          className="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 disabled:opacity-60 text-rose-700 dark:text-rose-300 text-[11px] font-bold inline-flex items-center gap-1"
+                        >
+                          <XCircle className="w-3 h-3" />
+                          Reject
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-2xl bg-white dark:bg-[#0D1628] border border-slate-200/85 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-[#0057FF]" />
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                    Cross-Tenant SaaS Subscription GST Ledger (SAC 998314)
+                  </h3>
                 <p className="text-[11px] text-slate-500">
                   CGST {formatINR(billing.summary.cgstTotalInr || 0)} · SGST{' '}
                   {formatINR(billing.summary.sgstTotalInr || 0)} · IGST{' '}
@@ -805,6 +938,7 @@ export function BillingLedgerView({
                 )}
               </tbody>
             </table>
+          </div>
           </div>
         </div>
       )}

@@ -1496,12 +1496,12 @@ function Orbit360Section() {
             >
               GET STARTED
             </Link>
-            <a
-              href="#pricing"
+            <Link
+              href="/pricing"
               className="px-8 py-3.5 rounded-full font-extrabold text-xs sm:text-sm tracking-wider text-white bg-[#0B0F19] hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200 shadow-lg transition-all hover:-translate-y-0.5 uppercase"
             >
               SEE PRICING
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -2308,92 +2308,305 @@ export default function Features() {
             </div>
           </div>
 
-          {/* ─── ENHANCED 9-MODULE BENTO GRID ───────────────────────────── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
-            {features.map((feature) => {
-              const Icon = feature.icon;
-              return (
-                <div
-                  key={feature.title}
-                  className="group relative rounded-3xl p-7 border border-slate-200/85 dark:border-slate-800/95 bg-gradient-to-b from-[#FAFCFF] to-white dark:from-[#0F172A] dark:to-[#0A111E] hover:border-brand-blue/70 hover:-translate-y-1 hover:shadow-[0_24px_60px_-15px_rgba(0,87,255,0.22)] transition-all duration-300 flex flex-col justify-between overflow-hidden"
-                >
-                  {/* Top Accent Line */}
-                  <div
-                    className="absolute inset-x-0 top-0 h-1 opacity-70 group-hover:opacity-100 transition-opacity"
-                    style={{
-                      background: `linear-gradient(90deg, transparent 0%, ${feature.accent} 50%, transparent 100%)`,
-                    }}
-                  />
-
-                  {/* Ambient Radial Hover Glow */}
-                  <div
-                    className="pointer-events-none absolute -right-10 -top-10 w-36 h-36 rounded-full opacity-10 dark:opacity-20 group-hover:opacity-30 transition-opacity duration-300 blur-2xl"
-                    style={{ background: feature.accent }}
-                  />
-
-                  <div>
-                    <div className="flex items-center justify-between gap-2 mb-6">
-                      <div
-                        className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm transition-transform duration-300 group-hover:scale-110"
-                        style={{
-                          background: `${feature.accent}18`,
-                          color: feature.accent,
-                          border: `1px solid ${feature.accent}40`,
-                        }}
-                      >
-                        <Icon className="w-6 h-6" />
-                      </div>
-                      <span
-                        className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800/90 text-brand-navy dark:text-slate-100 border border-slate-200/60 dark:border-slate-700"
-                      >
-                        {feature.metric}
-                      </span>
-                    </div>
-
+          {/* ─── STUNNING ASYMMETRIC BENTO MODULE ARCHITECTURE ───────────── */}
+          <div className="space-y-6">
+            {/* Row 1: Flagship Duo (7 + 5 Asymmetric Bento) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Feature 0: SetuAI Lead Scoring */}
+              {(() => {
+                const f = features[0];
+                const Icon = f.icon;
+                return (
+                  <div className="lg:col-span-7 group relative rounded-[28px] p-7 sm:p-8 border border-slate-200/85 dark:border-white/10 bg-gradient-to-br from-[#F8FBFF] via-white to-[#EEF5FF] dark:from-[#0E1A33] dark:via-[#0B1426] dark:to-[#09111F] hover:border-[#0057FF]/60 shadow-sm hover:shadow-2xl hover:shadow-[#0057FF]/10 transition-all duration-300 overflow-hidden flex flex-col justify-between gap-6">
                     <div
-                      className="text-[11px] font-bold uppercase tracking-wider mb-1.5"
-                      style={{ color: feature.accent }}
-                    >
-                      {feature.badge}
+                      className="pointer-events-none absolute -right-14 -top-14 w-56 h-56 rounded-full opacity-20 blur-3xl"
+                      style={{ background: f.accent }}
+                    />
+                    <div className="relative space-y-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="inline-flex items-center gap-2.5">
+                          <div
+                            className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm"
+                            style={{
+                              background: `${f.accent}1A`,
+                              color: f.accent,
+                              border: `1px solid ${f.accent}40`,
+                            }}
+                          >
+                            <Icon className="w-5 h-5" />
+                          </div>
+                          <span
+                            className="text-[11px] font-extrabold uppercase tracking-wider"
+                            style={{ color: f.accent }}
+                          >
+                            {f.badge}
+                          </span>
+                        </div>
+                        <span className="px-3 py-1 rounded-full text-[11px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
+                          {f.metric}
+                        </span>
+                      </div>
+
+                      <h3 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+                        {f.title}
+                      </h3>
+                      <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed max-w-xl">
+                        {f.description}
+                      </p>
+
+                      {/* Mini SetuAI Live Signal Preview */}
+                      <div className="rounded-2xl p-4 bg-white/90 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 font-black text-xs tabular-nums">
+                            94 / 100 HOT
+                          </div>
+                          <div className="text-xs">
+                            <div className="font-bold text-slate-900 dark:text-white">
+                              Next Best Action: Send GST Proforma &amp; Call Today
+                            </div>
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                              Detected Hinglish bulk order intent · Noida Sec 62
+                            </div>
+                          </div>
+                        </div>
+                        <Link
+                          href="/signup"
+                          className="inline-flex items-center gap-1 text-xs font-extrabold text-[#0057FF] dark:text-sky-400 hover:underline whitespace-nowrap"
+                        >
+                          <span>Try Scoring</span>
+                          <ArrowUpRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </div>
                     </div>
 
-                    <h3 className="font-extrabold text-xl mb-3 tracking-tight text-brand-navy dark:text-white group-hover:text-brand-blue dark:group-hover:text-sky-400 transition-colors flex items-center justify-between gap-2">
-                      <span>{feature.title}</span>
-                      <ArrowUpRight className="w-4 h-4 opacity-0 -translate-y-1 translate-x-1 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all text-brand-blue dark:text-sky-400 flex-shrink-0" />
-                    </h3>
-
-                    <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-6">
-                      {feature.description}
-                    </p>
-                  </div>
-
-                  <div>
-                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-2 mb-4">
-                      {feature.highlights.map((item) => (
-                        <div
+                    <div className="flex flex-wrap gap-2">
+                      {f.highlights.map((item) => (
+                        <span
                           key={item}
-                          className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300"
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-slate-100/90 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-white/10"
                         >
-                          <CheckCircle2
-                            className="w-3.5 h-3.5 flex-shrink-0"
-                            style={{ color: feature.accent }}
-                          />
-                          <span>{item}</span>
-                        </div>
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                          {item}
+                        </span>
                       ))}
                     </div>
-
-                    <Link
-                      href="/signup"
-                      className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-brand-blue dark:text-sky-400 group-hover:gap-2.5 transition-all"
-                    >
-                      <span>Explore Live Module</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })()}
+
+              {/* Feature 1: GST Tax Invoices & Proforma Quotes */}
+              {(() => {
+                const f = features[1];
+                const Icon = f.icon;
+                return (
+                  <div className="lg:col-span-5 group relative rounded-[28px] p-7 sm:p-8 border border-slate-200/85 dark:border-white/10 bg-gradient-to-br from-[#F7FDFB] via-white to-[#ECFDF5] dark:from-[#0B1C20] dark:via-[#0A141E] dark:to-[#081018] hover:border-emerald-500/60 shadow-sm hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-300 overflow-hidden flex flex-col justify-between gap-6">
+                    <div
+                      className="pointer-events-none absolute -right-12 -bottom-12 w-48 h-48 rounded-full opacity-20 blur-3xl"
+                      style={{ background: f.accent }}
+                    />
+                    <div className="relative space-y-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="inline-flex items-center gap-2.5">
+                          <div
+                            className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm"
+                            style={{
+                              background: `${f.accent}1A`,
+                              color: f.accent,
+                              border: `1px solid ${f.accent}40`,
+                            }}
+                          >
+                            <Icon className="w-5 h-5" />
+                          </div>
+                          <span
+                            className="text-[11px] font-extrabold uppercase tracking-wider"
+                            style={{ color: f.accent }}
+                          >
+                            {f.badge}
+                          </span>
+                        </div>
+                        <span className="px-3 py-1 rounded-full text-[11px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
+                          {f.metric}
+                        </span>
+                      </div>
+
+                      <h3 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
+                        {f.title}
+                      </h3>
+                      <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {f.description}
+                      </p>
+
+                      {/* Mini Tax Split Preview */}
+                      <div className="rounded-2xl p-3.5 bg-white/90 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 grid grid-cols-2 gap-2 text-[11px]">
+                        <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                          <div className="text-slate-500 dark:text-slate-400">Intra-State (UP)</div>
+                          <div className="font-extrabold text-emerald-700 dark:text-emerald-300 mt-0.5">
+                            9% CGST + 9% SGST
+                          </div>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20">
+                          <div className="text-slate-500 dark:text-slate-400">Auto Settlement</div>
+                          <div className="font-extrabold text-[#0057FF] dark:text-sky-300 mt-0.5">
+                            Razorpay → Paid + WA
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-200/70 dark:border-white/10">
+                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                        HSN/SAC 998314 · PDF + WhatsApp
+                      </span>
+                      <Link
+                        href="/signup"
+                        className="inline-flex items-center gap-1 text-xs font-extrabold text-emerald-600 dark:text-emerald-400 hover:underline"
+                      >
+                        <span>Explore</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Row 2: Execution Velocity Trio (3-Column Spotlight Strip with Custom Mini-Visuals) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {features.slice(2, 5).map((feature, idx) => {
+                const Icon = feature.icon;
+                return (
+                  <div
+                    key={feature.title}
+                    className="group rounded-3xl p-6 border border-slate-200/85 dark:border-white/10 bg-white dark:bg-[#0C1527] hover:border-[#0057FF]/50 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between gap-5"
+                  >
+                    <div className="space-y-3.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div
+                          className="w-10 h-10 rounded-xl flex items-center justify-center"
+                          style={{
+                            background: `${feature.accent}1A`,
+                            color: feature.accent,
+                            border: `1px solid ${feature.accent}35`,
+                          }}
+                        >
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200">
+                          {feature.metric}
+                        </span>
+                      </div>
+
+                      <div>
+                        <div
+                          className="text-[10px] font-extrabold uppercase tracking-wider mb-1"
+                          style={{ color: feature.accent }}
+                        >
+                          {feature.badge}
+                        </div>
+                        <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                          {feature.title}
+                        </h3>
+                      </div>
+
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {feature.description}
+                      </p>
+                    </div>
+
+                    {/* Tailored Visual Strip per Module */}
+                    {idx === 0 && (
+                      <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-1.5">
+                        <div className="flex justify-between text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                          <span>Meta Green-Tick Delivery</span>
+                          <span>96%</span>
+                        </div>
+                        <div className="h-1.5 w-full rounded-full bg-emerald-950/20 dark:bg-white/10 overflow-hidden">
+                          <div className="h-full w-[96%] rounded-full bg-emerald-500" />
+                        </div>
+                      </div>
+                    )}
+                    {idx === 1 && (
+                      <div className="flex items-center gap-1.5 text-[10px] font-extrabold">
+                        <span className="px-2 py-1 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-300">
+                          Qualified
+                        </span>
+                        <ArrowRight className="w-3 h-3 text-slate-400" />
+                        <span className="px-2 py-1 rounded-lg bg-blue-500/15 text-[#0057FF] dark:text-sky-300">
+                          Proposal
+                        </span>
+                        <ArrowRight className="w-3 h-3 text-slate-400" />
+                        <span className="px-2 py-1 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                          Won ✓
+                        </span>
+                      </div>
+                    )}
+                    {idx === 2 && (
+                      <div className="p-2.5 rounded-xl bg-violet-500/10 border border-violet-500/25 font-mono text-[11px] text-violet-700 dark:text-violet-300 truncate">
+                        IF score ≥ 80 → Assign + Send WhatsApp
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Row 3: Enterprise Core Infrastructure Quartet (Sleek Horizontal 2×2 Tiles) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {features.slice(5).map((feature) => {
+                const Icon = feature.icon;
+                return (
+                  <div
+                    key={feature.title}
+                    className="group rounded-3xl p-6 border border-slate-200/85 dark:border-white/10 bg-[#FAFCFF] dark:bg-[#0B1424] hover:border-[#0057FF]/45 shadow-sm hover:shadow-lg transition-all flex items-start gap-4"
+                  >
+                    <div
+                      className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 mt-0.5"
+                      style={{
+                        background: `${feature.accent}1A`,
+                        color: feature.accent,
+                        border: `1px solid ${feature.accent}35`,
+                      }}
+                    >
+                      <Icon className="w-5 h-5" />
+                    </div>
+
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span
+                          className="text-[10px] font-extrabold uppercase tracking-wider"
+                          style={{ color: feature.accent }}
+                        >
+                          {feature.badge}
+                        </span>
+                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200">
+                          {feature.metric}
+                        </span>
+                      </div>
+
+                      <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white group-hover:text-[#0057FF] dark:group-hover:text-sky-400 transition-colors">
+                        {feature.title}
+                      </h3>
+
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {feature.description}
+                      </p>
+
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                        {feature.highlights.map((h) => (
+                          <span key={h} className="inline-flex items-center gap-1">
+                            <CheckCircle2
+                              className="w-3 h-3 shrink-0"
+                              style={{ color: feature.accent }}
+                            />
+                            {h}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* Native Indian SME Integrations Banner */}

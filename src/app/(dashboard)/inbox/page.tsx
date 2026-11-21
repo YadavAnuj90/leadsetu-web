@@ -56,10 +56,12 @@ function InboxPageContent() {
     setSearch,
     isLoading,
     isSending,
+    isGeneratingAi,
     isLiveConnected,
     waCloudConfig,
     metaTemplates,
     sendMessage,
+    generateAiAssist,
     toggleStatus,
     linkEntity,
     upsertAndSelectConversation,
@@ -128,6 +130,13 @@ function InboxPageContent() {
                   conversation={activeConversation}
                   onToggleStatus={toggleStatus}
                   onOpenLinkModal={() => setLinkModalOpen(true)}
+                  onRefreshAiSummary={() => {
+                    void generateAiAssist(activeConversation.id, {
+                      mode: 'both',
+                      language: 'hinglish',
+                    });
+                  }}
+                  isGeneratingAi={isGeneratingAi}
                   onOpenVoiceAudit={
                     canUseVoiceCrm ? () => setVoiceModalOpen(true) : undefined
                   }
@@ -140,10 +149,25 @@ function InboxPageContent() {
                   agentName={user?.name}
                   aiSuggestedReply={activeConversation.aiSuggestedReply}
                   isSending={isSending}
+                  isGeneratingAi={isGeneratingAi}
                   externalDraft={composerDraft}
                   waCloudConfig={waCloudConfig}
                   metaTemplates={metaTemplates}
                   onOpenTemplateManager={openTemplateManager}
+                  onGenerateAiDraft={async ({ language, tone }) => {
+                    const res = await generateAiAssist(activeConversation.id, {
+                      mode: 'both',
+                      language,
+                      tone,
+                    });
+                    if (res?.aiSuggestedReply) {
+                      setComposerDraft({
+                        text: res.aiSuggestedReply,
+                        seq: Date.now(),
+                        isAiDrafted: true,
+                      });
+                    }
+                  }}
                   onSend={sendMessage}
                 />
               </>

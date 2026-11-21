@@ -224,6 +224,27 @@ export default function SubscriptionInvoiceModal({
               </div>
 
               <div className="w-full sm:w-64 space-y-1.5 text-xs">
+                {Boolean(invoice.discountAmount && invoice.discountAmount > 0) && (
+                  <>
+                    <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                      <span>List Plan Price:</span>
+                      <span className="font-semibold text-slate-500 line-through">
+                        ₹
+                        {(
+                          invoice.baseAmount + (invoice.discountAmount || 0)
+                        ).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-emerald-700 dark:text-emerald-300 font-bold">
+                      <span>
+                        Coupon {invoice.couponCode ? `(${invoice.couponCode})` : 'Discount'}:
+                      </span>
+                      <span>
+                        -₹{(invoice.discountAmount || 0).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  </>
+                )}
                 <div className="flex justify-between text-slate-600 dark:text-slate-300">
                   <span>Taxable Value:</span>
                   <span className="font-bold text-slate-900 dark:text-white">

@@ -102,7 +102,7 @@ export function buildSubscriptionInvoicePdfBlob(
     40,
     766,
     8.5,
-    inv.sellerCompany || 'Leadsetu Technologies (Anujalite Tech Pvt. Ltd.)',
+    inv.sellerCompany || 'Leadsetu Technologies (Anujali Technologies Pvt. Ltd.)',
     false,
     0.82,
     0.88,
@@ -165,7 +165,7 @@ export function buildSubscriptionInvoicePdfBlob(
     52,
     686,
     9.5,
-    inv.sellerCompany || 'Leadsetu Technologies (Anujalite Tech Pvt. Ltd.)',
+    inv.sellerCompany || 'Leadsetu Technologies (Anujali Technologies Pvt. Ltd.)',
     true,
   );
   const sellerLines = wrapText(
@@ -351,7 +351,7 @@ export function buildSubscriptionInvoicePdfBlob(
     40,
     120,
     8.5,
-    'Authorized Signatory - Leadsetu Technologies (Anujalite Tech Pvt. Ltd.)',
+    'Authorized Signatory - Leadsetu Technologies (Anujali Technologies Pvt. Ltd.)',
     true,
   );
   drawText(

@@ -651,7 +651,7 @@ export default function SettingsPage() {
                     type="text"
                     value={nameInput}
                     onChange={(e) => setNameInput(e.target.value)}
-                    placeholder="e.g. Anujalite Technologies Pvt. Ltd. (Optional)"
+                    placeholder="e.g. Anujali Technologies Pvt. Ltd. (Optional)"
                     className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm font-bold text-brand-navy focus:outline-none focus:border-brand-blue"
                   />
                 </div>

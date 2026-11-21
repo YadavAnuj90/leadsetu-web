@@ -3,12 +3,21 @@ import { ArrowRight, Sparkles, CheckCircle2, PhoneCall } from 'lucide-react';
 
 export default function CTABanner() {
   return (
-    <section className="py-20 bg-white px-4 sm:px-6 lg:px-8">
+    <section className="relative overflow-hidden py-14 md:py-16 px-4 sm:px-6 lg:px-8 bg-slate-50/80 dark:bg-[#070D19] transition-colors duration-200">
+      {/* Subtle dark bottom bridge in dark mode so the transition into the footer is seamless */}
       <div
-        className="max-w-7xl mx-auto rounded-[2rem] relative overflow-hidden px-6 py-16 sm:px-12 sm:py-20 text-center shadow-navy-xl border border-white/10 bg-grid-dark"
+        aria-hidden="true"
+        className="pointer-events-none hidden dark:block absolute inset-x-0 bottom-0 h-1/2"
+        style={{
+          background: 'linear-gradient(180deg, transparent 0%, #091224 100%)',
+        }}
+      />
+
+      <div
+        className="max-w-7xl mx-auto rounded-[2rem] relative overflow-hidden px-6 py-14 sm:px-12 sm:py-16 text-center shadow-2xl shadow-[#0057FF]/10 border border-white/15 bg-grid-dark"
         style={{
           background:
-            'radial-gradient(ellipse 70% 60% at 50% 0%, rgba(57, 120, 234, 0.35), transparent), linear-gradient(155deg, #0B1320 0%, #17243A 60%, #0E1B2E 100%)',
+            'radial-gradient(ellipse 70% 60% at 50% 0%, rgba(57, 120, 234, 0.32), transparent), linear-gradient(155deg, #0A1324 0%, #152544 58%, #0C182E 100%)',
         }}
       >
         {/* Ambient Glows */}
@@ -18,50 +27,45 @@ export default function CTABanner() {
         />
         <div
           className="pointer-events-none absolute -bottom-24 right-1/4 w-96 h-96 rounded-full opacity-20 blur-3xl"
-          style={{ background: '#68A0FF' }}
+          style={{ background: '#38BDF8' }}
         />
 
         <div className="relative z-10 max-w-3xl mx-auto">
-          <div
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-6 border"
-            style={{
-              background: 'rgba(57, 120, 234, 0.2)',
-              borderColor: 'rgba(104, 160, 255, 0.35)',
-              color: '#93C5FD',
-            }}
-          >
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase tracking-wider mb-6 border bg-[#0057FF]/20 border-sky-400/35 text-sky-300">
             <Sparkles className="w-3.5 h-3.5" /> Start Closing More Deals Today
           </div>
 
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-5 tracking-tight leading-tight">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-5 tracking-tight leading-tight">
             Ready to Bridge Every Lead{' '}
-            <span className="text-gradient-brand">to Revenue?</span>
+            <span className="bg-gradient-to-r from-sky-300 to-blue-400 bg-clip-text text-transparent">
+              to Revenue?
+            </span>
           </h2>
 
-          <p className="text-slate-300 text-base sm:text-lg mb-10 max-w-2xl mx-auto leading-relaxed">
-            Join 500+ fast-growing Delhi-NCR businesses. Launch your AI-powered WhatsApp &amp;
+          <p className="text-slate-300 text-base sm:text-lg mb-9 max-w-2xl mx-auto leading-relaxed">
+            Join 4,500+ fast-growing Indian B2B teams. Launch your AI-powered WhatsApp &amp; GST
             sales pipeline in under 15 minutes — completely free for 14 days.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              href="/register"
-              className="btn-primary-brand group w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-xl font-semibold text-white text-base transition-all duration-200 hover:-translate-y-0.5"
+              href="/signup"
+              className="group w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-full font-extrabold text-white text-sm sm:text-base bg-gradient-to-r from-[#0057FF] to-[#2563EB] hover:from-[#0046D5] hover:to-[#1D4ED8] shadow-lg shadow-[#0057FF]/30 transition-all duration-200 hover:-translate-y-0.5"
             >
               <span>Start 14-Day Free Trial</span>
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </Link>
 
             <Link
-              href="/login"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-semibold text-white text-base border border-white/20 bg-white/5 hover:bg-white/10 transition-all"
+              href="/company/contact"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-bold text-white text-sm sm:text-base border border-white/20 bg-white/[0.06] hover:bg-white/[0.12] transition-all"
             >
-              <PhoneCall className="w-4 h-4 text-brand-sky" />
+              <PhoneCall className="w-4 h-4 text-sky-300" />
               <span>Schedule Live 1-on-1 Demo</span>
             </Link>
           </div>
 
-          <div className="mt-8 pt-8 border-t border-white/10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-slate-300">
+          <div className="mt-8 pt-7 border-t border-white/10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-slate-300 font-medium">
             <span className="inline-flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Free 14-day trial
             </span>

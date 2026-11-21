@@ -21,6 +21,7 @@ import {
   fetchSuperAdminBootstrapStatusApi,
 } from '@/lib/super-admin-api';
 import { useAuthStore } from '@/store/auth.store';
+import { useAuthUxStore } from '@/store/auth-ux.store';
 
 export default function SuperAdminLoginPage() {
   const router = useRouter();
@@ -97,6 +98,11 @@ export default function SuperAdminLoginPage() {
         tenant: res.tenant ?? null,
         accessToken: res.accessToken,
       });
+      useAuthUxStore.getState().triggerWelcomeAnimation({
+        userName: res.user.name,
+        companyName: 'Leadsetu HQ',
+        roleLabel: 'Super Admin',
+      });
       router.replace('/super-admin');
     } catch (err: unknown) {
       const msg =
@@ -127,6 +133,12 @@ export default function SuperAdminLoginPage() {
           user: res.user,
           tenant: res.tenant ?? null,
           accessToken: res.accessToken,
+        });
+        useAuthUxStore.getState().triggerWelcomeAnimation({
+          userName: res.user.name,
+          companyName: 'Leadsetu HQ',
+          roleLabel: 'Super Admin',
+          isNewWorkspace: true,
         });
         setSuccessMsg('Authority Vault initialized. Entering Command Center...');
         router.replace('/super-admin');

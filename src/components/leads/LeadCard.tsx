@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   Trash2,
   Edit3,
+  Loader2,
 } from 'lucide-react';
 import CallMobileButton from '@/components/calling/CallMobileButton';
 import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
@@ -17,6 +18,8 @@ interface LeadCardProps {
   onStatusChange: (id: string, status: LeadStatus) => void;
   onEdit: (lead: Lead) => void;
   onDelete: (id: string) => void;
+  onRescoreAi?: (id: string) => void;
+  isAnalyzingAi?: boolean;
 }
 
 const sourceLabels: Record<string, string> = {
@@ -35,6 +38,8 @@ export default function LeadCard({
   onStatusChange,
   onEdit,
   onDelete,
+  onRescoreAi,
+  isAnalyzingAi = false,
 }: LeadCardProps) {
   return (
     <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md hover:border-brand-blue/40 transition-all flex flex-col justify-between space-y-4">
@@ -64,17 +69,34 @@ export default function LeadCard({
             </div>
           </div>
 
-          <span
-            className={`text-xs font-extrabold px-2.5 py-1 rounded-lg border flex-shrink-0 ${
-              lead.aiLabel === 'Hot'
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : lead.aiLabel === 'Warm'
-                ? 'bg-amber-50 text-amber-700 border-amber-200'
-                : 'bg-slate-100 text-slate-600 border-slate-200'
-            }`}
-          >
-            AI {lead.aiScore} · {lead.aiLabel}
-          </span>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <span
+              className={`text-xs font-extrabold px-2.5 py-1 rounded-lg border ${
+                lead.aiLabel === 'Hot'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : lead.aiLabel === 'Warm'
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  : 'bg-slate-100 text-slate-600 border-slate-200'
+              }`}
+            >
+              AI {lead.aiScore} · {lead.aiLabel}
+            </span>
+            {onRescoreAi && (
+              <button
+                type="button"
+                disabled={isAnalyzingAi}
+                onClick={() => onRescoreAi(lead.id)}
+                title="Rescore with SetuAI"
+                className="p-1.5 rounded-lg border border-brand-blue/20 bg-brand-light text-brand-blue hover:bg-brand-blue hover:text-white disabled:opacity-50 transition-colors"
+              >
+                {isAnalyzingAi ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="w-3.5 h-3.5" />
+                )}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Value & Source Row */}
@@ -97,11 +119,13 @@ export default function LeadCard({
           </div>
         </div>
 
-        {/* AI Insight Box */}
-        {lead.aiInsight && (
+        {/* AI Next Best Action Box */}
+        {(lead.aiNextAction || lead.aiInsight) && (
           <div className="p-2.5 rounded-xl bg-brand-light/70 border border-brand-blue/15 text-[11px] text-brand-navy flex items-start gap-2 mb-3">
             <Sparkles className="w-3.5 h-3.5 text-brand-blue flex-shrink-0 mt-0.5" />
-            <span className="leading-snug">{lead.aiInsight}</span>
+            <span className="leading-snug">
+              {lead.aiNextAction || lead.aiInsight}
+            </span>
           </div>
         )}
 

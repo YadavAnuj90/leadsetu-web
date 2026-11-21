@@ -5,6 +5,7 @@ import { apiClient, getErrorMessage } from '@/lib/api-client';
 import type {
   CreateDealPayload,
   Deal,
+  DealAiAnalysisResponse,
   DealStage,
   DealsStats,
 } from '@/types/contracts';
@@ -24,6 +25,7 @@ export function useDeals(initialSearch = '') {
   const [search, setSearch] = useState(initialSearch);
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
+  const [analyzingDealId, setAnalyzingDealId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchDeals = useCallback(async () => {
@@ -109,6 +111,30 @@ export function useDeals(initialSearch = '') {
     [fetchDeals]
   );
 
+  const analyzeDealAi = useCallback(
+    async (id: string) => {
+      setAnalyzingDealId(id);
+      setError(null);
+      try {
+        const { data } = await apiClient.post<DealAiAnalysisResponse>(
+          `/deals/${id}/ai-analyze`
+        );
+        if (data?.deal) {
+          setDeals((prev) =>
+            prev.map((d) => (d.id === id ? data.deal : d))
+          );
+        }
+        return data;
+      } catch (err) {
+        setError(getErrorMessage(err));
+        throw err;
+      } finally {
+        setAnalyzingDealId(null);
+      }
+    },
+    []
+  );
+
   return {
     deals,
     stats,
@@ -116,11 +142,22 @@ export function useDeals(initialSearch = '') {
     setSearch,
     isLoading,
     isMutating,
+    analyzingDealId,
     error,
     fetchDeals,
     createDeal,
     updateDeal,
     moveStage,
     deleteDeal,
+    analyzeDealAi,
   };
+}
+
+export async function analyzeDealAiApi(
+  id: string
+): Promise<DealAiAnalysisResponse> {
+  const { data } = await apiClient.post<DealAiAnalysisResponse>(
+    `/deals/${id}/ai-analyze`
+  );
+  return data;
 }

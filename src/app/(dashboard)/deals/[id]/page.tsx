@@ -14,8 +14,11 @@ import {
   Send,
   Trash2,
   FileText,
+  Sparkles,
+  RefreshCw,
 } from 'lucide-react';
 import { apiClient, getErrorMessage } from '@/lib/api-client';
+import { analyzeDealAiApi } from '@/hooks/useDeals';
 import ShareVoiceCallLinkButton from '@/components/calling/ShareVoiceCallLinkButton';
 import CallMobileButton from '@/components/calling/CallMobileButton';
 import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
@@ -37,6 +40,7 @@ export default function DealDetailPage() {
   const [deal, setDeal] = useState<Deal | null>(null);
   const [note, setNote] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isAnalyzingAi, setIsAnalyzingAi] = useState(false);
 
   const loadDeal = useCallback(async () => {
     if (!dealId) return;
@@ -85,6 +89,19 @@ export default function DealDetailPage() {
     });
     setDeal(data);
     setNote('');
+  };
+
+  const handleAnalyzeAi = async () => {
+    if (!deal || isAnalyzingAi) return;
+    setIsAnalyzingAi(true);
+    try {
+      const res = await analyzeDealAiApi(deal.id);
+      if (res?.deal) {
+        setDeal(res.deal);
+      }
+    } finally {
+      setIsAnalyzingAi(false);
+    }
   };
 
   if (isLoading) {
@@ -260,6 +277,73 @@ export default function DealDetailPage() {
                 <MapPin className="w-3.5 h-3.5 text-brand-blue" /> {deal.city}
               </div>
             </div>
+          </div>
+
+          {/* SetuAI Deal Intelligence & Next-Best-Action Card */}
+          <div
+            className="rounded-3xl p-6 text-white space-y-4 shadow-lg"
+            style={{
+              background: 'linear-gradient(135deg, #17243A 0%, #1E3358 100%)',
+            }}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-sky">
+                <Sparkles className="w-4 h-4" /> SetuAI 360° Deal Intelligence
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">
+                  Score {deal.aiScore ?? 75} · {deal.aiLabel ?? 'Warm'}
+                </span>
+                <button
+                  type="button"
+                  disabled={isAnalyzingAi}
+                  onClick={() => void handleAnalyzeAi()}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-bold text-white disabled:opacity-60 transition-colors"
+                >
+                  {isAnalyzingAi ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-3 h-3" />
+                  )}
+                  Rescore AI
+                </button>
+              </div>
+            </div>
+
+            {deal.aiSummary && (
+              <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  AI Deal Summary
+                </div>
+                <p className="text-xs text-slate-200 leading-relaxed">
+                  {deal.aiSummary}
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-brand-sky">
+                Recommended Next Best Action
+              </div>
+              <p className="text-sm font-semibold text-white leading-relaxed">
+                {deal.aiNextAction ||
+                  deal.aiInsight ||
+                  'Share 18% GST Proforma Quotation on WhatsApp and confirm delivery timeline.'}
+              </p>
+            </div>
+
+            {deal.aiReasons && deal.aiReasons.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {deal.aiReasons.map((reason, idx) => (
+                  <span
+                    key={`${reason}-${idx}`}
+                    className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-white/10 text-slate-200"
+                  >
+                    {reason}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

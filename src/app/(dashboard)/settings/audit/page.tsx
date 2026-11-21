@@ -395,16 +395,29 @@ export default function AuditSecurityPage() {
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <span
-                        className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
-                          ENTITY_PILLS[entry.entityType] || ENTITY_PILLS.lead
-                        }`}
-                      >
-                        {entry.entityType}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span
+                          className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
+                            ENTITY_PILLS[entry.entityType] || ENTITY_PILLS.lead
+                          }`}
+                        >
+                          {entry.entityType}
+                        </span>
+                        {entry.visibility === 'platform' && (
+                          <span className="inline-flex px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-rose-500/10 text-rose-600 border border-rose-200">
+                            Platform Security
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3.5 px-4 font-mono text-[11px] text-slate-500">
-                      {entry.action}
+                      <div>{entry.action}</div>
+                      {entry.requestId && (
+                        <div className="text-[10px] text-slate-400">
+                          {entry.requestId}
+                          {entry.ip ? ` · ${entry.ip}` : ''}
+                        </div>
+                      )}
                     </td>
                     <td className="py-3.5 px-5">
                       <div className="font-semibold text-brand-navy">
@@ -413,6 +426,12 @@ export default function AuditSecurityPage() {
                       {entry.entityLabel && (
                         <div className="text-[11px] text-slate-400 mt-0.5">
                           Target: {entry.entityLabel}
+                        </div>
+                      )}
+                      {(entry.before || entry.after) && (
+                        <div className="mt-1 font-mono text-[10px] text-slate-500 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200/70 inline-block">
+                          {entry.before ? `Before: ${JSON.stringify(entry.before)} ` : ''}
+                          {entry.after ? `→ After: ${JSON.stringify(entry.after)}` : ''}
                         </div>
                       )}
                     </td>

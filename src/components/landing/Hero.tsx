@@ -65,7 +65,7 @@ export default function Hero() {
   const displayError = localError || error;
 
   return (
-    <section className="relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24 border-b border-slate-200/70 dark:border-slate-800/80 transition-colors duration-300">
+    <section className="relative overflow-hidden pt-24 pb-16 md:pt-28 md:pb-24 border-b border-slate-200/70 dark:border-slate-800/80 transition-colors duration-300">
       {/* ─── Prismatic Fluted Light Surface (Matching Screenshot #2) ─────── */}
       <div
         className="pointer-events-none absolute inset-0 dark:hidden"
@@ -268,11 +268,11 @@ export default function Hero() {
                   />
                   <span>
                     I agree to the{' '}
-                    <a href="#pricing" className="underline font-semibold text-slate-800 dark:text-white">
+                    <a href="/pricing#faq" className="underline font-semibold text-slate-800 dark:text-white">
                       Terms of Service
                     </a>{' '}
                     and{' '}
-                    <a href="#pricing" className="underline font-semibold text-slate-800 dark:text-white">
+                    <a href="/pricing#faq" className="underline font-semibold text-slate-800 dark:text-white">
                       Privacy Policy
                     </a>
                     .

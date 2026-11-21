@@ -6,6 +6,7 @@ import type {
   CreateLeadPayload,
   Lead,
   LeadActivity,
+  LeadAiAnalysisResponse,
   LeadsListResponse,
   LeadsStats,
 } from '@/types/contracts';
@@ -41,6 +42,7 @@ export function useLeads(initialFilters?: LeadsFilter) {
   );
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isMutating, setIsMutating] = useState<boolean>(false);
+  const [analyzingLeadId, setAnalyzingLeadId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchLeads = useCallback(
@@ -125,6 +127,32 @@ export function useLeads(initialFilters?: LeadsFilter) {
     [fetchLeads]
   );
 
+  const analyzeLeadAi = useCallback(
+    async (id: string) => {
+      setAnalyzingLeadId(id);
+      setError(null);
+      try {
+        const { data } = await apiClient.post<LeadAiAnalysisResponse>(
+          `/leads/${id}/ai-analyze`
+        );
+        if (data?.lead) {
+          setLeads((prev) =>
+            prev.map((l) => (l.id === id ? data.lead : l))
+          );
+        }
+        await fetchLeads();
+        return data;
+      } catch (err) {
+        const msg = getErrorMessage(err);
+        setError(msg);
+        throw err;
+      } finally {
+        setAnalyzingLeadId(null);
+      }
+    },
+    [fetchLeads]
+  );
+
   return {
     leads,
     stats,
@@ -132,16 +160,27 @@ export function useLeads(initialFilters?: LeadsFilter) {
     setFilters,
     isLoading,
     isMutating,
+    analyzingLeadId,
     error,
     fetchLeads,
     createLead,
     updateLead,
     deleteLead,
+    analyzeLeadAi,
   };
 }
 
 export async function fetchSingleLead(id: string): Promise<Lead> {
   const { data } = await apiClient.get<Lead>(`/leads/${id}`);
+  return data;
+}
+
+export async function analyzeLeadAiApi(
+  id: string
+): Promise<LeadAiAnalysisResponse> {
+  const { data } = await apiClient.post<LeadAiAnalysisResponse>(
+    `/leads/${id}/ai-analyze`
+  );
   return data;
 }
 

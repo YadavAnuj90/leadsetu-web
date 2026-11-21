@@ -4,9 +4,10 @@
   "private": true,
   "description": "Leadsetu Frontend — Next.js CRM web application",
   "scripts": {
-    "predev": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
+    "postinstall": "node scripts/prepare-next.js patch-only",
+    "predev": "node scripts/prepare-next.js",
     "dev": "next dev",
-    "prebuild": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
+    "prebuild": "node scripts/prepare-next.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

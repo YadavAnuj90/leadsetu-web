@@ -48,6 +48,10 @@ export interface Lead {
   aiScore: number;
   aiLabel: 'Hot' | 'Warm' | 'Cold';
   aiInsight?: string;
+  aiSummary?: string;
+  aiNextAction?: string;
+  aiReasons?: string[];
+  aiScoredAt?: string;
   tags: string[];
   notes?: string;
   activities: LeadActivity[];
@@ -93,7 +97,14 @@ export type DealStage =
 
 export interface DealActivity {
   id: string;
-  type: 'created' | 'stage_change' | 'note' | 'quote' | 'call' | 'whatsapp';
+  type:
+    | 'created'
+    | 'stage_change'
+    | 'note'
+    | 'quote'
+    | 'call'
+    | 'whatsapp'
+    | 'ai_score';
   description: string;
   authorName: string;
   createdAt: string;
@@ -117,9 +128,42 @@ export interface Deal {
   gstApplicable: boolean;
   notes: string;
   tags: string[];
+  aiScore?: number;
+  aiLabel?: 'Hot' | 'Warm' | 'Cold';
+  aiInsight?: string;
+  aiSummary?: string;
+  aiNextAction?: string;
+  aiReasons?: string[];
+  aiScoredAt?: string;
   activities: DealActivity[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface LeadAiAnalysisResponse {
+  lead: Lead;
+  aiScore: number;
+  aiLabel: 'Hot' | 'Warm' | 'Cold';
+  aiInsight: string;
+  aiSummary: string;
+  aiNextAction: string;
+  aiReasons: string[];
+  aiScoredAt: string;
+  provider: string;
+  model: string;
+}
+
+export interface DealAiAnalysisResponse {
+  deal: Deal;
+  aiScore: number;
+  aiLabel: 'Hot' | 'Warm' | 'Cold';
+  aiInsight: string;
+  aiSummary: string;
+  aiNextAction: string;
+  aiReasons: string[];
+  aiScoredAt: string;
+  provider: string;
+  model: string;
 }
 
 export interface DealsStats {
@@ -479,6 +523,7 @@ export interface SubscriptionInvoice {
   totalAmount: number;
   status: 'paid' | 'trial_complimentary' | 'complimentary_grant' | 'refunded' | 'voided';
   discountAmount?: number;
+  proratedCreditAmount?: number;
   couponCode?: string;
   partnerCode?: string;
   tdsDeducted?: number;
@@ -1145,7 +1190,16 @@ export interface AuditLogEntry {
   entityType: AuditEntityType;
   entityId: string;
   entityLabel: string;
+  resourceType?: string;
+  resourceId?: string;
   summary: string;
+  severity?: 'info' | 'warning' | 'critical';
+  visibility?: 'tenant' | 'platform';
+  before?: Record<string, unknown>;
+  after?: Record<string, unknown>;
+  ip?: string;
+  userAgent?: string;
+  requestId?: string;
   metadata?: Record<string, unknown>;
   createdAt: string;
 }

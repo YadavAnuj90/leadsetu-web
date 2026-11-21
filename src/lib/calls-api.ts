@@ -107,7 +107,44 @@ export interface CallAnalyticsRecentRow {
   };
 }
 
+export interface TenantCallAggregateRow {
+  tenantId: string;
+  tenantName: string;
+  accountId: string;
+  totalCalls: number;
+  connectedCalls: number;
+  failedCalls: number;
+  turnRelayCalls: number;
+  turnUsagePct: number;
+  avgRttMs: number;
+  estimatedRelayBytes: number;
+}
+
+export interface AnonymizedCallTelemetryRow {
+  id: string;
+  callRef: string;
+  tenantId: string;
+  tenantName: string;
+  accountId: string;
+  callerRef: string;
+  calleeRef: string;
+  status: string;
+  setupTimeMs: number;
+  endReason: string;
+  connection: {
+    icePath: CallIcePath;
+    turnUsed: boolean;
+    relayProtocol: string;
+    rttMs: number;
+    maxRttMs: number;
+    packetsLost: number;
+    iceFailureReason: string;
+  };
+}
+
 export interface CallAnalyticsResponse {
+  scope?: 'workspace' | 'platform';
+  privacyRedacted?: boolean;
   totalCalls: number;
   connectedCalls: number;
   directP2pCalls: number;
@@ -126,6 +163,8 @@ export interface CallAnalyticsResponse {
     tls: number;
     otherRelay: number;
   };
+  tenantAggregates?: TenantCallAggregateRow[];
+  anonymizedCalls?: AnonymizedCallTelemetryRow[];
   recentCalls: CallAnalyticsRecentRow[];
 }
 
@@ -184,14 +223,46 @@ export async function fetchCallAnalyticsApi(
   return data;
 }
 
-export async function fetchCallTelemetryApi(callId: string): Promise<{
+export async function fetchCallTelemetryApi(
+  callId: string,
+  supportReason?: string,
+): Promise<{
   call: CallAnalyticsRecentRow;
   samples: CallTelemetrySampleRecord[];
 }> {
   const { data } = await apiClient.get<{
     call: CallAnalyticsRecentRow;
     samples: CallTelemetrySampleRecord[];
-  }>(`/calls/${callId}/telemetry`);
+  }>(`/calls/${callId}/telemetry`, {
+    params: supportReason ? { supportReason } : undefined,
+  });
+  return data;
+}
+
+export interface CallSupportRevealResponse {
+  callId: string;
+  callRef: string;
+  tenantName: string;
+  accountId: string;
+  callerName: string;
+  calleeName: string;
+  startedAt: string;
+  durationSeconds: number;
+  status: string;
+  setupTimeMs: number;
+  supportReason: string;
+  connection: CallAnalyticsRecentRow['connection'];
+  samples: CallTelemetrySampleRecord[];
+}
+
+export async function requestCallSupportRevealApi(
+  callId: string,
+  reason: string,
+): Promise<CallSupportRevealResponse> {
+  const { data } = await apiClient.post<CallSupportRevealResponse>(
+    `/calls/${callId}/support-access`,
+    { reason },
+  );
   return data;
 }
 

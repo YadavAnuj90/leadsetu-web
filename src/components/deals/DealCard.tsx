@@ -6,6 +6,7 @@ import {
   Calendar,
   ArrowUpRight,
   Trash2,
+  Sparkles,
 } from 'lucide-react';
 import CallMobileButton from '@/components/calling/CallMobileButton';
 import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
@@ -66,12 +67,29 @@ export default function DealCard({
         <span className="font-extrabold text-xs sm:text-sm text-brand-navy">
           ₹{(deal.value || 0).toLocaleString('en-IN')}
         </span>
-        {deal.expectedCloseDate && (
+        {typeof deal.aiScore === 'number' ? (
+          <span className="text-[10px] font-bold text-brand-blue inline-flex items-center gap-1">
+            <Sparkles className="w-3 h-3" /> AI {deal.aiScore}
+          </span>
+        ) : deal.expectedCloseDate ? (
           <span className="text-[10px] text-slate-400 inline-flex items-center gap-1">
             <Calendar className="w-3 h-3" /> {deal.expectedCloseDate}
           </span>
-        )}
+        ) : null}
       </div>
+
+      {/* SetuAI Next Best Action Preview */}
+      {(deal.aiNextAction || deal.aiInsight) && (
+        <div
+          className="px-2.5 py-1.5 rounded-xl bg-brand-light/70 border border-brand-blue/15 text-[10px] text-brand-navy flex items-start gap-1.5"
+          title={deal.aiNextAction || deal.aiInsight}
+        >
+          <Sparkles className="w-3 h-3 text-brand-blue flex-shrink-0 mt-0.5" />
+          <span className="line-clamp-2 leading-snug">
+            {deal.aiNextAction || deal.aiInsight}
+          </span>
+        </div>
+      )}
 
       {/* Tags */}
       {deal.tags?.length > 0 && (

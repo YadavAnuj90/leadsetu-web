@@ -63,6 +63,8 @@ export default function LeadsPage() {
     updateLead,
     deleteLead,
     fetchLeads,
+    analyzeLeadAi,
+    analyzingLeadId,
   } = useLeads();
 
   const user = useAuthStore((s) => s.user);
@@ -378,6 +380,8 @@ export default function LeadsPage() {
               onStatusChange={handleStatusChange}
               onEdit={handleOpenEdit}
               onDelete={deleteLead}
+              onRescoreAi={(id) => void analyzeLeadAi(id)}
+              isAnalyzingAi={analyzingLeadId === lead.id}
             />
           ))}
         </div>
@@ -450,10 +454,28 @@ export default function LeadsPage() {
                           >
                             AI {lead.aiScore} · {lead.aiLabel}
                           </span>
+                          {aiEnabled && (
+                            <button
+                              type="button"
+                              disabled={analyzingLeadId === lead.id}
+                              onClick={() => void analyzeLeadAi(lead.id)}
+                              title="Rescore with SetuAI (LLM Intent + Next Best Action)"
+                              className="p-1.5 rounded-lg border border-brand-blue/25 bg-brand-light/70 text-brand-blue hover:bg-brand-blue hover:text-white disabled:opacity-50 transition-colors"
+                            >
+                              {analyzingLeadId === lead.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Sparkles className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                          )}
                         </div>
-                        {lead.aiInsight && (
-                          <div className="text-[11px] text-slate-400 max-w-xs truncate mt-1">
-                            {lead.aiInsight}
+                        {(lead.aiNextAction || lead.aiInsight) && (
+                          <div
+                            className="text-[11px] text-slate-500 max-w-xs truncate mt-1"
+                            title={lead.aiNextAction || lead.aiInsight}
+                          >
+                            {lead.aiNextAction || lead.aiInsight}
                           </div>
                         )}
                       </td>

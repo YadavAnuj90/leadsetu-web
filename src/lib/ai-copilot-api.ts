@@ -277,14 +277,68 @@ export interface AiTenantUsageResponse {
   };
 }
 
+export interface CopilotProposedAction {
+  actionId: string;
+  type:
+    | 'create_task'
+    | 'schedule_call'
+    | 'create_quotation'
+    | 'send_whatsapp_draft';
+  label: string;
+  summary: string;
+  payload: Record<string, unknown>;
+}
+
+export interface AiKnowledgeSyncResponse {
+  synced: boolean;
+  tenantId: string;
+  totalIndexedChunks: number;
+  breakdown: {
+    products: number;
+    documents: number;
+    crmRecords: number;
+  };
+}
+
+export interface CopilotExecuteActionResponse {
+  executed: boolean;
+  actionType: string;
+  entityType: string;
+  entityId: string;
+  entityLabel: string;
+  summary: string;
+  redirectPath: string;
+  record: Record<string, unknown>;
+}
+
 export async function askAiCopilotChatApi(payload: {
   question: string;
   records?: unknown[];
 }): Promise<{
   source: string;
-  response: AiGatewayEnvelope<Record<string, unknown>> | null;
+  response: AiGatewayEnvelope<{
+    proposedActions?: CopilotProposedAction[];
+  }> | null;
 }> {
   const { data } = await apiClient.post('/ai-copilot/chat', payload);
+  return data;
+}
+
+export async function syncAiKnowledgeIndexApi(): Promise<AiKnowledgeSyncResponse> {
+  const { data } = await apiClient.post<AiKnowledgeSyncResponse>(
+    '/ai-copilot/knowledge/sync',
+  );
+  return data;
+}
+
+export async function executeAiCopilotActionApi(payload: {
+  type: CopilotProposedAction['type'];
+  payload?: Record<string, unknown>;
+}): Promise<CopilotExecuteActionResponse> {
+  const { data } = await apiClient.post<CopilotExecuteActionResponse>(
+    '/ai-copilot/execute-action',
+    payload,
+  );
   return data;
 }
 

@@ -7,6 +7,7 @@ import Sidebar from '@/components/shared/Sidebar';
 import Header from '@/components/shared/Header';
 import CrmCallingOverlay from '@/components/calling/CrmCallingOverlay';
 import WhatsAppQuickSendModal from '@/components/inbox/WhatsAppQuickSendModal';
+import SubscriptionDunningBanner from '@/components/settings/SubscriptionDunningBanner';
 import { useAuth } from '@/hooks/useAuth';
 import { getRouteFeatureRestriction, isWorkspaceAdminRole } from '@/lib/feature-access';
 import { Loader2, ShieldAlert, Lock, ArrowLeft, UserCircle } from 'lucide-react';
@@ -60,6 +61,9 @@ export default function DashboardLayout({
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <Header />
+        <SubscriptionDunningBanner
+          enabled={isAdmin && user?.role !== 'super_admin'}
+        />
         {(tenant?.quotas?.aiWarning ||
           tenant?.quotas?.waWarning ||
           tenant?.quotas?.aiExceeded ||

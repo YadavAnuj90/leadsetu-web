@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/auth.store';
 import {
   fetchMetaApprovedTemplatesApi,
   fetchWhatsAppCloudConfigApi,
+  generateInboxAiAssistApi,
   linkConversationEntityApi,
   markConversationReadApi,
   sendInboxMessageApi,
@@ -26,6 +27,7 @@ export function useInbox(initialThreadId?: string | null) {
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [waCloudConfig, setWaCloudConfig] = useState<WhatsAppCloudConfig | null>(
     null,
@@ -241,6 +243,36 @@ export function useInbox(initialThreadId?: string | null) {
     [],
   );
 
+  const generateAiAssist = useCallback(
+    async (
+      id: string,
+      opts?: {
+        mode?: 'both' | 'reply' | 'summary';
+        language?: 'hinglish' | 'english' | 'hindi';
+        tone?: 'helpful' | 'closing' | 'followup';
+        customInstruction?: string;
+      },
+    ) => {
+      setIsGeneratingAi(true);
+      setError(null);
+      try {
+        const res = await generateInboxAiAssistApi(id, opts);
+        if (res?.conversation) {
+          setConversations((prev) =>
+            prev.map((c) => (c.id === res.conversation.id ? res.conversation : c)),
+          );
+        }
+        return res;
+      } catch (err) {
+        setError(getErrorMessage(err));
+        return null;
+      } finally {
+        setIsGeneratingAi(false);
+      }
+    },
+    [],
+  );
+
   const upsertAndSelectConversation = useCallback((conv: Conversation) => {
     setConversations((prev) => {
       const exists = prev.some((c) => c.id === conv.id);
@@ -263,11 +295,13 @@ export function useInbox(initialThreadId?: string | null) {
     setSearch,
     isLoading,
     isSending,
+    isGeneratingAi,
     isLiveConnected,
     error,
     waCloudConfig,
     metaTemplates,
     sendMessage,
+    generateAiAssist,
     toggleStatus,
     linkEntity,
     upsertAndSelectConversation,

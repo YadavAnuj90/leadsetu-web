@@ -40,6 +40,7 @@ import {
 import ThemeToggle from '@/components/shared/ThemeToggle';
 import { getErrorMessage } from '@/lib/api-client';
 import { logoutApi } from '@/lib/auth';
+import { useAuthUxStore } from '@/store/auth-ux.store';
 import {
   fetchPlatformAuditLogsApi,
   fetchPlatformPoliciesApi,
@@ -272,10 +273,17 @@ export default function SuperAdminDashboardPage() {
 
   const currentNav = NAV_ITEMS.find((n) => n.id === activeTab) || NAV_ITEMS[0];
 
-  async function handleSignOut() {
-    await logoutApi();
-    clearAuth();
-    router.replace('/super-admin/login');
+  function handleSignOut() {
+    useAuthUxStore.getState().requestLogoutConfirm({
+      userName: user?.name,
+      email: user?.email,
+      scopeLabel: 'Leadsetu HQ Super Admin',
+      onConfirm: async () => {
+        await logoutApi();
+        clearAuth();
+        router.replace('/super-admin/login');
+      },
+    });
   }
 
   function renderSidebarContent(onPickTab?: () => void) {

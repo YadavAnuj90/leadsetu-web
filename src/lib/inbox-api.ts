@@ -252,3 +252,25 @@ export async function markConversationReadApi(
   );
   return data;
 }
+
+export async function generateInboxAiAssistApi(
+  conversationId: string,
+  payload?: {
+    mode?: 'both' | 'reply' | 'summary';
+    language?: 'hinglish' | 'english' | 'hindi';
+    tone?: 'helpful' | 'closing' | 'followup';
+    customInstruction?: string;
+  },
+): Promise<{
+  conversation: Conversation;
+  aiSummary: string;
+  aiSuggestedReply: string;
+  provider: string;
+  model: string;
+}> {
+  const { data } = await apiClient.post(
+    `/inbox/${conversationId}/ai-assist`,
+    payload || { mode: 'both', language: 'hinglish' },
+  );
+  return data;
+}
