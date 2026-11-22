@@ -27,6 +27,7 @@ export type LeadSource =
   | 'whatsapp'
   | 'indiamart'
   | 'justdial'
+  | 'tradeindia'
   | 'meta_ads'
   | 'google_ads'
   | 'website'
@@ -60,6 +61,10 @@ export interface Lead {
   adId?: string;
   adHeadline?: string;
   adSourceUrl?: string;
+  externalQueryId?: string;
+  firstContactedAt?: string;
+  speedToLeadSeconds?: number;
+  autoWhatsAppWelcomeSent?: boolean;
   customFields?: Record<string, unknown>;
   activities: LeadActivity[];
   createdAt: string;
@@ -597,6 +602,7 @@ export interface AiSalesAgentPolicy {
   handoffScoreThreshold: number;
   autoSendCatalogPricing: boolean;
   autoUpdateLeadFields: boolean;
+  autoShareBookingLink?: boolean;
   businessHoursOnly: boolean;
   escalationKeywords: string[];
 }
@@ -613,6 +619,8 @@ export interface AiQualifiedData {
   gstin?: string;
   estimatedTotal?: number;
   requestedDiscountPct?: number;
+  matchedKbTitles?: string[];
+  bookingLinkShared?: string;
 }
 
 export interface AiActionLogItem {
@@ -944,6 +952,15 @@ export interface Invoice {
   isPtpBroken?: boolean;
   creditOverrideBy?: string;
   creditOverrideReason?: string;
+  upiPaymentUri?: string;
+  upiQrDataUrl?: string;
+  dispatchCourier?: string;
+  dispatchAwbNumber?: string;
+  dispatchTrackingUrl?: string;
+  dispatchStatus?: 'pending' | 'packed' | 'in_transit' | 'out_for_delivery' | 'delivered';
+  dispatchedAt?: string;
+  dispatchNotes?: string;
+  dispatchNotifiedAt?: string;
   daysOverdue?: number;
   agingBucket?: 'paid' | 'current' | '1_15_days' | '16_30_days' | '30_plus_days';
   createdAt: string;

@@ -32,9 +32,15 @@ import {
   Banknote,
   Landmark,
   ShieldAlert,
+  QrCode,
+  Truck,
 } from 'lucide-react';
 import CreditRecoveryPanel from '@/components/invoices/CreditRecoveryPanel';
 import GstrTallyCompliancePanel from '@/components/invoices/GstrTallyCompliancePanel';
+import {
+  InvoiceDispatchModal,
+  InvoiceUpiQrModal,
+} from '@/components/invoices/UpiQrAndDispatchModals';
 import {
   fetchInvoices,
   createInvoice,
@@ -186,6 +192,8 @@ export default function InvoicesPage() {
     'all' | 'current' | '1_15_days' | '16_30_days' | '30_plus_days'
   >('all');
   const [isExportingCsv, setIsExportingCsv] = useState(false);
+  const [upiQrModalInv, setUpiQrModalInv] = useState<Invoice | null>(null);
+  const [dispatchModalInv, setDispatchModalInv] = useState<Invoice | null>(null);
   const [reminderToast, setReminderToast] = useState<string | null>(null);
   const [copiedReminderId, setCopiedReminderId] = useState<string | null>(null);
   const [copiedPublicId, setCopiedPublicId] = useState<string | null>(null);
@@ -1256,6 +1264,20 @@ export default function InvoicesPage() {
                             {daysOverdue}d overdue
                           </div>
                         )}
+                        {inv.dispatchAwbNumber && (
+                          <a
+                            href={inv.dispatchTrackingUrl || '#'}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-[10px] font-bold text-amber-800 hover:bg-amber-100"
+                            title="Open Courier Tracking"
+                          >
+                            <Truck className="w-3 h-3" />
+                            <span>
+                              {inv.dispatchCourier}: {inv.dispatchAwbNumber}
+                            </span>
+                          </a>
+                        )}
                       </td>
 
                       <td className="py-4 px-5 text-right">
@@ -1294,6 +1316,28 @@ export default function InvoicesPage() {
                                 <span>To Invoice</span>
                               </button>
                             )}
+
+                          <button
+                            type="button"
+                            onClick={() => setUpiQrModalInv(inv)}
+                            title="View Scannable UPI QR & Test Auto-Webhook Paid"
+                            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-700 text-[11px] font-bold transition-colors"
+                          >
+                            <QrCode className="w-3.5 h-3.5" />
+                            <span>QR</span>
+                          </button>
+
+                          {inv.docType === 'tax_invoice' && inv.status !== 'cancelled' && (
+                            <button
+                              type="button"
+                              onClick={() => setDispatchModalInv(inv)}
+                              title="Attach Courier & AWB Tracking + Send WhatsApp Alert"
+                              className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg border border-amber-200 bg-amber-50/80 hover:bg-amber-100 text-amber-800 text-[11px] font-bold transition-colors"
+                            >
+                              <Truck className="w-3.5 h-3.5" />
+                              <span>{inv.dispatchAwbNumber ? 'AWB' : 'Dispatch'}</span>
+                            </button>
+                          )}
 
                           <button
                             type="button"
@@ -2657,6 +2701,24 @@ export default function InvoicesPage() {
           </div>
         );
       })()}
+
+      <InvoiceUpiQrModal
+        invoice={upiQrModalInv}
+        onClose={() => setUpiQrModalInv(null)}
+        onUpdated={async (msg) => {
+          setReminderToast(msg);
+          await loadInvoices();
+        }}
+      />
+
+      <InvoiceDispatchModal
+        invoice={dispatchModalInv}
+        onClose={() => setDispatchModalInv(null)}
+        onUpdated={async (msg) => {
+          setReminderToast(msg);
+          await loadInvoices();
+        }}
+      />
     </div>
   );
 }

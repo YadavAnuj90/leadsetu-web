@@ -654,3 +654,300 @@ export async function testWhatsAppProviderApi(payload?: {
   );
   return data;
 }
+
+export interface PlatformRazorpayGatewayConfig {
+  enabled: boolean;
+  hasKeyId: boolean;
+  vaultHasKeyId: boolean;
+  keyIdMask: string;
+  hasKeySecret: boolean;
+  vaultHasKeySecret: boolean;
+  keySecretMask: string;
+  hasWebhookSecret: boolean;
+  vaultHasWebhook: boolean;
+  webhookSecretMask: string;
+  mode: 'test' | 'live' | 'unconfigured';
+  source: 'super_admin' | 'env' | 'none';
+  gatewayReady: boolean;
+  invoiceWebhookPath: string;
+  billingWebhookPath: string;
+  lastTestedAt: string;
+  lastTestStatus: 'untested' | 'connected' | 'error';
+  lastError: string;
+  updatedAt: string;
+}
+
+export interface PlatformRazorpayGatewayTestResponse {
+  ok: boolean;
+  mode: 'test' | 'live' | 'unconfigured';
+  source: string;
+  paymentLinksSampled: number;
+  error: string;
+  config: PlatformRazorpayGatewayConfig;
+}
+
+export async function fetchRazorpayGatewayApi(): Promise<PlatformRazorpayGatewayConfig> {
+  const { data } = await apiClient.get<PlatformRazorpayGatewayConfig>(
+    '/super-admin/razorpay-gateway',
+  );
+  return data;
+}
+
+export async function updateRazorpayGatewayApi(payload: {
+  enabled?: boolean;
+  keyId?: string;
+  keySecret?: string;
+  webhookSecret?: string;
+  clearKeyId?: boolean;
+  clearKeySecret?: boolean;
+  clearWebhookSecret?: boolean;
+}): Promise<PlatformRazorpayGatewayConfig> {
+  const { data } = await apiClient.patch<PlatformRazorpayGatewayConfig>(
+    '/super-admin/razorpay-gateway',
+    payload,
+  );
+  return data;
+}
+
+export async function testRazorpayGatewayApi(payload?: {
+  keyId?: string;
+  keySecret?: string;
+}): Promise<PlatformRazorpayGatewayTestResponse> {
+  const { data } = await apiClient.post<PlatformRazorpayGatewayTestResponse>(
+    '/super-admin/razorpay-gateway/test',
+    payload || {},
+  );
+  return data;
+}
+
+export interface ProvisionWorkspacePayload {
+  companyName: string;
+  ownerName: string;
+  ownerEmail: string;
+  ownerPassword?: string;
+  ownerPhone?: string;
+  businessMode?: 'b2b' | 'msme' | 'b2c' | 'hybrid' | 'bpo' | 'education';
+  plan?: 'starter' | 'growth' | 'enterprise';
+  status?: 'trial' | 'active';
+  trialDays?: number;
+  city?: string;
+  gstin?: string;
+  seatLimitOverride?: number | null;
+  seedDemoData?: boolean;
+  assignedManagerNote?: string;
+}
+
+export interface ProvisionWorkspaceResponse {
+  tenantId: string;
+  accountId: string;
+  companyName: string;
+  slug: string;
+  businessMode: string;
+  plan: string;
+  status: string;
+  trialEndsAt: string;
+  city: string;
+  gstin: string;
+  owner: {
+    id: string;
+    name: string;
+    email: string;
+    tempPassword: string;
+  };
+  seededCounts: {
+    pipelines: number;
+    leads: number;
+    deals: number;
+    invoices: number;
+  };
+  onboardingChecklist: string[];
+}
+
+export interface OnboardingFunnelTenantRow {
+  tenantId: string;
+  accountId: string;
+  companyName: string;
+  businessMode: string;
+  plan: string;
+  status: string;
+  city: string;
+  trialEndsAt: string;
+  daysRemaining: number | null;
+  isExpired: boolean;
+  daysInactive: number;
+  usersCount: number;
+  leadsCount: number;
+  dealsCount: number;
+  onboardingScore: number;
+  mrrInr: number;
+  assignedManagerNote: string;
+  ownerName: string;
+  ownerEmail: string;
+  ownerPhone: string;
+  lastActivityAt: string;
+  createdAt: string;
+}
+
+export interface SuperAdminOnboardingFunnelResponse {
+  summary: {
+    totalWorkspaces: number;
+    trialCount: number;
+    expiringSoonCount: number;
+    expiredTrialsCount: number;
+    activePaidCount: number;
+    dormantActiveCount: number;
+    totalAtRiskMrrInr: number;
+  };
+  expiringTrials: OnboardingFunnelTenantRow[];
+  dormantWorkspaces: OnboardingFunnelTenantRow[];
+  recentProvisioned: OnboardingFunnelTenantRow[];
+}
+
+export async function provisionWorkspaceApi(
+  payload: ProvisionWorkspacePayload,
+): Promise<ProvisionWorkspaceResponse> {
+  const { data } = await apiClient.post<ProvisionWorkspaceResponse>(
+    '/super-admin/workspaces/provision',
+    payload,
+  );
+  return data;
+}
+
+export async function fetchOnboardingFunnelApi(params?: {
+  expiringWithinDays?: number;
+  dormantDays?: number;
+}): Promise<SuperAdminOnboardingFunnelResponse> {
+  const { data } = await apiClient.get<SuperAdminOnboardingFunnelResponse>(
+    '/super-admin/onboarding/funnel',
+    { params },
+  );
+  return data;
+}
+
+export async function executeChurnRescueApi(
+  tenantId: string,
+  payload: {
+    action:
+      | 'extend_trial_7d'
+      | 'extend_trial_14d'
+      | 'activate_promo_growth'
+      | 'mark_outreach_sent';
+    note?: string;
+  },
+): Promise<{
+  ok: boolean;
+  tenantId: string;
+  status: string;
+  plan: string;
+  trialEndsAt: string;
+  assignedManagerNote: string;
+  summary: string;
+}> {
+  const { data } = await apiClient.post(
+    `/super-admin/onboarding/rescue/${tenantId}`,
+    payload,
+  );
+  return data;
+}
+
+export type WatchdogHealthState = 'error' | 'warning' | 'healthy' | 'unconfigured';
+
+export interface WatchdogTenantRow {
+  tenantId: string;
+  accountId: string;
+  companyName: string;
+  plan: string;
+  city: string;
+  overallHealth: 'critical' | 'warning' | 'healthy' | 'idle';
+  whatsappCloud: {
+    status: WatchdogHealthState;
+    enabled: boolean;
+    mode: string;
+    totalOutbound: number;
+    failedOutbound: number;
+    failureRatePct: number;
+    lastTestedAt: string;
+    lastError: string;
+  };
+  metaCapi: {
+    status: WatchdogHealthState;
+    enabled: boolean;
+    pixelId: string;
+    totalEvents: number;
+    sentEvents: number;
+    simulatedEvents: number;
+    failedEvents: number;
+    failureRatePct: number;
+    lastFiredAt: string;
+    lastError: string;
+  };
+  indiamartPull: {
+    status: WatchdogHealthState;
+    enabled: boolean;
+    hasKey: boolean;
+    totalRuns: number;
+    successRuns: number;
+    errorRuns: number;
+    failureRatePct: number;
+    lastSyncedAt: string;
+    lastError: string;
+  };
+}
+
+export interface WatchdogFailureItem {
+  id: string;
+  tenantId: string;
+  companyName: string;
+  accountId: string;
+  connector: 'meta_capi' | 'indiamart_pull' | 'whatsapp_cloud';
+  summary: string;
+  errorMessage: string;
+  occurredAt: string;
+}
+
+export interface SuperAdminIntegrationWatchdogResponse {
+  summary: {
+    totalWorkspaces: number;
+    criticalTenants: number;
+    warningTenants: number;
+    healthyTenants: number;
+    totalCapiFailures: number;
+    totalIndiaMartErrors: number;
+    totalWhatsappFailures: number;
+  };
+  tenants: WatchdogTenantRow[];
+  recentFailures: WatchdogFailureItem[];
+}
+
+export interface TenantIntegrationProbeResponse {
+  tenantId: string;
+  accountId: string;
+  companyName: string;
+  probes: Array<{
+    connector: 'whatsapp_cloud' | 'meta_capi' | 'indiamart_pull';
+    status: WatchdogHealthState;
+    detail: string;
+    checkedAt: string;
+  }>;
+}
+
+export async function fetchIntegrationsWatchdogApi(): Promise<SuperAdminIntegrationWatchdogResponse> {
+  const { data } = await apiClient.get<SuperAdminIntegrationWatchdogResponse>(
+    '/super-admin/integrations/watchdog',
+  );
+  return data;
+}
+
+export async function probeTenantIntegrationsApi(
+  tenantId: string,
+  payload?: {
+    connector?: 'whatsapp_cloud' | 'meta_capi' | 'indiamart_pull' | 'all';
+    reason?: string;
+  },
+): Promise<TenantIntegrationProbeResponse> {
+  const { data } = await apiClient.post<TenantIntegrationProbeResponse>(
+    `/super-admin/integrations/probe/${tenantId}`,
+    payload || { connector: 'all' },
+  );
+  return data;
+}

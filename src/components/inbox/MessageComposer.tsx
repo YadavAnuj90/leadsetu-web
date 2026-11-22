@@ -12,6 +12,7 @@ import {
   Send,
   Settings2,
   ShieldCheck,
+  ShoppingCart,
   Sparkles,
   X,
 } from 'lucide-react';
@@ -40,6 +41,7 @@ interface MessageComposerProps {
   waCloudConfig?: WhatsAppCloudConfig | null;
   metaTemplates?: MetaApprovedTemplate[];
   onOpenTemplateManager: () => void;
+  onOpenCartBuilder?: () => void;
   onGenerateAiDraft?: (opts: {
     language: 'hinglish' | 'english' | 'hindi';
     tone: 'helpful' | 'closing' | 'followup';
@@ -72,6 +74,7 @@ export default function MessageComposer({
   waCloudConfig,
   metaTemplates = [],
   onOpenTemplateManager,
+  onOpenCartBuilder,
   onGenerateAiDraft,
   onSend,
 }: MessageComposerProps) {
@@ -361,6 +364,15 @@ export default function MessageComposer({
                 Draft with AI
               </button>
             </div>
+          )}
+          {onOpenCartBuilder && (
+            <button
+              type="button"
+              onClick={onOpenCartBuilder}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-emerald-300 dark:border-emerald-500/35 bg-emerald-50 dark:bg-emerald-500/15 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 whitespace-nowrap"
+            >
+              <ShoppingCart className="w-3.5 h-3.5" /> Catalog Cart &amp; UPI QR
+            </button>
           )}
           <button
             type="button"

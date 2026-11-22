@@ -159,6 +159,14 @@ export default function LeadCard({
               Meta CTWA{lead.adHeadline ? ` · ${lead.adHeadline}` : ''}
             </span>
           )}
+          {lead.autoWhatsAppWelcomeSent && (
+            <span
+              title="Automatic WhatsApp Speed-to-Lead reply dispatched"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold"
+            >
+              WhatsApp {typeof lead.speedToLeadSeconds === 'number' && lead.speedToLeadSeconds >= 0 ? `in ${lead.speedToLeadSeconds}s` : 'Auto'}
+            </span>
+          )}
           {lead.city && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100">
               <MapPin className="w-3 h-3 text-slate-400" /> {lead.city}

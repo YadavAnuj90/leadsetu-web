@@ -160,6 +160,91 @@ export async function updateSellerGstProfileApi(payload: {
   return data;
 }
 
+export async function createWhatsappCartCheckoutApi(payload: {
+  conversationId?: string;
+  clientName: string;
+  phone: string;
+  email?: string;
+  placeOfSupply?: string;
+  gstRate?: number;
+  discount?: number;
+  docType?: 'tax_invoice' | 'proforma_quote';
+  items: Array<{
+    productId?: string;
+    sku?: string;
+    description: string;
+    hsnSac?: string;
+    quantity: number;
+    unitPrice: number;
+  }>;
+  sendWhatsappNow?: boolean;
+  customMessage?: string;
+}): Promise<{
+  invoice: Invoice;
+  upiId?: string;
+  upiConfigured?: boolean;
+  upiPaymentUri: string;
+  upiQrDataUrl: string;
+  paymentLink: string;
+  whatsappDispatched: boolean;
+  conversationId: string;
+}> {
+  const { data } = await apiClient.post('/invoices/whatsapp-cart', payload);
+  return data;
+}
+
+export async function fetchInvoiceUpiQrApi(invoiceId: string): Promise<{
+  invoiceId: string;
+  invoiceNumber: string;
+  clientName: string;
+  grandTotal: number;
+  balanceDue: number;
+  upiId: string;
+  merchantName?: string;
+  upiConfigured: boolean;
+  upiPaymentUri: string;
+  upiQrDataUrl: string;
+  paymentLink: string;
+  status: string;
+}> {
+  const { data } = await apiClient.get(`/invoices/${invoiceId}/upi-qr`);
+  return data;
+}
+
+export async function updateInvoiceDispatchApi(
+  invoiceId: string,
+  payload: {
+    courier: 'Shiprocket' | 'Delhivery' | 'BlueDart' | 'DTDC' | 'Self-Dispatch';
+    awbNumber: string;
+    trackingUrl?: string;
+    dispatchStatus?: 'pending' | 'packed' | 'in_transit' | 'out_for_delivery' | 'delivered';
+    notes?: string;
+    sendWhatsAppAlert?: boolean;
+  },
+): Promise<{
+  invoice: Invoice;
+  whatsappNotified: boolean;
+  trackingUrl: string;
+}> {
+  const { data } = await apiClient.patch(`/invoices/${invoiceId}/dispatch`, payload);
+  return data;
+}
+
+export async function simulateInvoiceWebhookPaidApi(invoiceId: string): Promise<{
+  received: boolean;
+  invoiceId: string;
+  invoiceNumber: string;
+  paymentId: string;
+  amountSettledInr: number;
+  balanceDue: number;
+  status: string;
+  creditHoldRemoved: boolean;
+  whatsappReceiptSent: boolean;
+}> {
+  const { data } = await apiClient.post(`/invoices/${invoiceId}/simulate-webhook-paid`);
+  return data;
+}
+
 export async function fetchRecoveryOverviewApi(): Promise<CreditRecoveryOverviewResponse> {
   const { data } = await apiClient.get<CreditRecoveryOverviewResponse>(
     '/invoices/recovery/overview',

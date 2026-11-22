@@ -16,6 +16,7 @@ import WhatsAppTemplateManagerModal from '@/components/inbox/WhatsAppTemplateMan
 import VoiceCrmAuditModal from '@/components/ai/VoiceCrmAuditModal';
 import DealerRfqModal from '@/components/ai/DealerRfqModal';
 import { AiConciergeModal } from '@/components/inbox/AiConciergeModal';
+import WhatsAppCartBuilderModal from '@/components/inbox/WhatsAppCartBuilderModal';
 
 function InboxPageContent() {
   const searchParams = useSearchParams();
@@ -38,6 +39,7 @@ function InboxPageContent() {
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [rfqModalOpen, setRfqModalOpen] = useState(false);
   const [conciergeModalOpen, setConciergeModalOpen] = useState(false);
+  const [cartModalOpen, setCartModalOpen] = useState(false);
   const [startModalOpen, setStartModalOpen] = useState(false);
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [composerDraft, setComposerDraft] = useState<{
@@ -163,6 +165,7 @@ function InboxPageContent() {
                   waCloudConfig={waCloudConfig}
                   metaTemplates={metaTemplates}
                   onOpenTemplateManager={openTemplateManager}
+                  onOpenCartBuilder={() => setCartModalOpen(true)}
                   onGenerateAiDraft={async ({ language, tone }) => {
                     const res = await generateAiAssist(activeConversation.id, {
                       mode: 'both',
@@ -273,6 +276,12 @@ function InboxPageContent() {
               }
             : undefined
         }
+      />
+
+      <WhatsAppCartBuilderModal
+        open={cartModalOpen}
+        conversation={activeConversation}
+        onClose={() => setCartModalOpen(false)}
       />
     </>
   );

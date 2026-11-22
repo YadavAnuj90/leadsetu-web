@@ -312,3 +312,93 @@ export async function simulateInboundMessageApi(
   );
   return data;
 }
+
+export type AiKnowledgeCategory =
+  | 'pricing_terms'
+  | 'product_spec'
+  | 'warranty_returns'
+  | 'shipping_dispatch'
+  | 'company_faq'
+  | 'custom_sop';
+
+export interface AiKnowledgeEntryDto {
+  id: string;
+  title: string;
+  category: AiKnowledgeCategory;
+  content: string;
+  tags: string[];
+  sourceType: 'manual' | 'catalog_sync' | 'faq_preset';
+  isActive: boolean;
+  hitCount: number;
+  updatedAt: string;
+}
+
+export interface AiKnowledgeOverviewResponse {
+  items: AiKnowledgeEntryDto[];
+  stats: {
+    total: number;
+    active: number;
+    totalHits: number;
+  };
+  newlyAdded?: number;
+  syncedProducts?: number;
+}
+
+export async function fetchAiKnowledgeApi(params?: {
+  search?: string;
+  category?: string;
+}): Promise<AiKnowledgeOverviewResponse> {
+  const { data } = await apiClient.get<AiKnowledgeOverviewResponse>(
+    '/inbox/ai-knowledge',
+    { params },
+  );
+  return data;
+}
+
+export async function createAiKnowledgeApi(payload: {
+  title: string;
+  category?: AiKnowledgeCategory;
+  content: string;
+  tags?: string[];
+}): Promise<AiKnowledgeEntryDto> {
+  const { data } = await apiClient.post<AiKnowledgeEntryDto>(
+    '/inbox/ai-knowledge',
+    payload,
+  );
+  return data;
+}
+
+export async function updateAiKnowledgeApi(
+  entryId: string,
+  payload: Partial<{
+    title: string;
+    category: AiKnowledgeCategory;
+    content: string;
+    tags: string[];
+    isActive: boolean;
+  }>,
+): Promise<AiKnowledgeEntryDto> {
+  const { data } = await apiClient.patch<AiKnowledgeEntryDto>(
+    `/inbox/ai-knowledge/${entryId}`,
+    payload,
+  );
+  return data;
+}
+
+export async function deleteAiKnowledgeApi(entryId: string): Promise<void> {
+  await apiClient.delete(`/inbox/ai-knowledge/${entryId}`);
+}
+
+export async function seedStarterKnowledgeApi(): Promise<AiKnowledgeOverviewResponse> {
+  const { data } = await apiClient.post<AiKnowledgeOverviewResponse>(
+    '/inbox/ai-knowledge/seed-defaults',
+  );
+  return data;
+}
+
+export async function syncCatalogKnowledgeApi(): Promise<AiKnowledgeOverviewResponse> {
+  const { data } = await apiClient.post<AiKnowledgeOverviewResponse>(
+    '/inbox/ai-knowledge/sync-catalog',
+  );
+  return data;
+}

@@ -45,6 +45,8 @@ import { getErrorMessage } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth.store';
 import { isWorkspaceAdminRole } from '@/lib/feature-access';
 import MetaCapiPanel from '@/components/integrations/MetaCapiPanel';
+import IndiaMartPullPanel from '@/components/integrations/IndiaMartPullPanel';
+import OmnichannelConnectorsPanel from '@/components/integrations/OmnichannelConnectorsPanel';
 
 interface FacebookSdkLoginResponse {
   authResponse?: {
@@ -1114,6 +1116,12 @@ export default function IntegrationsSettingsPage() {
           </div>
         )}
       </div>
+
+      {/* IndiaMART Pull API (CRM Key v2) + <10s Auto-WhatsApp Speed-to-Lead */}
+      <IndiaMartPullPanel />
+
+      {/* Meta Lead Ads, Justdial, TradeIndia & Embeddable Booking Scheduler */}
+      <OmnichannelConnectorsPanel />
 
       {/* Meta Click-to-WhatsApp Attribution + Conversions API (CAPI) */}
       <MetaCapiPanel />
