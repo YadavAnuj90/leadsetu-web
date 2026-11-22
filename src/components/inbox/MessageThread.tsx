@@ -80,6 +80,23 @@ export default function MessageThread({
               <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30">
                 {conversation.channel}
               </span>
+              {(conversation.adPlatform === 'meta_ctwa' ||
+                Boolean(conversation.ctwaClid) ||
+                Boolean(conversation.adId)) && (
+                <span
+                  title={
+                    conversation.ctwaClid
+                      ? `CTWA Click ID: ${conversation.ctwaClid}`
+                      : 'Meta Click-to-WhatsApp Ad'
+                  }
+                  className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/15 dark:text-indigo-300 dark:border-indigo-500/30 max-w-[200px] truncate"
+                >
+                  Meta Ad
+                  {conversation.adHeadline
+                    ? `: ${conversation.adHeadline}`
+                    : ''}
+                </span>
+              )}
               {conversation.linkedEntityType && conversation.linkedEntityId ? (
                 <div className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-500/15 border border-blue-200 dark:border-blue-500/30 px-2.5 py-0.5 text-[10px] font-bold text-brand-blue dark:text-blue-300">
                   <Link

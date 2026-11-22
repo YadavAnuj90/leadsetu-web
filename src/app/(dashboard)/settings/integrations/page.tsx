@@ -44,6 +44,7 @@ import {
 import { getErrorMessage } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth.store';
 import { isWorkspaceAdminRole } from '@/lib/feature-access';
+import MetaCapiPanel from '@/components/integrations/MetaCapiPanel';
 
 interface FacebookSdkLoginResponse {
   authResponse?: {
@@ -1113,6 +1114,9 @@ export default function IntegrationsSettingsPage() {
           </div>
         )}
       </div>
+
+      {/* Meta Click-to-WhatsApp Attribution + Conversions API (CAPI) */}
+      <MetaCapiPanel />
 
       {/* Connector Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

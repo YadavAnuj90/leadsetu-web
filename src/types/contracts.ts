@@ -55,6 +55,11 @@ export interface Lead {
   aiScoredAt?: string;
   tags: string[];
   notes?: string;
+  adPlatform?: string;
+  ctwaClid?: string;
+  adId?: string;
+  adHeadline?: string;
+  adSourceUrl?: string;
   customFields?: Record<string, unknown>;
   activities: LeadActivity[];
   createdAt: string;
@@ -68,6 +73,7 @@ export interface LeadsStats {
   hotCount: number;
   qualifiedCount: number;
   convertedCount: number;
+  metaCtwaCount?: number;
   totalPipelineValue: number;
   avgAiScore: number;
 }
@@ -639,6 +645,11 @@ export interface Conversation {
   linkedEntityType?: LinkedCrmEntityType;
   linkedEntityId?: string;
   linkedEntityLabel?: string;
+  adPlatform?: string;
+  ctwaClid?: string;
+  adId?: string;
+  adHeadline?: string;
+  adSourceUrl?: string;
   unreadCount?: number;
   lastInboundAt?: string;
   lastMessage: string;
@@ -1002,14 +1013,113 @@ export interface InvoiceStats {
 
 export interface Gstr1ExportResponse {
   filename: string;
+  section?: 'all' | 'b2b' | 'b2c' | 'hsn';
+  month?: string;
   rowCount: number;
   csv: string;
 }
 
 export interface TallyXmlExportResponse {
   filename: string;
+  month?: string;
+  ledgerMasterCount?: number;
   voucherCount: number;
+  salesVoucherCount?: number;
+  receiptVoucherCount?: number;
   xml: string;
+}
+
+export interface Gstr1ComplianceIssue {
+  severity: 'error' | 'warning' | 'info';
+  code: string;
+  invoiceId?: string;
+  invoiceNumber?: string;
+  clientName?: string;
+  amount?: number;
+  message: string;
+  recommendation: string;
+}
+
+export interface Gstr1B2bRow {
+  id: string;
+  invoiceNumber: string;
+  date: string;
+  clientName: string;
+  gstin: string;
+  placeOfSupply: string;
+  posStateCode: string;
+  taxType: 'cgst_sgst' | 'igst';
+  gstRate: number;
+  taxableAmount: number;
+  cgstAmount: number;
+  sgstAmount: number;
+  igstAmount: number;
+  gstAmount: number;
+  grandTotal: number;
+  status: string;
+  ewayRequired: boolean;
+}
+
+export interface Gstr1B2cRow {
+  bucket: 'B2CL' | 'B2CS';
+  placeOfSupply: string;
+  posStateCode: string;
+  taxType: 'cgst_sgst' | 'igst';
+  gstRate: number;
+  invoiceCount: number;
+  taxableAmount: number;
+  cgstAmount: number;
+  sgstAmount: number;
+  igstAmount: number;
+  grandTotal: number;
+}
+
+export interface Gstr1HsnRow {
+  hsnSac: string;
+  gstRate: number;
+  descriptions: string[];
+  totalQuantity: number;
+  taxableAmount: number;
+  cgstAmount: number;
+  sgstAmount: number;
+  igstAmount: number;
+  totalValue: number;
+}
+
+export interface Gstr1ComplianceOverviewResponse {
+  period: {
+    month: string;
+    filingPeriodCode: string;
+    label: string;
+  };
+  seller: {
+    companyName: string;
+    gstin: string;
+    state: string;
+    stateCode: string;
+    address: string;
+    isSellerGstinValid: boolean;
+  };
+  summary: {
+    totalTaxInvoices: number;
+    cancelledCount: number;
+    proformaExcludedCount: number;
+    b2bCount: number;
+    b2bTaxable: number;
+    b2bTax: number;
+    b2cCount: number;
+    b2cTaxable: number;
+    b2cTax: number;
+    hsnCount: number;
+    ewayRequiredCount: number;
+    issuesCount: number;
+    complianceScorePct: number;
+  };
+  b2bInvoices: Gstr1B2bRow[];
+  b2cSummary: Gstr1B2cRow[];
+  hsnSummary: Gstr1HsnRow[];
+  complianceIssues: Gstr1ComplianceIssue[];
+  portalJson: Record<string, unknown>;
 }
 
 export interface CreditRecoveryConfig {

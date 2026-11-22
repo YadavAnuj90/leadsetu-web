@@ -17,6 +17,7 @@ export interface LeadsFilter {
   source?: string;
   aiLabel?: string;
   accountKind?: 'all' | 'business' | 'consumer';
+  adPlatform?: 'all' | 'meta_ctwa';
   sortBy?: 'aiScore' | 'createdAt' | 'estimatedValue';
 }
 
@@ -27,6 +28,7 @@ const defaultStats: LeadsStats = {
   hotCount: 0,
   qualifiedCount: 0,
   convertedCount: 0,
+  metaCtwaCount: 0,
   totalPipelineValue: 0,
   avgAiScore: 0,
 };
@@ -41,6 +43,7 @@ export function useLeads(initialFilters?: LeadsFilter) {
       source: 'all',
       aiLabel: 'all',
       accountKind: 'all',
+      adPlatform: 'all',
       sortBy: 'aiScore',
     }
   );

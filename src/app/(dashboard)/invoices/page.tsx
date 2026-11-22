@@ -34,6 +34,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import CreditRecoveryPanel from '@/components/invoices/CreditRecoveryPanel';
+import GstrTallyCompliancePanel from '@/components/invoices/GstrTallyCompliancePanel';
 import {
   fetchInvoices,
   createInvoice,
@@ -197,7 +198,9 @@ export default function InvoicesPage() {
       .catch(() => {});
   }, []);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<'invoices' | 'recovery'>('invoices');
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<
+    'invoices' | 'recovery' | 'compliance'
+  >('invoices');
   const [overrideCreditHold, setOverrideCreditHold] = useState(false);
   const [overrideReason, setOverrideReason] = useState('');
   const [createErrorMsg, setCreateErrorMsg] = useState<string | null>(null);
@@ -854,6 +857,18 @@ export default function InvoicesPage() {
             </span>
           )}
         </button>
+        <button
+          type="button"
+          onClick={() => setActiveWorkspaceTab('compliance')}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            activeWorkspaceTab === 'compliance'
+              ? 'bg-emerald-600 text-white shadow-sm'
+              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+          }`}
+        >
+          <ShieldCheck className="w-3.5 h-3.5" />
+          <span>CA GSTR-1 &amp; TallyPrime Compliance</span>
+        </button>
       </div>
 
       {activeWorkspaceTab === 'recovery' ? (
@@ -861,6 +876,8 @@ export default function InvoicesPage() {
           onOpenPaymentModal={openPaymentModal}
           onRefreshParent={loadInvoices}
         />
+      ) : activeWorkspaceTab === 'compliance' ? (
+        <GstrTallyCompliancePanel />
       ) : (
         <>
       {/* Live Workspace KPI Strip */}

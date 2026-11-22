@@ -283,6 +283,25 @@ export default function LeadsPage() {
               ))}
             </div>
 
+            {/* Meta Click-to-WhatsApp Ad Leads Filter Pill */}
+            <button
+              type="button"
+              onClick={() =>
+                setFilters((prev) => ({
+                  ...prev,
+                  adPlatform:
+                    prev.adPlatform === 'meta_ctwa' ? 'all' : 'meta_ctwa',
+                }))
+              }
+              className={`px-3 py-1.5 rounded-xl text-[11px] font-extrabold border transition-all ${
+                filters.adPlatform === 'meta_ctwa'
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                  : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:border-indigo-400'
+              }`}
+            >
+              Meta Ad Leads ({stats.metaCtwaCount ?? 0})
+            </button>
+
             <select
               value={filters.source || 'all'}
               onChange={(e) =>

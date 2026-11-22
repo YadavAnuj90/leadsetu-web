@@ -3,6 +3,8 @@ import type {
   BankStatementPreviewMatch,
   CreditRecoveryConfig,
   CreditRecoveryOverviewResponse,
+  Gstr1ComplianceOverviewResponse,
+  Gstr1ExportResponse,
   Invoice,
   InvoicePaymentMode,
   InvoiceStats,
@@ -87,16 +89,14 @@ export async function deleteInvoice(id: string): Promise<{ success: boolean }> {
   return data;
 }
 
-export async function exportGstr1CsvApi(): Promise<{
-  filename: string;
-  rowCount: number;
-  csv: string;
-}> {
-  const { data } = await apiClient.get<{
-    filename: string;
-    rowCount: number;
-    csv: string;
-  }>('/invoices/export/gstr1');
+export async function exportGstr1CsvApi(params?: {
+  month?: string;
+  section?: 'all' | 'b2b' | 'b2c' | 'hsn';
+}): Promise<Gstr1ExportResponse> {
+  const { data } = await apiClient.get<Gstr1ExportResponse>(
+    '/invoices/export/gstr1',
+    { params },
+  );
   return data;
 }
 
@@ -116,9 +116,46 @@ export async function convertQuoteToInvoiceApi(
   return data;
 }
 
-export async function exportTallyXmlApi(): Promise<TallyXmlExportResponse> {
+export async function exportTallyXmlApi(params?: {
+  month?: string;
+  includeMasters?: boolean;
+}): Promise<TallyXmlExportResponse> {
   const { data } = await apiClient.get<TallyXmlExportResponse>(
     '/invoices/export/tally-xml',
+    {
+      params: params
+        ? {
+            ...(params.month ? { month: params.month } : {}),
+            ...(params.includeMasters !== undefined
+              ? { includeMasters: String(params.includeMasters) }
+              : {}),
+          }
+        : undefined,
+    },
+  );
+  return data;
+}
+
+export async function fetchGstr1ComplianceApi(
+  month?: string,
+): Promise<Gstr1ComplianceOverviewResponse> {
+  const { data } = await apiClient.get<Gstr1ComplianceOverviewResponse>(
+    '/invoices/compliance/gstr1',
+    { params: month && month !== 'all' ? { month } : undefined },
+  );
+  return data;
+}
+
+export async function updateSellerGstProfileApi(payload: {
+  companyName?: string;
+  gstin?: string;
+  state?: string;
+  city?: string;
+  address?: string;
+}): Promise<Gstr1ComplianceOverviewResponse> {
+  const { data } = await apiClient.patch<Gstr1ComplianceOverviewResponse>(
+    '/invoices/compliance/seller-profile',
+    payload,
   );
   return data;
 }

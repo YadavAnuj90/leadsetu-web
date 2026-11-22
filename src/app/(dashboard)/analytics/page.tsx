@@ -25,12 +25,17 @@ import {
   ArrowRight,
   Target,
   ShieldCheck,
+  Megaphone,
 } from 'lucide-react';
 import {
   fetchAnalyticsOverview,
   type AnalyticsOverviewResponse,
   type AnalyticsRange,
 } from '@/lib/analytics-api';
+import {
+  fetchMetaCapiOverviewApi,
+  type MetaCapiOverviewResponse,
+} from '@/lib/meta-capi-api';
 import { getErrorMessage } from '@/lib/api-client';
 
 type ViewTab = 'overview' | 'revenue' | 'pipeline' | 'team';
@@ -65,16 +70,27 @@ export default function AnalyticsPage() {
   const [range, setRange] = useState<AnalyticsRange>('all');
   const [activeTab, setActiveTab] = useState<ViewTab>('overview');
   const [data, setData] = useState<AnalyticsOverviewResponse | null>(null);
+  const [metaCapi, setMetaCapi] = useState<MetaCapiOverviewResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [hoveredMonthIdx, setHoveredMonthIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('tab=team')) {
+      setActiveTab('team');
+    }
+  }, []);
 
   const loadAnalytics = useCallback(async () => {
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const res = await fetchAnalyticsOverview(range);
+      const [res, capiRes] = await Promise.all([
+        fetchAnalyticsOverview(range),
+        fetchMetaCapiOverviewApi().catch(() => null),
+      ]);
       setData(res);
+      setMetaCapi(capiRes);
     } catch (err) {
       setErrorMsg(getErrorMessage(err));
     } finally {
@@ -1133,6 +1149,94 @@ export default function AnalyticsPage() {
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Meta Click-to-WhatsApp Ad Creative ROAS Breakdown */}
+              <div className="lg:col-span-12 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[11px] font-extrabold uppercase tracking-wider text-indigo-600 flex items-center gap-1.5">
+                      <Megaphone className="w-3.5 h-3.5" />
+                      <span>Meta Click-to-WhatsApp Attribution &amp; CAPI ROAS</span>
+                    </div>
+                    <h3 className="text-base font-extrabold text-brand-navy mt-0.5">
+                      Ad-Creative Pipeline &amp; Closed Revenue (₹) Breakdown
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs">
+                    <span className="px-3 py-1 rounded-xl bg-indigo-50 text-indigo-700 font-bold border border-indigo-200">
+                      {metaCapi?.stats.ctwaLeadsCount ?? 0} CTWA Leads ·{' '}
+                      {metaCapi?.stats.totalEvents ?? 0} CAPI Events
+                    </span>
+                    <Link
+                      href="/settings/integrations#meta-capi"
+                      className="font-bold text-brand-blue hover:underline inline-flex items-center gap-1"
+                    >
+                      Configure CAPI <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                </div>
+
+                {(metaCapi?.adRoasBreakdown || []).length === 0 ? (
+                  <div className="p-6 rounded-2xl border border-dashed border-slate-200 text-center text-xs text-slate-500">
+                    No Meta Click-to-WhatsApp attributed ads yet. Connect your Meta Pixel &amp; run a test click from{' '}
+                    <Link
+                      href="/settings/integrations#meta-capi"
+                      className="text-brand-blue font-bold hover:underline"
+                    >
+                      Integrations → Meta CAPI
+                    </Link>
+                    .
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto rounded-2xl border border-slate-200/80">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
+                        <tr>
+                          <th className="py-2.5 px-4">Ad Creative / Campaign</th>
+                          <th className="py-2.5 px-4">CTWA Leads</th>
+                          <th className="py-2.5 px-4">Qualified</th>
+                          <th className="py-2.5 px-4">Won Deals</th>
+                          <th className="py-2.5 px-4">Open Pipeline</th>
+                          <th className="py-2.5 px-4">Closed Revenue</th>
+                          <th className="py-2.5 px-4 text-right">CAPI Signals</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {(metaCapi?.adRoasBreakdown || []).map((row) => (
+                          <tr key={`${row.adId}-${row.adHeadline}`} className="hover:bg-slate-50/70">
+                            <td className="py-3 px-4">
+                              <div className="font-bold text-brand-navy">
+                                {row.adHeadline}
+                              </div>
+                              <div className="text-[11px] font-mono text-slate-400">
+                                Ad ID: {row.adId}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 font-bold text-brand-navy">
+                              {row.inquiries}
+                            </td>
+                            <td className="py-3 px-4 font-bold text-brand-blue">
+                              {row.qualifiedCount}
+                            </td>
+                            <td className="py-3 px-4 font-bold text-emerald-600">
+                              {row.wonDealsCount}
+                            </td>
+                            <td className="py-3 px-4 font-semibold text-slate-600">
+                              {formatCompactInr(row.pipelineValueInr)}
+                            </td>
+                            <td className="py-3 px-4 font-extrabold text-emerald-600">
+                              {formatInr(row.closedRevenueInr)}
+                            </td>
+                            <td className="py-3 px-4 text-right font-mono font-bold text-indigo-600">
+                              {row.capiEventsCount}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           )}

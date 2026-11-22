@@ -142,8 +142,23 @@ export default function LeadCard({
           </div>
         )}
 
-        {/* Location & Tags */}
+        {/* Location, CTWA Attribution & Tags */}
         <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
+          {(lead.adPlatform === 'meta_ctwa' ||
+            lead.ctwaClid ||
+            lead.adId ||
+            lead.source === 'meta_ads') && (
+            <span
+              title={
+                lead.ctwaClid
+                  ? `Meta Click-to-WhatsApp ID: ${lead.ctwaClid}`
+                  : 'Attributed Meta Ad Lead'
+              }
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold max-w-[200px] truncate"
+            >
+              Meta CTWA{lead.adHeadline ? ` · ${lead.adHeadline}` : ''}
+            </span>
+          )}
           {lead.city && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100">
               <MapPin className="w-3 h-3 text-slate-400" /> {lead.city}
