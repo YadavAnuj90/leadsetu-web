@@ -24,6 +24,7 @@ import ShareVoiceCallLinkButton from '@/components/calling/ShareVoiceCallLinkBut
 import CallMobileButton from '@/components/calling/CallMobileButton';
 import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
 import CustomFieldsDisplayCard from '@/components/custom-fields/CustomFieldsDisplayCard';
+import { EntityEmailPanel } from '@/components/email/EntityEmailPanel';
 import type { Deal, DealStage } from '@/types/contracts';
 
 export default function DealDetailPage() {
@@ -425,56 +426,73 @@ export default function DealDetailPage() {
           </div>
         </div>
 
-        <div className="lg:col-span-7 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-5">
-          <h3 className="font-extrabold text-base text-brand-navy">
-            Deal Activity &amp; Negotiation Log
-          </h3>
+        <div className="lg:col-span-7 space-y-6">
+          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-5">
+            <h3 className="font-extrabold text-base text-brand-navy">
+              Deal Activity &amp; Negotiation Log
+            </h3>
 
-          <form onSubmit={handleAddNote} className="flex gap-2">
-            <input
-              type="text"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Log negotiation update, discount approval, or payment milestone..."
-              className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-brand-navy"
-            />
-            <button
-              type="submit"
-              className="btn-primary-brand px-5 py-2.5 rounded-xl text-xs font-semibold text-white inline-flex items-center gap-1.5"
-            >
-              <Send className="w-3.5 h-3.5" /> Add Note
-            </button>
-          </form>
+            <form onSubmit={handleAddNote} className="flex gap-2">
+              <input
+                type="text"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Log negotiation update, discount approval, or payment milestone..."
+                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-brand-navy"
+              />
+              <button
+                type="submit"
+                className="btn-primary-brand px-5 py-2.5 rounded-xl text-xs font-semibold text-white inline-flex items-center gap-1.5"
+              >
+                <Send className="w-3.5 h-3.5" /> Add Note
+              </button>
+            </form>
 
-          <div className="relative pl-6 space-y-5 before:content-[''] before:absolute before:left-[9px] before:top-2 before:bottom-2 before:w-px before:bg-slate-200 dark:before:bg-slate-700/80">
-            {(deal.activities || []).map((act) => (
-              <div key={act.id} className="relative pb-4 border-b border-slate-100 dark:border-slate-800/70 last:border-b-0 last:pb-0">
-                <span
-                  className={`absolute -left-6 top-1 w-[18px] h-[18px] rounded-full border-2 border-white dark:border-[#0D172B] flex items-center justify-center ${
-                    act.type === 'stage_change'
-                      ? 'bg-brand-blue'
-                      : act.type === 'quote'
-                        ? 'bg-emerald-500'
-                        : act.type === 'whatsapp'
-                          ? 'bg-emerald-600'
-                          : act.type === 'call'
-                            ? 'bg-violet-500'
-                            : 'bg-slate-400'
-                  }`}
-                />
-                <div className="text-xs sm:text-sm font-medium text-brand-navy dark:text-slate-100 leading-relaxed">
-                  {act.description}
+            <div className="relative pl-6 space-y-5 before:content-[''] before:absolute before:left-[9px] before:top-2 before:bottom-2 before:w-px before:bg-slate-200 dark:before:bg-slate-700/80">
+              {(deal.activities || []).map((act) => (
+                <div key={act.id} className="relative pb-4 border-b border-slate-100 dark:border-slate-800/70 last:border-b-0 last:pb-0">
+                  <span
+                    className={`absolute -left-6 top-1 w-[18px] h-[18px] rounded-full border-2 border-white dark:border-[#0D172B] flex items-center justify-center ${
+                      act.type === 'stage_change'
+                        ? 'bg-brand-blue'
+                        : act.type === 'quote'
+                          ? 'bg-emerald-500'
+                          : act.type === 'whatsapp'
+                            ? 'bg-emerald-600'
+                            : act.type === 'call'
+                              ? 'bg-violet-500'
+                              : 'bg-slate-400'
+                    }`}
+                  />
+                  <div className="text-xs sm:text-sm font-medium text-brand-navy dark:text-slate-100 leading-relaxed">
+                    {act.description}
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-1">
+                    @{act.authorName} ·{' '}
+                    {new Date(act.createdAt).toLocaleString('en-IN', {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    })}
+                  </div>
                 </div>
-                <div className="text-[11px] text-slate-400 mt-1">
-                  @{act.authorName} ·{' '}
-                  {new Date(act.createdAt).toLocaleString('en-IN', {
-                    dateStyle: 'medium',
-                    timeStyle: 'short',
-                  })}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
+
+          <EntityEmailPanel
+            entityType="deal"
+            entityId={deal.id}
+            entityLabel={deal.title}
+            defaultToEmail={deal.contactEmail || ''}
+            contactName={deal.contactName || ''}
+            companyName={deal.company || ''}
+            dealValueLabel={
+              deal.value
+                ? `₹${Number(deal.value).toLocaleString('en-IN')}`
+                : ''
+            }
+            onEmailActivity={() => void loadDeal()}
+          />
         </div>
       </div>
     </div>

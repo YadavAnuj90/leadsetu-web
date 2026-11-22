@@ -4,9 +4,27 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { useAuthUxStore } from '@/store/auth-ux.store';
-import { loginApi, registerApi, logoutApi, getMeApi } from '@/lib/auth';
+import {
+  loginApi,
+  registerApi,
+  logoutApi,
+  getMeApi,
+  googleLoginApi,
+  verifyTwoFactorLoginApi,
+} from '@/lib/auth';
 import { getErrorMessage } from '@/lib/api-client';
-import type { LoginPayload, RegisterPayload } from '@/types/contracts';
+import type {
+  AuthResponse,
+  LoginPayload,
+  LoginResult,
+  RegisterPayload,
+} from '@/types/contracts';
+
+function isTwoFactorChallenge(
+  res: LoginResult,
+): res is Extract<LoginResult, { requiresTwoFactor: true }> {
+  return 'requiresTwoFactor' in res && res.requiresTwoFactor === true;
+}
 
 export function useAuth() {
   const router = useRouter();
@@ -26,31 +44,43 @@ export function useAuth() {
 
   const clearError = useCallback(() => setError(null), []);
 
+  const completeAuthSession = useCallback(
+    (res: AuthResponse, isNewWorkspace = false) => {
+      setAuth({
+        user: res.user,
+        tenant: res.tenant,
+        accessToken: res.accessToken,
+      });
+      useAuthUxStore.getState().triggerWelcomeAnimation({
+        userName: res.user.name,
+        companyName: res.tenant?.companyName || res.tenant?.name,
+        roleLabel: isNewWorkspace
+          ? 'Workspace Owner'
+          : res.user.role === 'super_admin'
+            ? 'Super Admin'
+            : res.user.role === 'owner'
+              ? 'Workspace Owner'
+              : res.user.role === 'admin'
+                ? 'Workspace Admin'
+                : 'CRM Member',
+        ...(isNewWorkspace ? { isNewWorkspace: true } : {}),
+      });
+      router.push(res.user.role === 'super_admin' ? '/super-admin' : '/dashboard');
+      return res;
+    },
+    [router, setAuth],
+  );
+
   const login = useCallback(
-    async (payload: LoginPayload) => {
+    async (payload: LoginPayload): Promise<LoginResult> => {
       setIsLoading(true);
       setError(null);
       try {
         const res = await loginApi(payload);
-        setAuth({
-          user: res.user,
-          tenant: res.tenant,
-          accessToken: res.accessToken,
-        });
-        useAuthUxStore.getState().triggerWelcomeAnimation({
-          userName: res.user.name,
-          companyName: res.tenant?.companyName || res.tenant?.name,
-          roleLabel:
-            res.user.role === 'super_admin'
-              ? 'Super Admin'
-              : res.user.role === 'owner'
-                ? 'Workspace Owner'
-                : res.user.role === 'admin'
-                  ? 'Workspace Admin'
-                  : 'CRM Member',
-        });
-        router.push(res.user.role === 'super_admin' ? '/super-admin' : '/dashboard');
-        return res;
+        if (isTwoFactorChallenge(res)) {
+          return res;
+        }
+        return completeAuthSession(res);
       } catch (err) {
         const message = getErrorMessage(err);
         setError(message);
@@ -59,7 +89,46 @@ export function useAuth() {
         setIsLoading(false);
       }
     },
-    [router, setAuth]
+    [completeAuthSession],
+  );
+
+  const verifyTwoFactorLogin = useCallback(
+    async (payload: { challengeToken: string; code: string }): Promise<AuthResponse> => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await verifyTwoFactorLoginApi(payload);
+        return completeAuthSession(res);
+      } catch (err) {
+        const message = getErrorMessage(err);
+        setError(message);
+        throw err;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [completeAuthSession],
+  );
+
+  const loginWithGoogle = useCallback(
+    async (payload: { idToken: string; companyName?: string }): Promise<LoginResult> => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await googleLoginApi(payload);
+        if (isTwoFactorChallenge(res)) {
+          return res;
+        }
+        return completeAuthSession(res);
+      } catch (err) {
+        const message = getErrorMessage(err);
+        setError(message);
+        throw err;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [completeAuthSession],
   );
 
   const register = useCallback(
@@ -68,19 +137,7 @@ export function useAuth() {
       setError(null);
       try {
         const res = await registerApi(payload);
-        setAuth({
-          user: res.user,
-          tenant: res.tenant,
-          accessToken: res.accessToken,
-        });
-        useAuthUxStore.getState().triggerWelcomeAnimation({
-          userName: res.user.name,
-          companyName: res.tenant?.companyName || res.tenant?.name,
-          roleLabel: 'Workspace Owner',
-          isNewWorkspace: true,
-        });
-        router.push('/dashboard');
-        return res;
+        return completeAuthSession(res, true);
       } catch (err) {
         const message = getErrorMessage(err);
         setError(message);
@@ -89,7 +146,7 @@ export function useAuth() {
         setIsLoading(false);
       }
     },
-    [router, setAuth]
+    [completeAuthSession],
   );
 
   const logout = useCallback(async () => {
@@ -134,6 +191,8 @@ export function useAuth() {
     error,
     clearError,
     login,
+    verifyTwoFactorLogin,
+    loginWithGoogle,
     register,
     logout,
     requestLogout,

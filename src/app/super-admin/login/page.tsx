@@ -86,6 +86,13 @@ export default function SuperAdminLoginPage() {
     setSubmitting(true);
     try {
       const res = await loginApi({ email: email.trim(), password });
+      if (!('accessToken' in res)) {
+        setError(
+          'Two-Factor Authentication is enabled on this account. Please sign in at /login to verify your 6-digit Authenticator App code first.',
+        );
+        setSubmitting(false);
+        return;
+      }
       if (res.user.role !== 'super_admin') {
         setError(
           'Access denied: This account does not carry Leadsetu HQ Super Admin clearance. Use /login for organization workspaces.'

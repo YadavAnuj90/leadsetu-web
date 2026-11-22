@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getErrorMessage } from '@/lib/api-client';
 import {
+  applyModePresetPipelineApi,
   createPipelineApi,
   deletePipelineApi,
   fetchPipelinesApi,
@@ -14,6 +15,7 @@ import type {
   Pipeline,
   PipelineStage,
   UpdatePipelinePayload,
+  WorkspaceBusinessMode,
 } from '@/types/contracts';
 
 export const FALLBACK_PIPELINE_STAGES: PipelineStage[] = [
@@ -131,6 +133,24 @@ export function usePipelines() {
     [fetchPipelines],
   );
 
+  const applyModePreset = useCallback(
+    async (businessMode?: WorkspaceBusinessMode) => {
+      setIsSaving(true);
+      setError(null);
+      try {
+        const res = await applyModePresetPipelineApi(businessMode);
+        await fetchPipelines();
+        return res;
+      } catch (err) {
+        setError(getErrorMessage(err));
+        throw err;
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [fetchPipelines],
+  );
+
   return {
     pipelines,
     defaultPipeline,
@@ -143,5 +163,6 @@ export function usePipelines() {
     updatePipeline,
     setDefaultPipeline,
     deletePipeline,
+    applyModePreset,
   };
 }

@@ -44,6 +44,8 @@ import {
   removeTeamMember,
 } from '@/lib/team-api';
 import FeatureToggleMatrix from '@/components/team/FeatureToggleMatrix';
+import { CommissionSlabsCard } from '@/components/team/CommissionSlabsCard';
+import { TEAM_DEPARTMENT_PRESETS } from '@/lib/business-modes';
 import RoundCallMetricRing from '@/components/calling/RoundCallMetricRing';
 import {
   fetchUserCallAnalyticsApi,
@@ -599,6 +601,9 @@ export default function TeamSettingsPage() {
         </div>
       </div>
 
+      {/* Workspace Commission Slabs & 100% Quota Bonus Engine */}
+      <CommissionSlabsCard canEdit={user?.role === 'owner' || user?.role === 'admin'} />
+
       {/* Team Performance & Rep Leaderboard */}
       {members.length > 0 && (
         <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
@@ -1150,7 +1155,25 @@ export default function TeamSettingsPage() {
               </div>
 
               {(fRole === 'manager' || fRole === 'agent') && (
-                <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 space-y-2">
+                <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 space-y-3">
+                  <div>
+                    <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 mb-1.5">
+                      1-Click Department Role Presets
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {TEAM_DEPARTMENT_PRESETS.map((preset) => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => setFFeatures({ ...preset.featureAccess })}
+                          title={preset.description}
+                          className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:border-brand-blue hover:bg-brand-light text-[11px] font-bold text-brand-navy transition-colors"
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <FeatureToggleMatrix
                     value={fFeatures}
                     onChange={setFFeatures}
@@ -1256,6 +1279,24 @@ export default function TeamSettingsPage() {
                   {formError}
                 </div>
               )}
+              <div className="p-3 rounded-2xl border border-slate-200 bg-slate-50/70 space-y-1.5">
+                <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
+                  1-Click Department Role Presets
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {TEAM_DEPARTMENT_PRESETS.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => setMFeatures({ ...preset.featureAccess })}
+                      title={preset.description}
+                      className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:border-brand-blue hover:bg-brand-light text-[11px] font-bold text-brand-navy transition-colors"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <FeatureToggleMatrix
                 value={mFeatures}
                 onChange={setMFeatures}

@@ -21,6 +21,7 @@ import {
 import { usePipelines } from '@/hooks/usePipelines';
 import { getErrorMessage } from '@/lib/api-client';
 import type {
+  CreatePipelinePayload,
   Pipeline,
   PipelineStage,
   PipelineStageCategory,
@@ -38,10 +39,35 @@ const STAGE_COLOR_PALETTE = [
 ];
 
 const TEMPLATE_PRESETS: Array<{
-  id: 'b2b_sales' | 'dealer_onboarding' | 'amc_renewals' | 'blank';
+  id: NonNullable<CreatePipelinePayload['template']>;
   title: string;
   desc: string;
 }> = [
+  {
+    id: 'b2b_sales',
+    title: 'Standard B2B Sales',
+    desc: 'Qualified -> Discovery -> GST Proposal -> Negotiation -> Closed Won',
+  },
+  {
+    id: 'b2c_orders',
+    title: 'B2C / D2C Retail Orders',
+    desc: 'New Inquiry -> Order Confirmed -> Packed -> Dispatched -> Delivered / COD Settled',
+  },
+  {
+    id: 'education_admissions',
+    title: 'Education & Coaching Admissions',
+    desc: 'Inquiry -> Counseling Done -> Demo Attended -> Fee Pending -> Enrolled',
+  },
+  {
+    id: 'bpo_callbacks',
+    title: 'BPO / Call Center Queue',
+    desc: 'Fresh Queue -> Contacted -> Callback Scheduled -> Hot Transfer -> Closed',
+  },
+  {
+    id: 'msme_sales',
+    title: 'Small MSME Quick Orders',
+    desc: 'New Inquiry -> Estimate / Quote Sent -> Order Confirmed -> Closed Won / Paid',
+  },
   {
     id: 'dealer_onboarding',
     title: 'Dealer / Distributor Onboarding',
@@ -51,11 +77,6 @@ const TEMPLATE_PRESETS: Array<{
     id: 'amc_renewals',
     title: 'AMC & Service Renewals',
     desc: 'Renewal Due (30d) -> Service Quote -> PO Approval -> Renewed',
-  },
-  {
-    id: 'b2b_sales',
-    title: 'Standard B2B Sales',
-    desc: 'Qualified -> Discovery -> GST Proposal -> Negotiation -> Closed Won',
   },
   {
     id: 'blank',
@@ -94,8 +115,8 @@ export default function PipelinesSettingsPage() {
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newTemplate, setNewTemplate] = useState<
-    'b2b_sales' | 'dealer_onboarding' | 'amc_renewals' | 'blank'
-  >('dealer_onboarding');
+    NonNullable<CreatePipelinePayload['template']>
+  >('b2b_sales');
   const [newDefault, setNewDefault] = useState(false);
 
   const selectedPipeline: Pipeline | undefined =

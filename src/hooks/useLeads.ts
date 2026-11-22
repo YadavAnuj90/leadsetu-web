@@ -16,11 +16,14 @@ export interface LeadsFilter {
   status?: string;
   source?: string;
   aiLabel?: string;
+  accountKind?: 'all' | 'business' | 'consumer';
   sortBy?: 'aiScore' | 'createdAt' | 'estimatedValue';
 }
 
 const defaultStats: LeadsStats = {
   total: 0,
+  businessCount: 0,
+  consumerCount: 0,
   hotCount: 0,
   qualifiedCount: 0,
   convertedCount: 0,
@@ -37,6 +40,7 @@ export function useLeads(initialFilters?: LeadsFilter) {
       status: 'all',
       source: 'all',
       aiLabel: 'all',
+      accountKind: 'all',
       sortBy: 'aiScore',
     }
   );

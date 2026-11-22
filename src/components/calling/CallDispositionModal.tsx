@@ -22,11 +22,15 @@ import { formatCallDuration, useCallUiStore } from '@/store/call-ui.store';
 
 export const CALL_OUTCOME_OPTIONS: Array<{ id: string; label: string }> = [
   { id: 'interested', label: 'Interested' },
+  { id: 'rnr', label: 'RNR (No Answer)' },
+  { id: 'busy', label: 'Busy' },
+  { id: 'callback', label: 'Callback Scheduled' },
+  { id: 'not_interested', label: 'Not Interested' },
+  { id: 'dnd', label: 'DND / Do Not Call' },
   { id: 'quote_discussed', label: 'Quote Discussed' },
   { id: 'followup_requested', label: 'Follow-up Requested' },
   { id: 'support_resolved', label: 'Support Resolved' },
   { id: 'escalated', label: 'Escalated' },
-  { id: 'no_answer_callback', label: 'No Answer / Callback' },
 ];
 
 export default function CallDispositionModal() {

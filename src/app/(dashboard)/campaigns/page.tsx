@@ -22,13 +22,20 @@ import {
   ShieldAlert,
   BarChart3,
   Ban,
+  Filter,
+  RotateCcw,
+  Target,
+  TrendingUp,
 } from 'lucide-react';
 import {
   fetchCampaigns,
   createCampaign,
   launchCampaign,
+  previewCampaignAudience,
+  retargetCampaignNonResponders,
   toggleCampaignRecipientOptOut,
   deleteCampaign,
+  type PreviewAudienceResponse,
 } from '@/lib/campaigns-api';
 import { getErrorMessage } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth.store';
@@ -45,6 +52,9 @@ const SEGMENT_LABELS: Record<CampaignSegment, string> = {
   noida_delhi_ncr: 'Noida, Delhi & Gurugram Buyers',
   indiamart_buyers: 'IndiaMART Inbound Inquiries',
   gst_customers: 'GSTIN Verified B2B Accounts',
+  b2b_accounts: 'B2B Business Accounts Only',
+  b2c_consumers: 'B2C Retail Consumers Only',
+  delivered_customers: 'Past Won / Delivered Customers',
 };
 
 const PRESET_TEMPLATES = [
@@ -53,20 +63,31 @@ const PRESET_TEMPLATES = [
     templateName: 'ncr_industrial_pricelist_v2',
     language: 'hinglish' as const,
     ctaLabel: 'Download PDF Price List',
+    recommendedSegment: 'b2b_accounts' as CampaignSegment,
     body: 'Namaste {{name}} ji 👋, {{company}} ke liye humara updated Q4 Factory Price List & 18% GST Catalogue ready hai from Noida Electronic City. Click below for distributor pricing!',
   },
   {
-    label: 'IndiaMART 15-Min Instant Follow-up (Hinglish)',
-    templateName: 'indiamart_instant_quote_ai',
+    label: 'Festive / Repeat Offer for Past Customers (Hinglish)',
+    templateName: 'festive_repeat_vip_offer',
     language: 'hinglish' as const,
-    ctaLabel: 'Book Free Site Visit',
-    body: 'Hello {{name}} ji, thank you for your inquiry on IndiaMART for {{company}}. Humari engineering team Noida & Delhi-NCR me same-day site inspection provide karti hai. Reply YES to confirm!',
+    ctaLabel: 'Claim VIP Repeat Offer',
+    recommendedSegment: 'delivered_customers' as CampaignSegment,
+    body: 'Namaste {{name}} ji 🎉, thank you for choosing us earlier! Humare VIP customers ke liye special festive repeat offer + flat 10% priority discount active hai this week. Reply OFFER to lock your slot!',
+  },
+  {
+    label: 'B2C Instant Offer & Express Dispatch (English)',
+    templateName: 'b2c_flash_offer_v1',
+    language: 'english' as const,
+    ctaLabel: 'Order Now on WhatsApp',
+    recommendedSegment: 'b2c_consumers' as CampaignSegment,
+    body: 'Hi {{name}} 👋, limited-time special price live today with same-day express delivery and UPI cashback. Reply YES to confirm your order in 10 seconds!',
   },
   {
     label: '30-Day B2B Corporate Credit Offer (English)',
     templateName: 'hot_leads_credit_unlock',
     language: 'english' as const,
     ctaLabel: 'Claim 30-Day Credit Line',
+    recommendedSegment: 'gst_customers' as CampaignSegment,
     body: 'Hi {{name}}, exclusive offer for {{company}}: Unlock a 30-day B2B credit cycle + priority dispatch from our Noida Electronic City hub on orders confirmed this week.',
   },
 ];
@@ -82,6 +103,8 @@ export default function CampaignsPage() {
     totalDelivered: 0,
     totalRead: 0,
     totalReplies: 0,
+    totalQualifiedLeads: 0,
+    totalClosedDeals: 0,
     avgDeliveryRate: 0,
     avgReadRate: 0,
     totalAttributedRevenue: 0,
@@ -94,6 +117,7 @@ export default function CampaignsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   // Create Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -102,15 +126,23 @@ export default function CampaignsPage() {
   const [sendMode, setSendMode] = useState<'text' | 'meta_template'>('text');
   const [language, setLanguage] = useState<'hinglish' | 'english' | 'hindi'>('hinglish');
   const [channel, setChannel] = useState<'whatsapp_cloud' | 'whatsapp_ai_drip'>('whatsapp_cloud');
-  const [targetSegment, setTargetSegment] = useState<CampaignSegment>('noida_delhi_ncr');
+  const [targetSegment, setTargetSegment] = useState<CampaignSegment>('all_leads');
+  const [filterAccountKind, setFilterAccountKind] = useState<'all' | 'business' | 'consumer'>('all');
+  const [filterCity, setFilterCity] = useState('');
+  const [filterLeadStatus, setFilterLeadStatus] = useState('all');
+  const [filterExcludeDnd, setFilterExcludeDnd] = useState(true);
+  const [audiencePreview, setAudiencePreview] = useState<PreviewAudienceResponse | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+
   const [messageBody, setMessageBody] = useState(PRESET_TEMPLATES[0].body);
   const [ctaLabel, setCtaLabel] = useState(PRESET_TEMPLATES[0].ctaLabel);
   const [statusMode, setStatusMode] = useState<CampaignStatus>('completed');
   const [scheduledFor, setScheduledFor] = useState('15 Nov 2026, 11:00 AM IST');
 
-  // Recipient Delivery Report Modal State
+  // Recipient Delivery Report & Retarget State
   const [reportCampaign, setReportCampaign] = useState<Campaign | null>(null);
   const [optOutPhoneBusy, setOptOutPhoneBusy] = useState<string | null>(null);
+  const [retargetBusyId, setRetargetBusyId] = useState<string | null>(null);
 
   const loadCampaigns = useCallback(async () => {
     setIsLoading(true);
@@ -134,6 +166,34 @@ export default function CampaignsPage() {
     loadCampaigns();
   }, [loadCampaigns]);
 
+  useEffect(() => {
+    if (!modalOpen) return;
+    let active = true;
+    setLoadingPreview(true);
+    const timer = setTimeout(() => {
+      previewCampaignAudience({
+        targetSegment,
+        segmentFilters: {
+          accountKind: filterAccountKind,
+          city: filterCity.trim() || undefined,
+          leadStatus: filterLeadStatus,
+          excludeDnd: filterExcludeDnd,
+        },
+      })
+        .then((res) => {
+          if (active) setAudiencePreview(res);
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (active) setLoadingPreview(false);
+        });
+    }, 180);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [modalOpen, targetSegment, filterAccountKind, filterCity, filterLeadStatus, filterExcludeDnd]);
+
   const handleApplyPreset = (idx: number) => {
     const preset = PRESET_TEMPLATES[idx];
     if (!preset) return;
@@ -141,6 +201,9 @@ export default function CampaignsPage() {
     setLanguage(preset.language);
     setCtaLabel(preset.ctaLabel);
     setMessageBody(preset.body);
+    if (preset.recommendedSegment) {
+      setTargetSegment(preset.recommendedSegment);
+    }
     if (!name.trim()) {
       setName(preset.label.replace(/\s*\(.*?\)\s*/g, ''));
     }
@@ -159,6 +222,12 @@ export default function CampaignsPage() {
         language,
         channel,
         targetSegment,
+        segmentFilters: {
+          accountKind: filterAccountKind,
+          city: filterCity.trim() || undefined,
+          leadStatus: filterLeadStatus,
+          excludeDnd: filterExcludeDnd,
+        },
         messageBody: messageBody.trim(),
         ctaLabel: ctaLabel.trim() || 'Get Instant Quote',
         status: statusMode,
@@ -166,11 +235,31 @@ export default function CampaignsPage() {
       });
       setModalOpen(false);
       setName('');
+      setToastMsg('Campaign launched cleanly with DND & segment filters!');
       await loadCampaigns();
     } catch (err) {
       setErrorMsg(getErrorMessage(err));
     } finally {
       setIsMutating(false);
+    }
+  };
+
+  const handleRetargetNonResponders = async (camp: Campaign) => {
+    setRetargetBusyId(camp.id);
+    setErrorMsg(null);
+    setToastMsg(null);
+    try {
+      const created = await retargetCampaignNonResponders(camp.id, {
+        sendNow: true,
+      });
+      setToastMsg(
+        `Follow-up drip "${created.name}" dispatched to ${created.sentCount} non-responders (${created.skippedDndCount || 0} DND excluded).`,
+      );
+      await loadCampaigns();
+    } catch (err) {
+      setErrorMsg(getErrorMessage(err));
+    } finally {
+      setRetargetBusyId(null);
     }
   };
 
@@ -220,7 +309,8 @@ export default function CampaignsPage() {
   };
 
   const segCounts = (stats.segmentCounts || {}) as Record<string, number>;
-  const previewAudienceCount = segCounts[targetSegment] || 0;
+  const previewAudienceCount =
+    audiencePreview?.willDispatchCount ?? (segCounts[targetSegment] || 0);
 
   // Render live personalized preview text
   const renderedPreviewText = messageBody
@@ -261,6 +351,15 @@ export default function CampaignsPage() {
           </button>
         </div>
       </div>
+
+      {toastMsg && (
+        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800 flex items-center justify-between">
+          <span>{toastMsg}</span>
+          <button type="button" onClick={() => setToastMsg(null)}>
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {errorMsg && (
         <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700 flex items-center justify-between">
@@ -308,27 +407,30 @@ export default function CampaignsPage() {
 
         <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
           <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
-            <span>WhatsApp Buyer Replies</span>
+            <span>Replies &rarr; Qualified</span>
             <MessageSquare className="w-4 h-4 text-indigo-600" />
           </div>
           <div className="text-2xl font-extrabold text-brand-navy mt-2">
-            {stats.totalReplies.toLocaleString('en-IN')}
+            {stats.totalReplies.toLocaleString('en-IN')}{' '}
+            <span className="text-sm font-bold text-brand-blue">
+              &rarr; {(stats.totalQualifiedLeads ?? 0).toLocaleString('en-IN')}
+            </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Routed directly to Unified AI Inbox
+            Replies that qualified in CRM pipeline
           </p>
         </div>
 
         <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
           <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
-            <span>Attributed Pipeline</span>
+            <span>Closed ROI Revenue</span>
             <IndianRupee className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="text-2xl font-extrabold text-brand-navy mt-2">
+          <div className="text-2xl font-extrabold text-emerald-600 mt-2">
             ₹{stats.totalAttributedRevenue.toLocaleString('en-IN')}
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Revenue generated from WhatsApp blasts
+            {stats.totalClosedDeals ?? 0} won deals / paid bills attributed
           </p>
         </div>
       </div>
@@ -353,6 +455,9 @@ export default function CampaignsPage() {
             className="px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 bg-slate-50"
           >
             <option value="all">All Target Segments</option>
+            <option value="b2b_accounts">B2B Business Accounts</option>
+            <option value="b2c_consumers">B2C Retail Consumers</option>
+            <option value="delivered_customers">Past Won / Delivered Customers</option>
             <option value="noida_delhi_ncr">Noida &amp; Delhi-NCR Buyers</option>
             <option value="hot_leads">AI Score 75+ Hot Leads</option>
             <option value="indiamart_buyers">IndiaMART Inquiries</option>
@@ -461,6 +566,34 @@ export default function CampaignsPage() {
                     </span>
                   </button>
 
+                  {camp.status === 'completed' &&
+                    (camp.recipients || []).some((r) =>
+                      ['sent', 'delivered', 'read'].includes(r.status),
+                    ) && (
+                      <button
+                        type="button"
+                        disabled={retargetBusyId === camp.id}
+                        onClick={() => void handleRetargetNonResponders(camp)}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-xs font-bold text-indigo-700 transition-colors disabled:opacity-60"
+                        title="Send a 1-click follow-up WhatsApp drip to recipients who haven't replied yet"
+                      >
+                        {retargetBusyId === camp.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <RotateCcw className="w-3.5 h-3.5" />
+                        )}
+                        <span>
+                          Re-message Non-Responders (
+                          {
+                            (camp.recipients || []).filter((r) =>
+                              ['sent', 'delivered', 'read'].includes(r.status),
+                            ).length
+                          }
+                          )
+                        </span>
+                      </button>
+                    )}
+
                   {camp.status !== 'completed' && (
                     <button
                       type="button"
@@ -499,8 +632,8 @@ export default function CampaignsPage() {
                 </div>
               )}
 
-              {/* Funnel Metrics Strip */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-3 border-t border-slate-100 text-xs">
+              {/* True Campaign ROI Funnel Strip */}
+              <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 pt-3 border-t border-slate-100 text-xs">
                 <div className="bg-slate-50/80 rounded-xl p-3">
                   <div className="text-slate-400 font-semibold">Target Audience</div>
                   <div className="text-base font-extrabold text-brand-navy mt-0.5">
@@ -519,17 +652,7 @@ export default function CampaignsPage() {
                 </div>
 
                 <div className="bg-slate-50/80 rounded-xl p-3">
-                  <div className="text-slate-400 font-semibold">Blue-Tick Read</div>
-                  <div className="text-base font-extrabold text-brand-blue mt-0.5">
-                    {camp.readCount}{' '}
-                    <span className="text-xs font-bold text-slate-400">
-                      ({camp.readRate}%)
-                    </span>
-                  </div>
-                </div>
-
-                <div className="bg-slate-50/80 rounded-xl p-3">
-                  <div className="text-slate-400 font-semibold">WhatsApp Replies</div>
+                  <div className="text-slate-400 font-semibold">Replies</div>
                   <div className="text-base font-extrabold text-indigo-600 mt-0.5">
                     {camp.repliedCount}{' '}
                     <span className="text-xs font-bold text-slate-400">
@@ -538,9 +661,27 @@ export default function CampaignsPage() {
                   </div>
                 </div>
 
+                <div className="bg-slate-50/80 rounded-xl p-3">
+                  <div className="text-slate-400 font-semibold flex items-center gap-1">
+                    <Target className="w-3 h-3 text-brand-blue" /> Qualified Leads
+                  </div>
+                  <div className="text-base font-extrabold text-brand-blue mt-0.5">
+                    {camp.qualifiedLeadsCount ?? 0}
+                  </div>
+                </div>
+
+                <div className="bg-slate-50/80 rounded-xl p-3">
+                  <div className="text-slate-400 font-semibold flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3 text-emerald-600" /> Won Deals
+                  </div>
+                  <div className="text-base font-extrabold text-brand-navy mt-0.5">
+                    {camp.closedDealsCount ?? 0}
+                  </div>
+                </div>
+
                 <div className="bg-emerald-50/60 rounded-xl p-3 border border-emerald-100 col-span-2 sm:col-span-1">
                   <div className="text-emerald-700 font-semibold">
-                    Attributed Revenue
+                    Closed Revenue
                   </div>
                   <div className="text-base font-extrabold text-emerald-700 mt-0.5">
                     ₹{camp.attributedRevenue.toLocaleString('en-IN')}
@@ -627,11 +768,23 @@ export default function CampaignsPage() {
                       }
                       className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm bg-white font-semibold"
                     >
-                      <option value="noida_delhi_ncr">
-                        Noida &amp; Delhi-NCR Buyers ({segCounts.noida_delhi_ncr || 0})
+                      <option value="all_leads">
+                        All Active CRM Leads ({segCounts.all_leads || 0})
+                      </option>
+                      <option value="b2b_accounts">
+                        B2B Business Accounts ({segCounts.b2b_accounts || 0})
+                      </option>
+                      <option value="b2c_consumers">
+                        B2C Retail Consumers ({segCounts.b2c_consumers || 0})
+                      </option>
+                      <option value="delivered_customers">
+                        Past Won / Delivered Customers ({segCounts.delivered_customers || 0})
                       </option>
                       <option value="hot_leads">
                         AI Score 75+ Hot Prospects ({segCounts.hot_leads || 0})
+                      </option>
+                      <option value="noida_delhi_ncr">
+                        Noida &amp; Delhi-NCR Buyers ({segCounts.noida_delhi_ncr || 0})
                       </option>
                       <option value="indiamart_buyers">
                         IndiaMART Inquiries ({segCounts.indiamart_buyers || 0})
@@ -639,10 +792,103 @@ export default function CampaignsPage() {
                       <option value="gst_customers">
                         GSTIN Verified B2B Accounts ({segCounts.gst_customers || 0})
                       </option>
-                      <option value="all_leads">
-                        All Active CRM Leads ({segCounts.all_leads || 0})
-                      </option>
                     </select>
+                  </div>
+                </div>
+
+                {/* Smart Granular Audience Filter Bar + Live Matched Preview */}
+                <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-[11px] font-extrabold uppercase tracking-wider text-brand-navy flex items-center gap-1.5">
+                      <Filter className="w-3.5 h-3.5 text-brand-blue" /> Smart Audience Filters
+                    </div>
+                    <div className="text-[11px] font-bold">
+                      {loadingPreview ? (
+                        <span className="text-slate-400">Calculating audience...</span>
+                      ) : (
+                        <span className="text-emerald-700">
+                          {audiencePreview?.willDispatchCount ?? previewAudienceCount} Ready ·{' '}
+                          <span className="text-amber-700">
+                            {audiencePreview?.excludedDndCount ?? 0} DND Excluded
+                          </span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">
+                        Buyer Type (B2B / B2C)
+                      </label>
+                      <select
+                        value={filterAccountKind}
+                        onChange={(e) =>
+                          setFilterAccountKind(e.target.value as 'all' | 'business' | 'consumer')
+                        }
+                        className="w-full px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold"
+                      >
+                        <option value="all">All Types</option>
+                        <option value="business">B2B Business Only</option>
+                        <option value="consumer">B2C Consumer Only</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">
+                        City / Territory Filter
+                      </label>
+                      <input
+                        type="text"
+                        value={filterCity}
+                        onChange={(e) => setFilterCity(e.target.value)}
+                        placeholder="e.g. Noida, Mumbai..."
+                        className="w-full px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">
+                        Lead Stage Filter
+                      </label>
+                      <select
+                        value={filterLeadStatus}
+                        onChange={(e) => setFilterLeadStatus(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold"
+                      >
+                        <option value="all">All Stages</option>
+                        <option value="new">New</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="qualified">Qualified</option>
+                        <option value="proposal">Proposal</option>
+                        <option value="converted">Converted / Delivered</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <label className="inline-flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={filterExcludeDnd}
+                        onChange={(e) => setFilterExcludeDnd(e.target.checked)}
+                        className="rounded border-slate-300 text-brand-blue"
+                      />
+                      <span>Auto-Exclude DND &amp; WhatsApp Opt-Out Numbers</span>
+                    </label>
+
+                    {audiencePreview && audiencePreview.sampleRecipients.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {audiencePreview.sampleRecipients.slice(0, 4).map((r) => (
+                          <span
+                            key={r.id}
+                            className="px-2 py-0.5 rounded-full bg-white border border-slate-200 text-[10px] font-semibold text-slate-600"
+                          >
+                            {r.name} ({r.city})
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 

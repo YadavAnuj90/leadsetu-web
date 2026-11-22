@@ -31,6 +31,11 @@ import {
   isWorkspaceAdminRole,
   USER_FEATURE_CATALOG,
 } from '@/lib/feature-access';
+import {
+  getBusinessModeMeta,
+  getSidebarModuleLabel,
+  isNavModuleHiddenForTenant,
+} from '@/lib/business-modes';
 import type { UserFeatureKey } from '@/types/contracts';
 
 const navItems: Array<{
@@ -72,9 +77,11 @@ export default function Sidebar() {
   const visibleNavItems = navItems.filter((item) => {
     if (item.adminOnly && !isAdmin) return false;
     if (item.userOnly && isAdmin) return false;
+    if (isNavModuleHiddenForTenant(tenant, item.feature)) return false;
     if (!item.feature) return true;
     return isFeatureEnabled(tenant, item.feature, user);
   });
+  const modeMeta = getBusinessModeMeta(tenant?.businessMode);
   const aiOn = isFeatureEnabled(tenant, 'aiScoring', user);
   const waOn = isFeatureEnabled(tenant, 'whatsappCloud', user);
   const assignedCount = USER_FEATURE_CATALOG.filter((f) =>
@@ -110,6 +117,9 @@ export default function Sidebar() {
             <div className="text-[11px] text-slate-400 truncate">
               {tenant?.companyName?.trim() || 'AI CRM Workspace'}
             </div>
+            <div className="text-[10px] font-bold text-brand-sky/90 uppercase tracking-wider truncate mt-0.5">
+              {modeMeta.shortBadge}
+            </div>
           </div>
         </Link>
       </div>
@@ -138,7 +148,7 @@ export default function Sidebar() {
             >
               <span className="flex items-center gap-3">
                 <Icon className="w-4 h-4" />
-                <span>{item.label}</span>
+                <span>{getSidebarModuleLabel(tenant?.businessMode, item.href, item.label)}</span>
               </span>
               {badgeText && (
                 <span

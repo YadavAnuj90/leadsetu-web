@@ -23,23 +23,35 @@ import CallMobileButton from '@/components/calling/CallMobileButton';
 import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
 import { useCustomFields } from '@/hooks/useCustomFields';
 import CustomFieldsInputs from '@/components/custom-fields/CustomFieldsInputs';
-import type { Contact } from '@/types/contracts';
+import { useAuthStore } from '@/store/auth.store';
+import { getSidebarModuleLabel } from '@/lib/business-modes';
+import type { Contact, ContactAccountKind } from '@/types/contracts';
 
 export default function ContactsPage() {
+  const tenant = useAuthStore((s) => s.tenant);
+  const defaultAccountKind: ContactAccountKind =
+    tenant?.businessMode === 'b2c' || tenant?.businessMode === 'education'
+      ? 'consumer'
+      : 'business';
+
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [stats, setStats] = useState({
     total: 0,
+    businessCount: 0,
+    consumerCount: 0,
     customers: 0,
     prospects: 0,
     totalLtv: 0,
   });
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [accountKindFilter, setAccountKindFilter] = useState<'all' | ContactAccountKind>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
 
   const [name, setName] = useState('');
+  const [accountKind, setAccountKind] = useState<ContactAccountKind>(defaultAccountKind);
   const [company, setCompany] = useState('');
   const [designation, setDesignation] = useState('');
   const [phone, setPhone] = useState('');
@@ -61,7 +73,7 @@ export default function ContactsPage() {
         data: Contact[];
         stats: typeof stats;
       }>('/contacts', {
-        params: { search, type: typeFilter },
+        params: { search, type: typeFilter, accountKind: accountKindFilter },
       });
       setContacts(data.data || []);
       if (data.stats) setStats(data.stats);
@@ -70,7 +82,7 @@ export default function ContactsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [search, typeFilter]);
+  }, [search, typeFilter, accountKindFilter]);
 
   useEffect(() => {
     fetchContacts();
@@ -79,24 +91,27 @@ export default function ContactsPage() {
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
     setIsMutating(true);
+    const isConsumer = accountKind === 'consumer';
     try {
       await apiClient.post('/contacts', {
         name,
-        company,
-        designation,
+        accountKind,
+        company: isConsumer ? '' : company,
+        designation: isConsumer ? '' : designation,
         phone,
         email,
         city,
-        gstin,
+        gstin: isConsumer ? '' : gstin,
         type,
         lifetimeValue: Number(lifetimeValue) || 0,
-        creditLimitInr: Number(creditLimitInr) || 0,
-        creditTermDays: Number(creditTermDays) || 15,
-        tags: gstin ? ['GST Registered', 'B2B'] : ['B2B'],
+        creditLimitInr: isConsumer ? 0 : Number(creditLimitInr) || 0,
+        creditTermDays: isConsumer ? 0 : Number(creditTermDays) || 15,
+        tags: isConsumer ? ['B2C Consumer'] : gstin ? ['GST Registered', 'B2B'] : ['B2B'],
         customFields,
       });
       setModalOpen(false);
       setName('');
+      setAccountKind(defaultAccountKind);
       setCompany('');
       setDesignation('');
       setPhone('');
@@ -146,20 +161,23 @@ export default function ContactsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-blue mb-1">
-            <Building2 className="w-3.5 h-3.5" /> B2B Accounts &amp; GST Directory
+            <Building2 className="w-3.5 h-3.5" /> Multi-Segment Directory
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-navy tracking-tight">
-            Contacts &amp; Companies
+            {getSidebarModuleLabel(tenant?.businessMode, '/contacts', 'Contacts & Companies')}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Manage verified B2B decision-makers, GSTIN records, and customer lifetime value.
+            Manage B2B GST business accounts and B2C consumer customers cleanly in one place.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             type="button"
-            onClick={() => setModalOpen(true)}
+            onClick={() => {
+              setAccountKind(defaultAccountKind);
+              setModalOpen(true);
+            }}
             className="btn-primary-brand inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white"
           >
             <Plus className="w-4 h-4" />
@@ -238,24 +256,50 @@ export default function ContactsPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 overflow-x-auto">
-          {(['all', 'customer', 'prospect', 'partner', 'vendor'] as const).map(
-            (t) => (
+      <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* B2B vs B2C Record Segmented Filter */}
+          <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 border border-slate-200/70">
+            {(
+              [
+                ['all', `All (${stats.total})`],
+                ['business', `B2B Business (${stats.businessCount})`],
+                ['consumer', `B2C Consumer (${stats.consumerCount})`],
+              ] as const
+            ).map(([k, label]) => (
               <button
-                key={t}
+                key={k}
                 type="button"
-                onClick={() => setTypeFilter(t)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold capitalize transition-all ${
-                  typeFilter === t
-                    ? 'bg-brand-navy text-white'
-                    : 'text-slate-600 hover:bg-slate-100'
+                onClick={() => setAccountKindFilter(k)}
+                className={`px-3 py-1 rounded-lg text-[11px] font-extrabold transition-all ${
+                  accountKindFilter === k
+                    ? 'bg-brand-blue text-white shadow-xs'
+                    : 'text-slate-600 hover:text-brand-navy'
                 }`}
               >
-                {t === 'all' ? 'All Accounts' : `${t}s`}
+                {label}
               </button>
-            )
-          )}
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1.5 overflow-x-auto">
+            {(['all', 'customer', 'prospect', 'partner', 'vendor'] as const).map(
+              (t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTypeFilter(t)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold capitalize transition-all ${
+                    typeFilter === t
+                      ? 'bg-brand-navy text-white'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  {t === 'all' ? 'All Roles' : `${t}s`}
+                </button>
+              )
+            )}
+          </div>
         </div>
 
         <div className="relative w-full sm:w-80">
@@ -322,9 +366,20 @@ export default function ContactsPage() {
                       </div>
                     </div>
 
-                    <span className="text-[10px] font-bold uppercase px-2.5 py-1 rounded-full bg-brand-light text-brand-blue">
-                      {c.type}
-                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                      <span
+                        className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
+                          c.accountKind === 'consumer'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-brand-light text-brand-blue'
+                        }`}
+                      >
+                        {c.accountKind === 'consumer' ? 'B2C' : 'B2B'}
+                      </span>
+                      <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                        {c.type}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-2 text-xs">
@@ -337,7 +392,7 @@ export default function ContactsPage() {
                           ₹{(c.lifetimeValue || 0).toLocaleString('en-IN')}
                         </span>
                       </div>
-                      {c.gstin && (
+                      {c.accountKind !== 'consumer' && c.gstin && (
                         <div className="text-right">
                           <span className="text-[10px] font-bold uppercase text-slate-400 block">
                             GSTIN {c.gstinStatus === 'verified_active' ? '✓' : ''}
@@ -356,21 +411,23 @@ export default function ContactsPage() {
                         </div>
                       )}
                     </div>
-                    <div className="pt-2 border-t border-slate-200/70 flex flex-wrap items-center justify-between gap-2 text-[11px]">
-                      <span className="text-slate-600 font-semibold">
-                        Limit:{' '}
-                        <strong className="text-brand-navy">
-                          {c.creditLimitInr ? `₹${c.creditLimitInr.toLocaleString('en-IN')}` : 'Uncapped'}
-                        </strong>{' '}
-                        · Net {c.creditTermDays ?? 15}d
-                      </span>
-                      {(c.openReceivableInr || 0) > 0 && (
-                        <span className="font-bold text-amber-700">
-                          Udhaar: ₹{(c.openReceivableInr || 0).toLocaleString('en-IN')}
+                    {c.accountKind !== 'consumer' && (
+                      <div className="pt-2 border-t border-slate-200/70 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                        <span className="text-slate-600 font-semibold">
+                          Limit:{' '}
+                          <strong className="text-brand-navy">
+                            {c.creditLimitInr ? `₹${c.creditLimitInr.toLocaleString('en-IN')}` : 'Uncapped'}
+                          </strong>{' '}
+                          · Net {c.creditTermDays ?? 15}d
                         </span>
-                      )}
-                    </div>
-                    {c.creditHold && (
+                        {(c.openReceivableInr || 0) > 0 && (
+                          <span className="font-bold text-amber-700">
+                            Udhaar: ₹{(c.openReceivableInr || 0).toLocaleString('en-IN')}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {c.accountKind !== 'consumer' && c.creditHold && (
                       <div className="px-2 py-1 rounded-lg bg-rose-100 text-rose-800 font-bold text-[10px] uppercase tracking-wider">
                         Credit Hold Active {c.creditHoldReason ? `· ${c.creditHoldReason}` : ''}
                       </div>
@@ -481,7 +538,39 @@ export default function ContactsPage() {
             </div>
 
             <form onSubmit={handleCreate} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              {/* Record Kind Switch: B2B Business vs B2C Consumer */}
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-600 mb-1.5">
+                  Record Classification
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      ['business', 'B2B Business Account', 'Company, GSTIN & credit terms'],
+                      ['consumer', 'B2C Individual Consumer', 'Clean personal buyer profile'],
+                    ] as const
+                  ).map(([kindVal, title, sub]) => {
+                    const active = accountKind === kindVal;
+                    return (
+                      <button
+                        key={kindVal}
+                        type="button"
+                        onClick={() => setAccountKind(kindVal)}
+                        className={`p-2.5 rounded-xl border text-left transition-all ${
+                          active
+                            ? 'border-brand-blue bg-brand-light/80 ring-1 ring-brand-blue/25'
+                            : 'border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="text-xs font-extrabold text-brand-navy">{title}</div>
+                        <div className="text-[10px] text-slate-500">{sub}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className={`grid ${accountKind === 'consumer' ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
                     Full Name *
@@ -495,36 +584,40 @@ export default function ContactsPage() {
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
-                    Company Name
-                  </label>
-                  <input
-                    type="text"
-                    value={company}
-                    onChange={(e) => setCompany(e.target.value)}
-                    placeholder="RS Electricals Pvt. Ltd."
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm"
-                  />
-                </div>
+                {accountKind !== 'consumer' && (
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
+                      Company Name
+                    </label>
+                    <input
+                      type="text"
+                      value={company}
+                      onChange={(e) => setCompany(e.target.value)}
+                      placeholder="RS Electricals Pvt. Ltd."
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm"
+                    />
+                  </div>
+                )}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className={`grid ${accountKind === 'consumer' ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
+                {accountKind !== 'consumer' && (
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
+                      Designation
+                    </label>
+                    <input
+                      type="text"
+                      value={designation}
+                      onChange={(e) => setDesignation(e.target.value)}
+                      placeholder="Managing Director"
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm"
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
-                    Designation
-                  </label>
-                  <input
-                    type="text"
-                    value={designation}
-                    onChange={(e) => setDesignation(e.target.value)}
-                    placeholder="Managing Director"
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
-                    Account Type
+                    Relationship Type
                   </label>
                   <select
                     value={type}
@@ -566,7 +659,7 @@ export default function ContactsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className={`grid ${accountKind === 'consumer' ? 'grid-cols-2' : 'grid-cols-3'} gap-3`}>
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
                     City
@@ -578,18 +671,20 @@ export default function ContactsPage() {
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
-                    GSTIN (15-Digit)
-                  </label>
-                  <input
-                    type="text"
-                    value={gstin}
-                    onChange={(e) => setGstin(e.target.value)}
-                    placeholder="07AABCR1234F1Z5"
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm font-mono uppercase"
-                  />
-                </div>
+                {accountKind !== 'consumer' && (
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
+                      GSTIN (15-Digit)
+                    </label>
+                    <input
+                      type="text"
+                      value={gstin}
+                      onChange={(e) => setGstin(e.target.value)}
+                      placeholder="07AABCR1234F1Z5"
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm font-mono uppercase"
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
                     Est. LTV (₹)
@@ -604,34 +699,36 @@ export default function ContactsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
-                    Credit Limit (₹)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={creditLimitInr}
-                    onChange={(e) => setCreditLimitInr(e.target.value)}
-                    placeholder="500000"
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm"
-                  />
+              {accountKind !== 'consumer' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
+                      Credit Limit (₹)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={creditLimitInr}
+                      onChange={(e) => setCreditLimitInr(e.target.value)}
+                      placeholder="500000"
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
+                      Credit Terms (Net Days)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={creditTermDays}
+                      onChange={(e) => setCreditTermDays(e.target.value)}
+                      placeholder="30"
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
-                    Credit Terms (Net Days)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={creditTermDays}
-                    onChange={(e) => setCreditTermDays(e.target.value)}
-                    placeholder="30"
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm"
-                  />
-                </div>
-              </div>
+              )}
 
               <CustomFieldsInputs
                 fields={contactFieldDefs}

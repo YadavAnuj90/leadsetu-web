@@ -20,6 +20,7 @@ import {
 import { useLeads } from '@/hooks/useLeads';
 import { useAuthStore } from '@/store/auth.store';
 import { isFeatureEnabled } from '@/lib/feature-access';
+import { getBusinessModeMeta, getSegmentCopy } from '@/lib/business-modes';
 import { Upload, Mic } from 'lucide-react';
 import BulkCsvImportModal from '@/components/leads/BulkCsvImportModal';
 import VoiceCrmAuditModal from '@/components/ai/VoiceCrmAuditModal';
@@ -69,6 +70,8 @@ export default function LeadsPage() {
 
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
+  const segCopy = getSegmentCopy(tenant?.businessMode);
+  const modeMeta = getBusinessModeMeta(tenant?.businessMode);
   const aiEnabled = isFeatureEnabled(tenant, 'aiScoring', user);
   const voiceCrmEnabled = aiEnabled && isFeatureEnabled(tenant, 'aiVoiceCrm', user);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
@@ -108,13 +111,13 @@ export default function LeadsPage() {
         <div>
           <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-blue mb-1">
             <Sparkles className="w-3.5 h-3.5" />{' '}
-            {aiEnabled ? 'SetuAI Lead Engine' : 'Lead Pipeline · AI Scoring Paused'}
+            {modeMeta.shortBadge} · {aiEnabled ? 'SetuAI Scoring Active' : 'AI Scoring Paused'}
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-navy tracking-tight">
-            Leads Command Center
+            {segCopy.leadsHeading}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Capture, score, and convert buyers from WhatsApp, IndiaMART, and Meta Ads.
+            {segCopy.leadsSubtitle}
           </p>
         </div>
 
@@ -254,6 +257,32 @@ export default function LeadsPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* B2B vs B2C Filter Pills */}
+            <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 border border-slate-200/70">
+              {(
+                [
+                  ['all', `All (${stats.total})`],
+                  ['business', `B2B (${stats.businessCount ?? 0})`],
+                  ['consumer', `B2C (${stats.consumerCount ?? 0})`],
+                ] as const
+              ).map(([kindVal, label]) => (
+                <button
+                  key={kindVal}
+                  type="button"
+                  onClick={() =>
+                    setFilters((prev) => ({ ...prev, accountKind: kindVal }))
+                  }
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold transition-all ${
+                    (filters.accountKind || 'all') === kindVal
+                      ? 'bg-brand-blue text-white shadow-xs'
+                      : 'text-slate-600 hover:text-brand-navy'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
             <select
               value={filters.source || 'all'}
               onChange={(e) =>
@@ -424,9 +453,22 @@ export default function LeadsPage() {
                               <span>{lead.name}</span>
                               <ArrowUpRight className="w-3.5 h-3.5" />
                             </Link>
-                            <div className="text-xs text-slate-500">
-                              {lead.company || 'Direct Buyer'}{' '}
-                              {lead.phone ? `· ${lead.phone}` : ''}
+                            <div className="text-xs text-slate-500 flex items-center gap-1.5">
+                              <span
+                                className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded ${
+                                  lead.accountKind === 'consumer'
+                                    ? 'bg-emerald-50 text-emerald-700'
+                                    : 'bg-brand-light text-brand-blue'
+                                }`}
+                              >
+                                {lead.accountKind === 'consumer' ? 'B2C' : 'B2B'}
+                              </span>
+                              <span>
+                                {lead.accountKind === 'consumer'
+                                  ? 'Individual Consumer'
+                                  : lead.company || 'Business Buyer'}
+                                {lead.phone ? ` · ${lead.phone}` : ''}
+                              </span>
                             </div>
                           </div>
                         </div>

@@ -1024,10 +1024,19 @@ export default function IntegrationsSettingsPage() {
             />
 
             <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
-                <Users className="w-3.5 h-3.5 text-brand-blue" />
-                Round-Robin Pointer: Slot #{(config?.roundRobinIndex ?? 0) + 1}
-              </span>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
+                  <Users className="w-3.5 h-3.5 text-brand-blue" />
+                  Round-Robin Pointer: Slot #{(config?.roundRobinIndex ?? 0) + 1}
+                </span>
+                <Link
+                  href="/settings/routing"
+                  className="inline-flex items-center gap-1 text-[11px] font-extrabold text-brand-blue hover:underline"
+                >
+                  <span>Configure Territory &amp; Load Routing</span>
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
               <button
                 type="submit"
                 disabled={isSending || !config}

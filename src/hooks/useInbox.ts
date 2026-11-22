@@ -7,12 +7,16 @@ import { useAuthStore } from '@/store/auth.store';
 import {
   fetchMetaApprovedTemplatesApi,
   fetchWhatsAppCloudConfigApi,
+  fetchAiAgentConfigApi,
   generateInboxAiAssistApi,
   linkConversationEntityApi,
   markConversationReadApi,
   sendInboxMessageApi,
+  simulateInboundMessageApi,
+  toggleConversationAutopilotApi,
 } from '@/lib/inbox-api';
 import type {
+  AiSalesAgentPolicy,
   ChatAttachment,
   Conversation,
   LinkedCrmEntityType,
@@ -33,6 +37,7 @@ export function useInbox(initialThreadId?: string | null) {
     null,
   );
   const [metaTemplates, setMetaTemplates] = useState<MetaApprovedTemplate[]>([]);
+  const [aiAgentPolicy, setAiAgentPolicy] = useState<AiSalesAgentPolicy | null>(null);
   const [isLiveConnected, setIsLiveConnected] = useState(false);
   const accessToken = useAuthStore((s) => s.accessToken);
 
@@ -79,6 +84,11 @@ export function useInbox(initialThreadId?: string | null) {
             })
             .catch(() => {});
         }
+      })
+      .catch(() => {});
+    fetchAiAgentConfigApi()
+      .then((policy) => {
+        if (active) setAiAgentPolicy(policy);
       })
       .catch(() => {});
     return () => {
@@ -273,6 +283,28 @@ export function useInbox(initialThreadId?: string | null) {
     [],
   );
 
+  const toggleAutopilot = useCallback(
+    async (id: string, paused: boolean) => {
+      const updated = await toggleConversationAutopilotApi(id, paused);
+      setConversations((prev) =>
+        prev.map((c) => (c.id === updated.id ? updated : c)),
+      );
+      return updated;
+    },
+    [],
+  );
+
+  const simulateInbound = useCallback(
+    async (id: string, message: string) => {
+      const updated = await simulateInboundMessageApi(id, message);
+      setConversations((prev) =>
+        prev.map((c) => (c.id === updated.id ? updated : c)),
+      );
+      return updated;
+    },
+    [],
+  );
+
   const upsertAndSelectConversation = useCallback((conv: Conversation) => {
     setConversations((prev) => {
       const exists = prev.some((c) => c.id === conv.id);
@@ -300,9 +332,13 @@ export function useInbox(initialThreadId?: string | null) {
     error,
     waCloudConfig,
     metaTemplates,
+    aiAgentPolicy,
+    setAiAgentPolicy,
     sendMessage,
     generateAiAssist,
     toggleStatus,
+    toggleAutopilot,
+    simulateInbound,
     linkEntity,
     upsertAndSelectConversation,
     refetch: () => fetchConversations(false),

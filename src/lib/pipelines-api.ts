@@ -3,6 +3,7 @@ import type {
   CreatePipelinePayload,
   Pipeline,
   UpdatePipelinePayload,
+  WorkspaceBusinessMode,
 } from '@/types/contracts';
 
 export async function fetchPipelinesApi(): Promise<{
@@ -33,6 +34,21 @@ export async function updatePipelineApi(
 
 export async function setDefaultPipelineApi(id: string): Promise<Pipeline> {
   const { data } = await apiClient.post<Pipeline>(`/pipelines/${id}/set-default`);
+  return data;
+}
+
+export async function applyModePresetPipelineApi(
+  businessMode?: WorkspaceBusinessMode,
+): Promise<{
+  pipeline: Pipeline;
+  migratedDealsCount: number;
+  appliedMode: WorkspaceBusinessMode;
+}> {
+  const { data } = await apiClient.post<{
+    pipeline: Pipeline;
+    migratedDealsCount: number;
+    appliedMode: WorkspaceBusinessMode;
+  }>('/pipelines/apply-mode-preset', businessMode ? { businessMode } : {});
   return data;
 }
 

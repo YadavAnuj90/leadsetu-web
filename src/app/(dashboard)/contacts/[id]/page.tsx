@@ -17,6 +17,8 @@ import { apiClient } from '@/lib/api-client';
 import CallMobileButton from '@/components/calling/CallMobileButton';
 import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
 import CustomFieldsDisplayCard from '@/components/custom-fields/CustomFieldsDisplayCard';
+import { EntityEmailPanel } from '@/components/email/EntityEmailPanel';
+import { ContactPortalLinkCard } from '@/components/portal/ContactPortalLinkCard';
 import type { Contact } from '@/types/contracts';
 
 export default function ContactDetailPage() {
@@ -115,13 +117,35 @@ export default function ContactDetailPage() {
               {contact.name?.[0]?.toUpperCase() || 'C'}
             </div>
             <div>
-              <h1 className="text-2xl font-extrabold text-brand-navy">
-                {contact.name}
-              </h1>
-              <p className="text-sm text-slate-500 flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl font-extrabold text-brand-navy">
+                  {contact.name}
+                </h1>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const nextKind =
+                      contact.accountKind === 'consumer' ? 'business' : 'consumer';
+                    const res = await apiClient.patch<Contact>(`/contacts/${contact.id}`, {
+                      accountKind: nextKind,
+                    });
+                    setContact(res.data);
+                  }}
+                  title="Switch between B2B Business Account & B2C Consumer Profile"
+                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border transition-colors ${
+                    contact.accountKind === 'consumer'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                      : 'bg-brand-light text-brand-blue border-brand-blue/25 hover:bg-brand-blue/15'
+                  }`}
+                >
+                  {contact.accountKind === 'consumer' ? 'B2C Consumer ⇄' : 'B2B Business ⇄'}
+                </button>
+              </div>
+              <p className="text-sm text-slate-500 flex items-center gap-1.5 mt-0.5">
                 <Building2 className="w-4 h-4 text-brand-blue" />
-                {contact.designation ? `${contact.designation} at ` : ''}
-                {contact.company || 'Individual Account'}
+                {contact.accountKind === 'consumer'
+                  ? 'Individual Consumer Account'
+                  : `${contact.designation ? `${contact.designation} at ` : ''}${contact.company || 'Business Account'}`}
               </p>
             </div>
           </div>
@@ -168,10 +192,12 @@ export default function ContactDetailPage() {
           </div>
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
             <div className="text-[10px] font-bold uppercase text-slate-400">
-              GSTIN Number
+              {contact.accountKind === 'consumer' ? 'Segment Classification' : 'GSTIN Number'}
             </div>
             <div className="text-sm font-mono font-bold text-brand-navy mt-1">
-              {contact.gstin || 'Unregistered / B2C'}
+              {contact.accountKind === 'consumer'
+                ? 'B2C Individual Consumer'
+                : contact.gstin || 'Unregistered / Pending GSTIN'}
             </div>
           </div>
         </div>
@@ -202,6 +228,30 @@ export default function ContactDetailPage() {
           });
           setContact(res.data);
         }}
+      />
+
+      {contact.accountKind !== 'consumer' && (
+        <ContactPortalLinkCard
+          contactId={contact.id}
+          contactName={contact.name}
+          companyName={contact.company}
+          initialToken={contact.portalToken}
+          initialEnabled={contact.portalEnabled !== false}
+          lastAccessedAt={contact.portalLastAccessedAt}
+          onUpdated={(next) =>
+            setContact((prev) => (prev ? { ...prev, ...next } : prev))
+          }
+        />
+      )}
+
+      <EntityEmailPanel
+        entityType="contact"
+        entityId={contact.id}
+        entityLabel={contact.company || contact.name}
+        defaultToEmail={contact.email || ''}
+        contactName={contact.name}
+        companyName={contact.company || ''}
+        onEmailActivity={() => void loadContact()}
       />
 
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm space-y-4">

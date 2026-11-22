@@ -63,8 +63,21 @@ export default function LeadCard({
                 <span className="truncate">{lead.name}</span>
                 <ArrowUpRight className="w-3.5 h-3.5 flex-shrink-0" />
               </Link>
-              <div className="text-xs text-slate-500 truncate">
-                {lead.company || 'Individual Buyer'}
+              <div className="text-xs text-slate-500 truncate flex items-center gap-1.5">
+                <span
+                  className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md ${
+                    lead.accountKind === 'consumer'
+                      ? 'bg-emerald-50 text-emerald-700'
+                      : 'bg-brand-light text-brand-blue'
+                  }`}
+                >
+                  {lead.accountKind === 'consumer' ? 'B2C' : 'B2B'}
+                </span>
+                <span className="truncate">
+                  {lead.accountKind === 'consumer'
+                    ? 'Individual Buyer'
+                    : lead.company || 'Business Buyer'}
+                </span>
               </div>
             </div>
           </div>

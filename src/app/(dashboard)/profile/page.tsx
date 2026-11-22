@@ -49,6 +49,8 @@ import {
 } from '@/lib/calls-api';
 import { formatCallDuration } from '@/store/call-ui.store';
 import RoundCallMetricRing from '@/components/calling/RoundCallMetricRing';
+import { TwoFactorSecurityCard } from '@/components/auth/TwoFactorSecurityCard';
+import { QuotaCommissionWidget } from '@/components/team/QuotaCommissionWidget';
 import {
   USER_FEATURE_CATALOG,
   isFeatureEnabled,
@@ -541,62 +543,8 @@ export default function ProfilePage() {
 
       {/* Personal Performance, AI Quota & Today's Follow-ups */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-6 card-surface p-6 space-y-4">
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <h2 className="text-base font-extrabold text-brand-navy flex items-center gap-2">
-                <Target className="w-4 h-4 text-brand-blue" />
-                <span>My Target &amp; Pipeline Progress</span>
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Live closed-won revenue vs. monthly target and daily AI copilot allowance.
-              </p>
-            </div>
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-brand-blue/10 text-brand-blue border border-brand-blue/25">
-              <Sparkles className="w-3 h-3" /> AI Today: {myPerf?.aiCallsToday ?? 0}/
-              {myPerf?.aiDailyCallLimit ? myPerf.aiDailyCallLimit : '∞'}
-            </span>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/60 space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-600 dark:text-slate-300">
-                Won Revenue: ₹{Number(myPerf?.performance?.wonRevenue || 0).toLocaleString('en-IN')}
-              </span>
-              <span className="font-extrabold text-brand-blue">
-                {myPerf?.performance?.targetAchievedPct ?? 0}% of ₹
-                {Number(myPerf?.monthlyTarget ?? user?.monthlyTarget ?? 0).toLocaleString('en-IN')}
-              </span>
-            </div>
-            <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
-              <div
-                className="h-full bg-emerald-500 transition-all"
-                style={{
-                  width: `${Math.min(100, myPerf?.performance?.targetAchievedPct ?? 0)}%`,
-                }}
-              />
-            </div>
-            <div className="grid grid-cols-3 gap-2 pt-2 text-center text-xs">
-              <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
-                <div className="text-[10px] font-bold uppercase text-slate-400">Leads</div>
-                <div className="font-extrabold text-brand-navy">
-                  {myPerf?.performance?.leadsCount ?? 0} ({myPerf?.performance?.hotLeads ?? 0} hot)
-                </div>
-              </div>
-              <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
-                <div className="text-[10px] font-bold uppercase text-slate-400">Open Pipeline</div>
-                <div className="font-extrabold text-brand-navy">
-                  ₹{Number(myPerf?.performance?.openPipeline || 0).toLocaleString('en-IN')}
-                </div>
-              </div>
-              <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
-                <div className="text-[10px] font-bold uppercase text-slate-400">Won Deals</div>
-                <div className="font-extrabold text-emerald-600 dark:text-emerald-400">
-                  {myPerf?.performance?.wonDeals ?? 0}
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="lg:col-span-6 space-y-4">
+          <QuotaCommissionWidget externalPerf={myPerf} />
         </div>
 
         <div className="lg:col-span-6 card-surface p-6 space-y-3">
@@ -1019,6 +967,9 @@ export default function ProfilePage() {
               </button>
             )}
           </form>
+
+          {/* Authenticator App 2FA */}
+          <TwoFactorSecurityCard />
         </div>
 
         {/* Right Column: Assigned CRM Features + Appearance */}

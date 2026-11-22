@@ -13,6 +13,7 @@ import {
   isFeatureEnabled,
   isWorkspaceAdminRole,
 } from '@/lib/feature-access';
+import { QuotaCommissionWidget } from '@/components/team/QuotaCommissionWidget';
 import {
   Sparkles,
   TrendingUp,
@@ -314,6 +315,9 @@ export default function DashboardPage() {
           );
         })}
       </div>
+
+      {/* Personal Monthly Quota Ring & Estimated Commission Widget */}
+      <QuotaCommissionWidget />
 
       {/* Non-Admin Assigned Modules Workspace Hub */}
       {!isAdmin && (
@@ -746,10 +750,16 @@ export default function DashboardPage() {
                           {rep.leadsCount} leads · {rep.wonDealsCount} deals won
                         </div>
                       </div>
-                      <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 flex-shrink-0">
-                        ₹{(rep.achievedRevenue || 0).toLocaleString('en-IN')}
-                      </span>
+                    <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 flex-shrink-0">
+                      ₹{(rep.achievedRevenue || 0).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  {(rep.estimatedCommissionInr ?? 0) > 0 && (
+                    <div className="flex items-center justify-between text-[10.5px] font-bold text-amber-600 dark:text-amber-400">
+                      <span>Est. Commission ({rep.activeTierRatePct ?? 0}% Slab)</span>
+                      <span>₹{(rep.estimatedCommissionInr ?? 0).toLocaleString('en-IN')}</span>
                     </div>
+                  )}
                     {rep.monthlyTarget > 0 && (
                       <div className="space-y-1">
                         <div className="flex justify-between text-[10px] font-semibold text-slate-400">

@@ -1,5 +1,6 @@
 import { apiClient } from './api-client';
 import type {
+  AiSalesAgentPolicy,
   ChatAttachment,
   Conversation,
   InboxCrmEntitiesResponse,
@@ -271,6 +272,43 @@ export async function generateInboxAiAssistApi(
   const { data } = await apiClient.post(
     `/inbox/${conversationId}/ai-assist`,
     payload || { mode: 'both', language: 'hinglish' },
+  );
+  return data;
+}
+
+export async function fetchAiAgentConfigApi(): Promise<AiSalesAgentPolicy> {
+  const { data } = await apiClient.get<AiSalesAgentPolicy>('/inbox/ai-agent/config');
+  return data;
+}
+
+export async function updateAiAgentConfigApi(
+  payload: Partial<AiSalesAgentPolicy>,
+): Promise<AiSalesAgentPolicy> {
+  const { data } = await apiClient.patch<AiSalesAgentPolicy>(
+    '/inbox/ai-agent/config',
+    payload,
+  );
+  return data;
+}
+
+export async function toggleConversationAutopilotApi(
+  conversationId: string,
+  paused: boolean,
+): Promise<Conversation> {
+  const { data } = await apiClient.patch<Conversation>(
+    `/inbox/${conversationId}/ai-autopilot`,
+    { paused },
+  );
+  return data;
+}
+
+export async function simulateInboundMessageApi(
+  conversationId: string,
+  message: string,
+): Promise<Conversation> {
+  const { data } = await apiClient.post<Conversation>(
+    `/inbox/${conversationId}/simulate-inbound`,
+    { message },
   );
   return data;
 }

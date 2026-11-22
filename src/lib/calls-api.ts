@@ -198,6 +198,11 @@ export interface UserCallAnalyticsItem {
   incomingCalls: number;
   totalDurationSeconds: number;
   answerRatePct: number;
+  todayDials?: number;
+  todayConnected?: number;
+  todayTalkSeconds?: number;
+  todayConnectRatePct?: number;
+  dispositionBreakdown?: Record<string, number>;
 }
 
 export interface UserCallAnalyticsResponse {
@@ -435,5 +440,106 @@ export async function logSimCallApi(payload: LogSimCallPayload): Promise<{
     call: CallHistoryEntry;
     followUpTaskId: string;
   }>('/calls/sim-log', payload);
+  return data;
+}
+
+export type PowerDialDisposition =
+  | 'rnr'
+  | 'busy'
+  | 'callback'
+  | 'interested'
+  | 'not_interested'
+  | 'dnd';
+
+export interface PowerQueueLeadItem {
+  id: string;
+  name: string;
+  company: string;
+  accountKind: 'business' | 'consumer';
+  phone: string;
+  email: string;
+  city: string;
+  source: string;
+  status: string;
+  estimatedValue: number;
+  aiScore: number;
+  aiLabel: 'Hot' | 'Warm' | 'Cold';
+  aiNextAction: string;
+  notes: string;
+  rnrRetryCount: number;
+  nextCallRetryAt: string;
+  lastCalledAt: string;
+  lastCallOutcome: string;
+  isDueNow: boolean;
+  queueBucket: 'due_retry' | 'fresh' | 'scheduled_later';
+}
+
+export interface PowerQueueResponse {
+  data: PowerQueueLeadItem[];
+  stats: {
+    queueTotal: number;
+    dueNowCount: number;
+    freshCount: number;
+    rnrRetryPendingCount: number;
+    dndCount: number;
+    completedTodayCount: number;
+  };
+}
+
+export interface PowerDialOutcomePayload {
+  leadId: string;
+  disposition: PowerDialDisposition;
+  durationSeconds?: number;
+  notes?: string;
+  callbackAt?: string;
+  sendWhatsAppOnRnr?: boolean;
+}
+
+export interface PowerDialOutcomeResponse {
+  call: CallHistoryEntry;
+  lead: {
+    id: string;
+    name: string;
+    status: string;
+    rnrRetryCount: number;
+    nextCallRetryAt: string;
+    lastCallOutcome: string;
+    doNotCall: boolean;
+  };
+  retryAction: {
+    type:
+      | 'retry_1_2h'
+      | 'retry_2_next_day_whatsapp'
+      | 'callback_scheduled'
+      | 'qualified_hot'
+      | 'closed_lost'
+      | 'dnd_suppressed';
+    scheduledFor: string;
+    whatsappSent: boolean;
+    whatsappStatus: string;
+    taskId: string;
+  };
+}
+
+export async function fetchPowerQueueApi(params?: {
+  onlyDue?: boolean;
+  limit?: number;
+}): Promise<PowerQueueResponse> {
+  const { data } = await apiClient.get<PowerQueueResponse>('/calls/power-queue', {
+    params: {
+      ...(params?.onlyDue !== undefined ? { onlyDue: String(params.onlyDue) } : {}),
+      ...(params?.limit ? { limit: params.limit } : {}),
+    },
+  });
+  return data;
+}
+
+export async function submitPowerDialOutcomeApi(
+  payload: PowerDialOutcomePayload,
+): Promise<PowerDialOutcomeResponse> {
+  const { data } = await apiClient.post<PowerDialOutcomeResponse>(
+    '/calls/power-dial-outcome',
+    payload,
+  );
   return data;
 }

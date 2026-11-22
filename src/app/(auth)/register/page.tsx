@@ -21,14 +21,19 @@ import {
 } from 'lucide-react';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { useAuth } from '@/hooks/useAuth';
 import { prepareOrganizationLogoDataUrl } from '@/lib/logo-upload';
+import { BUSINESS_MODE_OPTIONS } from '@/lib/business-modes';
+import type { WorkspaceBusinessMode } from '@/types/contracts';
 
 export default function RegisterPage() {
-  const { register, isLoading, error, clearError } = useAuth();
+  const { register, loginWithGoogle, isLoading, error, clearError } = useAuth();
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const [name, setName] = useState('');
   const [companyName, setCompanyName] = useState('');
+  const [businessMode, setBusinessMode] = useState<WorkspaceBusinessMode>('b2b');
   const [logoUrl, setLogoUrl] = useState('');
   const [logoError, setLogoError] = useState<string | null>(null);
   const [city, setCity] = useState('New Delhi');
@@ -66,6 +71,7 @@ export default function RegisterPage() {
         email: email.trim(),
         phone: formattedPhone,
         password,
+        businessMode,
       });
     } catch {
       // Error is handled in useAuth state
@@ -213,6 +219,37 @@ export default function RegisterPage() {
                           className="w-full pl-11 pr-4 py-2.5 rounded-full border border-slate-300/80 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#0057FF] focus:ring-2 focus:ring-[#0057FF]/15"
                         />
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Business Model Selector */}
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-2 pl-2">
+                      Business Type (Adapts Sidebar &amp; Modules)
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {BUSINESS_MODE_OPTIONS.map((mode) => {
+                        const active = businessMode === mode.id;
+                        return (
+                          <button
+                            key={mode.id}
+                            type="button"
+                            onClick={() => setBusinessMode(mode.id)}
+                            className={`px-3 py-2 rounded-2xl border text-left transition-all ${
+                              active
+                                ? 'border-[#0057FF] bg-[#0057FF]/10 text-[#0057FF] dark:text-sky-300 shadow-xs'
+                                : 'border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/70 text-slate-700 dark:text-slate-300 hover:border-[#0057FF]/50'
+                            }`}
+                          >
+                            <div className="text-xs font-extrabold leading-tight">
+                              {mode.shortBadge}
+                            </div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                              {mode.label}
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -383,6 +420,22 @@ export default function RegisterPage() {
                     </button>
                   </div>
                 </form>
+
+                {localError && (
+                  <div className="mt-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                    <span>{localError}</span>
+                  </div>
+                )}
+
+                <div className="mt-4">
+                  <GoogleSignInButton
+                    mode="signup"
+                    companyName={companyName}
+                    onGoogleLogin={loginWithGoogle}
+                    onError={(msg) => setLocalError(msg)}
+                  />
+                </div>
 
                 <div className="mt-6 pt-5 border-t border-slate-200/70 dark:border-slate-800 flex items-center justify-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                   <ShieldCheck className="w-4 h-4 text-emerald-500" />

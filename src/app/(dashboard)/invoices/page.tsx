@@ -48,6 +48,7 @@ import {
 import { fetchProductsApi } from '@/lib/products-api';
 import { apiClient, getErrorMessage } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth.store';
+import { getBusinessModeMeta, getSegmentCopy } from '@/lib/business-modes';
 import type {
   Invoice,
   InvoiceStats,
@@ -124,6 +125,8 @@ export default function InvoicesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { tenant } = useAuthStore();
+  const segCopy = getSegmentCopy(tenant?.businessMode);
+  const modeMeta = getBusinessModeMeta(tenant?.businessMode);
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [stats, setStats] = useState<InvoiceStats>({
@@ -154,7 +157,7 @@ export default function InvoicesPage() {
   const [email, setEmail] = useState('');
   const [gstin, setGstin] = useState('');
   const [placeOfSupply, setPlaceOfSupply] = useState('09 - Uttar Pradesh');
-  const [gstRate, setGstRate] = useState<number>(18);
+  const [gstRate, setGstRate] = useState<number>(segCopy.defaultGstRate);
   const [discount, setDiscount] = useState<string>('0');
   const [dueDate, setDueDate] = useState<string>(
     new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
@@ -582,11 +585,11 @@ export default function InvoicesPage() {
 
   const handleCopyPublicLink = async (inv: Invoice) => {
     if (!inv.publicToken || typeof window === 'undefined') return;
-    const url = `${window.location.origin}/quote/${inv.publicToken}`;
+    const url = `${window.location.origin}/portal/${inv.publicToken}`;
     try {
       await navigator.clipboard.writeText(url);
       setCopiedPublicId(inv.id);
-      setReminderToast(`Copied public buyer link for ${inv.invoiceNumber}.`);
+      setReminderToast(`Copied Buyer Magic Portal link for ${inv.invoiceNumber}.`);
       setTimeout(() => setCopiedPublicId(null), 2000);
       setTimeout(() => setReminderToast(null), 3200);
     } catch {
@@ -756,13 +759,13 @@ export default function InvoicesPage() {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-blue mb-1">
-            <Receipt className="w-3.5 h-3.5" /> 18% CGST / SGST &amp; IGST Billing Engine
+            <Receipt className="w-3.5 h-3.5" /> {modeMeta.shortBadge} · Billing &amp; Collections Engine
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-navy tracking-tight">
-            GST Tax Invoices &amp; Proforma Quotes
+            {segCopy.invoicePageTitle}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Create HSN-compliant B2B tax invoices from Noida Electronic City, track 18% GST liability, and collect via Razorpay on WhatsApp.
+            {segCopy.invoicePageSubtitle}
           </p>
         </div>
 
@@ -1375,10 +1378,12 @@ export default function InvoicesPage() {
                 <Receipt className="w-5 h-5 text-brand-blue" />
                 <div>
                   <h2 className="text-base font-extrabold">
-                    Create GST Tax Invoice / Proforma Quotation
+                    {segCopy.invoiceCreateTitle}
                   </h2>
                   <p className="text-[11px] text-slate-300">
-                    Auto-calculates HSN line items, 9% CGST + 9% SGST (Uttar Pradesh) or 18% IGST (Inter-state)
+                    {segCopy.hideGstinOnDocForm
+                      ? 'Clean receipt / fee bill layout with instant WhatsApp UPI & PDF download'
+                      : 'Auto-calculates HSN line items, CGST + SGST or IGST cleanly'}
                   </p>
                 </div>
               </div>
@@ -1408,7 +1413,7 @@ export default function InvoicesPage() {
                           : 'bg-white text-slate-600 border-slate-200'
                       }`}
                     >
-                      GST Tax Invoice (INV)
+                      {segCopy.invoiceDocHeading}
                     </button>
                     <button
                       type="button"
@@ -1419,21 +1424,23 @@ export default function InvoicesPage() {
                           : 'bg-white text-slate-600 border-slate-200'
                       }`}
                     >
-                      Proforma Quote (QTN)
+                      {segCopy.quoteDocHeading}
                     </button>
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Quick Auto-Fill from B2B GST Directory (Optional)
+                    {segCopy.hideGstinOnDocForm
+                      ? 'Quick Auto-Fill from Customers (Optional)'
+                      : 'Quick Auto-Fill from Contacts Directory (Optional)'}
                   </label>
                   <select
                     onChange={(e) => handleSelectContact(e.target.value)}
                     defaultValue=""
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700"
                   >
-                    <option value="">-- Select a saved B2B Contact --</option>
+                    <option value="">-- Select saved contact --</option>
                     {contacts.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.company || c.name} ({c.gstin || c.city})
@@ -1447,31 +1454,39 @@ export default function InvoicesPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Client / Company Name *
+                    {segCopy.hideGstinOnDocForm
+                      ? 'Customer / Student Name *'
+                      : 'Client / Company Name *'}
                   </label>
                   <input
                     type="text"
                     required
                     value={clientName}
                     onChange={(e) => setClientName(e.target.value)}
-                    placeholder="e.g. RS Electricals Pvt. Ltd."
+                    placeholder={
+                      segCopy.hideGstinOnDocForm
+                        ? 'e.g. Aditi Singh'
+                        : 'e.g. RS Electricals Pvt. Ltd.'
+                    }
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Buyer 15-Digit GSTIN
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={15}
-                    value={gstin}
-                    onChange={(e) => setGstin(e.target.value.toUpperCase())}
-                    placeholder="e.g. 07AABCR1234F1Z5"
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm font-mono uppercase"
-                  />
-                </div>
+                {!segCopy.hideGstinOnDocForm && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Buyer 15-Digit GSTIN
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={15}
+                      value={gstin}
+                      onChange={(e) => setGstin(e.target.value.toUpperCase())}
+                      placeholder="e.g. 07AABCR1234F1Z5"
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm font-mono uppercase"
+                    />
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -1837,8 +1852,8 @@ export default function InvoicesPage() {
                 <span className="text-xs text-slate-400">
                   ·{' '}
                   {selectedInvoice.docType === 'proforma_quote'
-                    ? 'PROFORMA QUOTATION'
-                    : 'TAX INVOICE'}
+                    ? segCopy.quoteDocHeading
+                    : segCopy.invoiceDocHeading}
                 </span>
               </div>
 
@@ -1959,8 +1974,8 @@ export default function InvoicesPage() {
                 <div>
                   <div className="text-[11px] font-bold uppercase tracking-widest text-brand-blue">
                     {selectedInvoice.docType === 'proforma_quote'
-                      ? 'Original Proforma Quotation'
-                      : 'Tax Invoice (Rule 46 CGST Rules)'}
+                      ? segCopy.quoteLegalSubLabel
+                      : segCopy.invoiceLegalSubLabel}
                   </div>
                   <h3 className="text-xl font-extrabold text-brand-navy mt-1">
                     {tenant?.name || 'Leadsetu Technologies Pvt. Ltd.'}

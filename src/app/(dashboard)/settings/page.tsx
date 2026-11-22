@@ -17,12 +17,14 @@ import {
   FileClock,
   FileText,
   FolderOpen,
+  GitBranch,
   Globe,
   HeartHandshake,
   ImagePlus,
   Kanban,
   Loader2,
   Lock,
+  Mail,
   MapPin,
   Moon,
   Palette,
@@ -39,6 +41,7 @@ import {
 import { useAuthStore } from '@/store/auth.store';
 import { isFeatureEnabled } from '@/lib/feature-access';
 import { prepareOrganizationLogoDataUrl } from '@/lib/logo-upload';
+import BusinessModeCard from '@/components/settings/BusinessModeCard';
 import {
   fetchCurrentTenantApi,
   updateCurrentTenantApi,
@@ -47,6 +50,7 @@ import {
   fetchAuditLogsApi,
   updateSecuritySettingsApi,
 } from '@/lib/audit-api';
+import { TwoFactorSecurityCard } from '@/components/auth/TwoFactorSecurityCard';
 import { getErrorMessage } from '@/lib/api-client';
 import { downloadSubscriptionInvoicePdf } from '@/lib/subscription-pdf';
 import SubscriptionInvoiceModal from '@/components/settings/SubscriptionInvoiceModal';
@@ -998,6 +1002,9 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* ─── MULTI-SEGMENT BUSINESS MODE & NAVIGATION ────────────────────── */}
+      <BusinessModeCard onUpdated={loadWorkspaceData} />
+
       {/* ─── SYMMETRIC 6-CARD WORKSPACE MODULES GRID (3x2) ───────────────── */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
@@ -1329,8 +1336,89 @@ export default function SettingsPage() {
               ))}
             </div>
           </Link>
+
+          {/* 7. Smart Lead Routing (Round-Robin & Territory) */}
+          <Link
+            href="/settings/routing"
+            className="group bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm hover:shadow-xl hover:border-emerald-500/50 transition-all flex flex-col justify-between gap-4"
+          >
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
+                  <GitBranch className="w-5 h-5" />
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-500/30">
+                  Auto-Assignment Engine
+                </span>
+              </div>
+
+              <div>
+                <h3 className="font-extrabold text-base text-brand-navy group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors flex items-center justify-between">
+                  <span>Smart Lead Routing</span>
+                  <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                  Route inbound IndiaMART, Justdial &amp; Website leads automatically via
+                  Round-Robin, Territory match, or Load-Balanced daily caps.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-100 dark:border-white/10 text-[10px] font-bold">
+              {['Round-Robin', 'Territory Match', 'Daily Caps', 'Simulator'].map((t) => (
+                <span
+                  key={t}
+                  className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300"
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          </Link>
+
+          {/* 8. 2-Way Email CRM & Templates */}
+          <Link
+            href="/settings/email"
+            className="group bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm hover:shadow-xl hover:border-sky-500/50 transition-all flex flex-col justify-between gap-4"
+          >
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-md shadow-sky-500/20">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200/70 dark:border-sky-500/30">
+                  SMTP / IMAP Sync
+                </span>
+              </div>
+
+              <div>
+                <h3 className="font-extrabold text-base text-brand-navy group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors flex items-center justify-between">
+                  <span>2-Way Email CRM &amp; Templates</span>
+                  <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-sky-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                  Connect Gmail, Zoho Mail, Outlook, or custom SMTP/IMAP, customize Proforma
+                  &amp; Udhaar templates, and track buyer email opens &amp; replies.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-100 dark:border-white/10 text-[10px] font-bold">
+              {['Gmail / Zoho', 'Open Pixel', 'IMAP Replies', 'Templates'].map((t) => (
+                <span
+                  key={t}
+                  className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300"
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          </Link>
         </div>
       </div>
+
+      {/* ─── AUTHENTICATOR APP 2FA & ACCOUNT SECURITY ─── */}
+      <TwoFactorSecurityCard />
 
       {/* ─── AI GATEWAY HEALTH & TOKEN BUDGET TELEMETRY ─── */}
       <AiUsageTelemetryCard />

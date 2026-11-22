@@ -47,6 +47,7 @@ import {
 import { CALL_OUTCOME_OPTIONS } from '@/components/calling/CallDispositionModal';
 import RoundCallMetricRing from '@/components/calling/RoundCallMetricRing';
 import WorkspaceCallTelemetryCard from '@/components/calling/WorkspaceCallTelemetryCard';
+import PowerDialerDeck from '@/components/calling/PowerDialerDeck';
 import {
   useCallUiStore,
   formatCallDuration,
@@ -171,27 +172,26 @@ export default function CrmPhonePage() {
   const [copiedShareUrl, setCopiedShareUrl] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
 
-  const isAdminViewer = ['owner', 'admin', 'super_admin'].includes(
+  const isAdminViewer = ['owner', 'admin', 'manager', 'super_admin'].includes(
     user?.role || '',
   );
+
+  const loadAnalyticsBoard = () => {
+    fetchUserCallAnalyticsApi()
+      .then((res) => {
+        setMyAnalytics(res.myStats || null);
+        setUserAnalytics(Array.isArray(res.users) ? res.users : []);
+        setIsAdminAnalytics(Boolean(res.isAdminView));
+      })
+      .catch(() => {});
+  };
 
   useEffect(() => {
     void handlers?.refreshHistory(historyFilter);
   }, [historyFilter, handlers]);
 
   useEffect(() => {
-    let active = true;
-    fetchUserCallAnalyticsApi()
-      .then((res) => {
-        if (!active) return;
-        setMyAnalytics(res.myStats || null);
-        setUserAnalytics(Array.isArray(res.users) ? res.users : []);
-        setIsAdminAnalytics(Boolean(res.isAdminView));
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
+    loadAnalyticsBoard();
   }, [history.length]);
 
   useEffect(() => {
@@ -687,6 +687,14 @@ export default function CrmPhonePage() {
           </div>
         )}
       </div>
+
+      {/* ─── BPO POWER DIALER QUEUE + RNR AUTO-RETRY ──────────────────────────── */}
+      <PowerDialerDeck
+        onOutcomeLogged={async () => {
+          await handlers?.refreshHistory(historyFilter);
+          loadAnalyticsBoard();
+        }}
+      />
 
       {/* ─── SECTION C: MAIN PHONE WORKSPACE (3-COL ADMIN / 2-COL PRIVATE USER) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
@@ -1542,23 +1550,22 @@ export default function CrmPhonePage() {
         </div>
       </div>
 
-      {/* ─── SECTION D: ADMIN USER-WISE CALL ANALYTICS (SMALL ROUND RINGS) ───── */}
+      {/* ─── SECTION D: LIVE MANAGER CALL BOARD (TODAY + DISPOSITION BREAKDOWN) ───── */}
       {isAdminViewer && isAdminAnalytics && (
         <div className="rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-extrabold text-brand-navy dark:text-white flex items-center gap-2">
                 <Users className="w-4 h-4 text-brand-blue" />
-                User-Wise Call Analytics
+                Live Manager Call Board &amp; Disposition Breakdown
               </h2>
               <p className="text-[11px] text-slate-400">
-                Per-user Total, Answered, Missed &amp; talk duration metrics
-                across your workspace
+                Today&apos;s dials, connect %, talk time, and per-caller outcome dispositions (RNR, Busy, Callback, Interested, DND)
               </p>
             </div>
             <span className="px-2.5 py-1 rounded-full bg-brand-light dark:bg-brand-blue/20 text-brand-blue dark:text-sky-300 text-[10px] font-extrabold">
               {userAnalytics.length}{' '}
-              {userAnalytics.length === 1 ? 'User' : 'Users'} Tracked
+              {userAnalytics.length === 1 ? 'Caller' : 'Callers'} Tracked
             </span>
           </div>
 
@@ -1568,60 +1575,107 @@ export default function CrmPhonePage() {
             </div>
           ) : (
             <div className="p-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {userAnalytics.map((item) => (
-                <div
-                  key={item.userId}
-                  className="rounded-2xl bg-slate-50/75 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 p-4 space-y-4 hover:border-brand-blue/40 transition-colors"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-brand-navy dark:bg-slate-800 text-white font-extrabold text-sm flex items-center justify-center shrink-0">
-                        {item.name?.[0]?.toUpperCase() || 'U'}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-xs font-extrabold text-brand-navy dark:text-white truncate">
-                          {item.name}
+              {userAnalytics.map((item) => {
+                const breakdown = item.dispositionBreakdown || {};
+                const dispEntries = [
+                  ['interested', 'Interested', 'bg-emerald-50 text-emerald-700 border-emerald-200'],
+                  ['rnr', 'RNR', 'bg-amber-50 text-amber-800 border-amber-200'],
+                  ['callback', 'Callback', 'bg-blue-50 text-brand-blue border-blue-200'],
+                  ['busy', 'Busy', 'bg-orange-50 text-orange-700 border-orange-200'],
+                  ['not_interested', 'Lost', 'bg-slate-100 text-slate-600 border-slate-200'],
+                  ['dnd', 'DND', 'bg-rose-50 text-rose-700 border-rose-200'],
+                ].filter(([key]) => (breakdown[key] || 0) > 0);
+
+                return (
+                  <div
+                    key={item.userId}
+                    className="rounded-2xl bg-slate-50/75 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 p-4 space-y-3.5 hover:border-brand-blue/40 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-brand-navy dark:bg-slate-800 text-white font-extrabold text-sm flex items-center justify-center shrink-0">
+                          {item.name?.[0]?.toUpperCase() || 'U'}
                         </div>
-                        <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                          {formatRoleLabel(item.role)} · UID #{item.userCode}
+                        <div className="min-w-0">
+                          <div className="text-xs font-extrabold text-brand-navy dark:text-white truncate">
+                            {item.name}
+                          </div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                            {formatRoleLabel(item.role)} · UID #{item.userCode}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <div className="text-xs font-mono font-extrabold text-emerald-600 dark:text-emerald-400">
+                          {item.answerRatePct}% All-Time
+                        </div>
+                        <div className="text-[10px] font-mono text-slate-400">
+                          Talk {formatCallDuration(item.totalDurationSeconds)}
                         </div>
                       </div>
                     </div>
 
-                    <div className="text-right shrink-0">
-                      <div className="text-xs font-mono font-extrabold text-emerald-600 dark:text-emerald-400">
-                        {item.answerRatePct}% Answer
+                    {/* Live Today KPI Ribbon */}
+                    <div className="grid grid-cols-3 gap-2 rounded-xl bg-white dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800 p-2.5 text-center">
+                      <div>
+                        <div className="text-[9px] font-bold uppercase text-slate-400">Today Dials</div>
+                        <div className="text-sm font-mono font-black text-brand-navy dark:text-white">
+                          {item.todayDials ?? 0}
+                        </div>
                       </div>
-                      <div className="text-[10px] font-mono text-slate-400">
-                        Talk {formatCallDuration(item.totalDurationSeconds)}
+                      <div>
+                        <div className="text-[9px] font-bold uppercase text-slate-400">Connect %</div>
+                        <div className="text-sm font-mono font-black text-emerald-600">
+                          {item.todayConnectRatePct ?? 0}%
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] font-bold uppercase text-slate-400">Today Talk</div>
+                        <div className="text-sm font-mono font-black text-brand-blue">
+                          {formatCallDuration(item.todayTalkSeconds ?? 0)}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center justify-around pt-3 border-t border-slate-200/70 dark:border-slate-800">
-                    <RoundCallMetricRing
-                      label="Total"
-                      value={item.totalCalls}
-                      tone="blue"
-                      size="sm"
-                    />
-                    <RoundCallMetricRing
-                      label="Answered"
-                      value={item.answeredCalls}
-                      total={item.totalCalls}
-                      tone="emerald"
-                      size="sm"
-                    />
-                    <RoundCallMetricRing
-                      label="Missed"
-                      value={item.missedCalls}
-                      total={item.totalCalls}
-                      tone="rose"
-                      size="sm"
-                    />
+                    <div className="flex items-center justify-around pt-2 border-t border-slate-200/70 dark:border-slate-800">
+                      <RoundCallMetricRing
+                        label="Total"
+                        value={item.totalCalls}
+                        tone="blue"
+                        size="sm"
+                      />
+                      <RoundCallMetricRing
+                        label="Answered"
+                        value={item.answeredCalls}
+                        total={item.totalCalls}
+                        tone="emerald"
+                        size="sm"
+                      />
+                      <RoundCallMetricRing
+                        label="Missed"
+                        value={item.missedCalls}
+                        total={item.totalCalls}
+                        tone="rose"
+                        size="sm"
+                      />
+                    </div>
+
+                    {dispEntries.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-200/70 dark:border-slate-800">
+                        {dispEntries.map(([key, label, cls]) => (
+                          <span
+                            key={key}
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold border ${cls}`}
+                          >
+                            {label}: {breakdown[key]}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

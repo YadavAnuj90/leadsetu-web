@@ -103,10 +103,34 @@ export interface AnalyticsRepLeaderboardItem {
   territory: string;
   leadsCount: number;
   hotLeadsCount: number;
+  dealsCount?: number;
   wonDealsCount: number;
+  winRatePct?: number;
+  callsCount?: number;
+  wonRevenue?: number;
+  paidRevenue?: number;
   achievedRevenue: number;
   monthlyTarget: number;
   targetAchievementPct: number;
+  estimatedCommissionInr?: number;
+  baseCommissionInr?: number;
+  quotaBonusInr?: number;
+  activeTierLabel?: string;
+  activeTierRatePct?: number;
+  nextTierRemainingInr?: number;
+  nextTierRatePct?: number | null;
+}
+
+export interface AnalyticsCommissionPolicy {
+  enabled: boolean;
+  basis: 'max_won_or_paid' | 'won_deals' | 'paid_invoices';
+  quotaBonusPct: number;
+  slabs: Array<{
+    minRevenueInr: number;
+    maxRevenueInr: number | null;
+    ratePct: number;
+    label: string;
+  }>;
 }
 
 export interface AnalyticsTopCampaignItem {
@@ -129,6 +153,7 @@ export interface AnalyticsOverviewResponse {
   agingBuckets: AnalyticsAgingBuckets;
   monthlyTrend: AnalyticsMonthlyPoint[];
   repLeaderboard: AnalyticsRepLeaderboardItem[];
+  commissionPolicy?: AnalyticsCommissionPolicy;
   topCampaigns: AnalyticsTopCampaignItem[];
 }
 

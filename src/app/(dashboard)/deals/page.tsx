@@ -27,14 +27,26 @@ import CustomFieldsInputs from '@/components/custom-fields/CustomFieldsInputs';
 import KanbanBoard from '@/components/deals/KanbanBoard';
 import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
 import CallMobileButton from '@/components/calling/CallMobileButton';
+import { useAuthStore } from '@/store/auth.store';
+import { getBusinessModeMeta, getSegmentCopy } from '@/lib/business-modes';
+import { isWorkspaceAdminRole } from '@/lib/feature-access';
 import type { DealStage } from '@/types/contracts';
 
 export default function DealsPage() {
+  const user = useAuthStore((s) => s.user);
+  const tenant = useAuthStore((s) => s.tenant);
+  const segCopy = getSegmentCopy(tenant?.businessMode);
+  const modeMeta = getBusinessModeMeta(tenant?.businessMode);
+  const isAdmin = isWorkspaceAdminRole(user);
+
   const {
     pipelines,
     defaultPipeline,
     isLoading: pipelinesLoading,
+    isSaving: pipelinesSaving,
+    applyModePreset,
   } = usePipelines();
+  const [presetToast, setPresetToast] = useState<string | null>(null);
 
   const {
     deals,
@@ -136,14 +148,14 @@ export default function DealsPage() {
     await createDeal({
       title,
       pipelineId: modalPipeline?.id || undefined,
-      company,
+      company: segCopy.dealsHideCompany ? '' : company,
       contactName,
       contactPhone,
       city,
       value: Number(value) || 0,
       stage,
       notes,
-      tags: ['GST 18%', 'B2B'],
+      tags: segCopy.dealsHideCompany ? [modeMeta.shortBadge] : ['GST 18%', 'B2B'],
       customFields,
     });
     setModalOpen(false);
@@ -156,23 +168,48 @@ export default function DealsPage() {
     setCustomFields({});
   };
 
+  const handleApplyModeStages = async () => {
+    const res = await applyModePreset(tenant?.businessMode);
+    setPresetToast(
+      `Loaded ${modeMeta.shortBadge} stages onto "${res.pipeline.name}" (${res.migratedDealsCount} active cards safely aligned).`,
+    );
+    setTimeout(() => setPresetToast(null), 4000);
+  };
+
   return (
     <div className="max-w-[1600px] mx-auto space-y-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-blue mb-1">
-            <Sparkles className="w-3.5 h-3.5" /> Visual Revenue Kanban
+            <Sparkles className="w-3.5 h-3.5" /> {modeMeta.shortBadge} · Visual Revenue Kanban
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-navy tracking-tight">
-            Deals &amp; Multi-Pipeline Board
+            {segCopy.dealsHeading}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Switch between custom pipelines, drag cards across stages, or inspect in list view.
+            Switch pipelines, drag {segCopy.dealsEntityNoun.toLowerCase()} cards across stages, or inspect in list view.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          {isAdmin && (
+            <button
+              type="button"
+              disabled={pipelinesSaving}
+              onClick={handleApplyModeStages}
+              title={`Reset default pipeline columns to ${modeMeta.shortBadge} template (${segCopy.pipelineStageSummary})`}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold border border-brand-blue/30 bg-brand-light text-brand-blue hover:bg-brand-blue hover:text-white transition-colors disabled:opacity-60"
+            >
+              {pipelinesSaving ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5" />
+              )}
+              <span>Load {modeMeta.shortBadge} Stages</span>
+            </button>
+          )}
+
           <Link
             href="/settings/pipelines"
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold border border-slate-200 bg-white text-brand-navy hover:border-brand-blue hover:text-brand-blue transition-colors"
@@ -187,10 +224,19 @@ export default function DealsPage() {
             className="btn-primary-brand inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white"
           >
             <Plus className="w-4 h-4" />
-            <span>New Deal</span>
+            <span>New {segCopy.dealsEntityNoun}</span>
           </button>
         </div>
       </div>
+
+      {presetToast && (
+        <div className="px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800 flex items-center justify-between">
+          <span>{presetToast}</span>
+          <button type="button" onClick={() => setPresetToast(null)}>
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Pipeline KPI Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -532,34 +578,36 @@ export default function DealsPage() {
 
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
-                  Deal Title *
+                  {segCopy.dealsEntityNoun} Title *
                 </label>
                 <input
                   type="text"
                   required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. 500 Switchgear Units Supply"
+                  placeholder={segCopy.dealsTitlePlaceholder}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-brand-navy"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className={`grid ${segCopy.dealsHideCompany ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
+                {!segCopy.dealsHideCompany && (
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
+                      Company Name
+                    </label>
+                    <input
+                      type="text"
+                      value={company}
+                      onChange={(e) => setCompany(e.target.value)}
+                      placeholder="RS Electricals Pvt. Ltd."
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-brand-navy"
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
-                    Company Name
-                  </label>
-                  <input
-                    type="text"
-                    value={company}
-                    onChange={(e) => setCompany(e.target.value)}
-                    placeholder="RS Electricals Pvt. Ltd."
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-brand-navy"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
-                    Deal Value (₹) *
+                    {segCopy.dealsEntityNoun} Value (₹) *
                   </label>
                   <input
                     type="number"

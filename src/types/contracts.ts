@@ -38,6 +38,7 @@ export interface Lead {
   tenantId: string;
   ownerId: string;
   name: string;
+  accountKind?: 'business' | 'consumer';
   company?: string;
   phone?: string;
   email?: string;
@@ -62,6 +63,8 @@ export interface Lead {
 
 export interface LeadsStats {
   total: number;
+  businessCount?: number;
+  consumerCount?: number;
   hotCount: number;
   qualifiedCount: number;
   convertedCount: number;
@@ -76,6 +79,7 @@ export interface LeadsListResponse {
 
 export interface CreateLeadPayload {
   name: string;
+  accountKind?: 'business' | 'consumer';
   company?: string;
   phone?: string;
   email?: string;
@@ -120,7 +124,15 @@ export interface Pipeline {
 export interface CreatePipelinePayload {
   name: string;
   description?: string;
-  template?: 'b2b_sales' | 'dealer_onboarding' | 'amc_renewals' | 'blank';
+  template?:
+    | 'b2b_sales'
+    | 'msme_sales'
+    | 'b2c_orders'
+    | 'education_admissions'
+    | 'bpo_callbacks'
+    | 'dealer_onboarding'
+    | 'amc_renewals'
+    | 'blank';
   isDefault?: boolean;
   stages?: PipelineStage[];
 }
@@ -263,6 +275,7 @@ export interface Contact {
   gstinStatus?: GstinStatus;
   gstinStateName?: string;
   gstinVerifiedAt?: string;
+  accountKind?: 'business' | 'consumer';
   type: 'customer' | 'prospect' | 'partner' | 'vendor';
   lifetimeValue: number;
   creditLimitInr?: number;
@@ -275,6 +288,9 @@ export interface Contact {
   tags: string[];
   notes: string;
   customFields?: Record<string, unknown>;
+  portalToken?: string;
+  portalEnabled?: boolean;
+  portalLastAccessedAt?: string;
   activities?: ContactActivity[];
   createdAt: string;
   updatedAt: string;
@@ -324,6 +340,74 @@ export interface UpdateCustomFieldPayload {
   showInCard?: boolean;
   isActive?: boolean;
   order?: number;
+}
+
+// ─── Smart Lead Routing (Round-Robin, Territory, Load-Balanced) ─
+export type RoutingMode = 'round_robin' | 'territory_first' | 'load_balanced';
+
+export interface RepRoutingConfig {
+  userId: string;
+  eligible: boolean;
+  dailyCap: number;
+  territories: string[];
+}
+
+export interface RepRoutingCandidate extends RepRoutingConfig {
+  name: string;
+  email: string;
+  role: string;
+  userCode: string;
+  openLeadsCount: number;
+  todayAssignedCount: number;
+}
+
+export interface TerritoryRoutingRule {
+  id: string;
+  name: string;
+  active: boolean;
+  matchCities: string[];
+  matchSources: string[];
+  minEstimatedValue: number;
+  targetUserIds: string[];
+  strategy: 'round_robin' | 'load_balanced';
+}
+
+export interface RoutingDecisionLog {
+  id: string;
+  leadId?: string;
+  leadName: string;
+  source: string;
+  city: string;
+  estimatedValue: number;
+  assignedUserId: string;
+  assignedUserName: string;
+  strategyUsed: string;
+  ruleName?: string;
+  assignedAt: string;
+}
+
+export interface LeadRoutingConfigResponse {
+  id: string;
+  tenantId: string;
+  enabled: boolean;
+  mode: RoutingMode;
+  applyToSources: string[];
+  applyOnManualCreate: boolean;
+  respectDailyCap: boolean;
+  defaultDailyCap: number;
+  rules: TerritoryRoutingRule[];
+  roundRobinCursor: number;
+  reps: RepRoutingCandidate[];
+  recentLogs: RoutingDecisionLog[];
+}
+
+export interface SimulateLeadRoutingResponse {
+  assignedUserId: string;
+  assignedUserName: string;
+  assignedUserEmail: string;
+  strategyUsed: RoutingMode | 'fallback_owner';
+  ruleName?: string;
+  reason: string;
 }
 
 // ─── Tasks ────────────────────────────────────────────
@@ -500,6 +584,40 @@ export interface Message {
   createdAt: string;
 }
 
+export interface AiSalesAgentPolicy {
+  mode: 'autopilot' | 'draft_only' | 'off';
+  language: 'auto' | 'hinglish' | 'english' | 'hindi';
+  maxDiscountPct: number;
+  handoffScoreThreshold: number;
+  autoSendCatalogPricing: boolean;
+  autoUpdateLeadFields: boolean;
+  businessHoursOnly: boolean;
+  escalationKeywords: string[];
+}
+
+export interface AiQualifiedData {
+  productName?: string;
+  sku?: string;
+  hsnSac?: string;
+  moq?: number;
+  quotedUnitPrice?: number;
+  gstRate?: number;
+  quantity?: number;
+  city?: string;
+  gstin?: string;
+  estimatedTotal?: number;
+  requestedDiscountPct?: number;
+}
+
+export interface AiActionLogItem {
+  id: string;
+  action: string;
+  detail: string;
+  replySent?: string;
+  mode: string;
+  createdAt: string;
+}
+
 export interface Conversation {
   id: string;
   tenantId: string;
@@ -513,6 +631,11 @@ export interface Conversation {
   estimatedValue: number;
   aiSummary: string;
   aiSuggestedReply: string;
+  aiAutopilotPaused?: boolean;
+  aiHandoffReason?: string;
+  aiHandedOffAt?: string;
+  aiQualifiedData?: AiQualifiedData;
+  aiActionLogs?: AiActionLogItem[];
   linkedEntityType?: LinkedCrmEntityType;
   linkedEntityId?: string;
   linkedEntityLabel?: string;
@@ -552,7 +675,19 @@ export interface AuthUser {
   maskPhones?: boolean;
   isImpersonation?: boolean;
   impersonatorEmail?: string;
+  twoFactorEnabled?: boolean;
+  authProvider?: 'local' | 'google';
 }
+
+export type WorkspaceBusinessMode =
+  | 'b2b'
+  | 'msme'
+  | 'b2c'
+  | 'hybrid'
+  | 'bpo'
+  | 'education';
+
+export type ContactAccountKind = 'business' | 'consumer';
 
 export interface TenantInfo {
   id: string;
@@ -564,6 +699,8 @@ export interface TenantInfo {
   slug: string;
   plan: 'starter' | 'growth' | 'enterprise';
   status: 'trial' | 'active' | 'suspended';
+  businessMode?: WorkspaceBusinessMode;
+  hiddenNavModules?: string[];
   city?: string;
   gstin?: string;
   state?: string;
@@ -653,6 +790,26 @@ export interface AuthResponse {
   tenant: TenantInfo;
 }
 
+export interface TwoFactorChallengeResponse {
+  requiresTwoFactor: true;
+  challengeToken: string;
+  maskedEmail: string;
+  message: string;
+}
+
+export type LoginResult = AuthResponse | TwoFactorChallengeResponse;
+
+export interface TwoFactorStatusResponse {
+  enabled: boolean;
+  backupCodesRemaining: number;
+}
+
+export interface TwoFactorSetupResponse {
+  secret: string;
+  otpauthUri: string;
+  qrDataUrl: string;
+}
+
 export interface LoginPayload {
   email: string;
   password: string;
@@ -666,6 +823,7 @@ export interface RegisterPayload {
   companyName?: string;
   logoUrl?: string;
   city?: string;
+  businessMode?: WorkspaceBusinessMode;
 }
 
 // ─── GST Invoices & Quotations ────────────────────────
@@ -947,9 +1105,20 @@ export type CampaignSegment =
   | 'hot_leads'
   | 'noida_delhi_ncr'
   | 'indiamart_buyers'
-  | 'gst_customers';
+  | 'gst_customers'
+  | 'b2b_accounts'
+  | 'b2c_consumers'
+  | 'delivered_customers';
 
 export type CampaignStatus = 'completed' | 'running' | 'scheduled' | 'draft';
+
+export interface CampaignSegmentFilters {
+  accountKind?: 'all' | 'business' | 'consumer';
+  city?: string;
+  leadStatus?: string;
+  minAiScore?: number;
+  excludeDnd?: boolean;
+}
 
 export interface CampaignRecipientEntry {
   recipientId: string;
@@ -980,6 +1149,8 @@ export interface Campaign {
   language: 'hinglish' | 'english' | 'hindi';
   channel: 'whatsapp_cloud' | 'whatsapp_ai_drip';
   targetSegment: CampaignSegment;
+  segmentFilters?: CampaignSegmentFilters;
+  parentCampaignId?: string;
   messageBody: string;
   ctaLabel: string;
   audienceCount: number;
@@ -989,6 +1160,8 @@ export interface Campaign {
   repliedCount: number;
   failedCount?: number;
   skippedDndCount?: number;
+  qualifiedLeadsCount?: number;
+  closedDealsCount?: number;
   recipients?: CampaignRecipientEntry[];
   deliveryRate: number;
   readRate: number;
@@ -1006,6 +1179,8 @@ export interface CampaignStats {
   totalDelivered: number;
   totalRead: number;
   totalReplies: number;
+  totalQualifiedLeads?: number;
+  totalClosedDeals?: number;
   avgDeliveryRate: number;
   avgReadRate: number;
   totalAttributedRevenue: number;
@@ -1019,6 +1194,8 @@ export interface CreateCampaignPayload {
   language?: 'hinglish' | 'english' | 'hindi';
   channel?: 'whatsapp_cloud' | 'whatsapp_ai_drip';
   targetSegment?: CampaignSegment;
+  segmentFilters?: CampaignSegmentFilters;
+  parentCampaignId?: string;
   messageBody: string;
   ctaLabel?: string;
   audienceCount?: number;
@@ -1980,4 +2157,219 @@ export interface SuperAdminOperatorItem {
   isActive: boolean;
   lastLoginAt: string | null;
   createdAt: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// 2-Way Email CRM (SMTP/IMAP + Templates + Tracking)
+// ---------------------------------------------------------------------------
+
+export type EmailProviderPreset = 'gmail' | 'zoho' | 'outlook' | 'custom';
+export type EmailTemplateCategory =
+  | 'proforma'
+  | 'quotation'
+  | 'followup'
+  | 'udhaar'
+  | 'welcome'
+  | 'custom';
+
+export interface EmailAccountInfo {
+  id: string;
+  providerPreset: EmailProviderPreset;
+  emailAddress: string;
+  displayName: string;
+  smtpHost: string;
+  smtpPort: number;
+  smtpSecure: boolean;
+  imapHost: string;
+  imapPort: number;
+  imapSecure: boolean;
+  username: string;
+  hasPassword: boolean;
+  appPasswordMasked: string;
+  signatureHtml: string;
+  isActive: boolean;
+  lastSyncedAt: string | null;
+  lastSyncError: string;
+}
+
+export interface EmailTemplateItem {
+  id: string;
+  name: string;
+  category: EmailTemplateCategory;
+  subject: string;
+  bodyHtml: string;
+}
+
+export interface EmailMessageItem {
+  id: string;
+  direction: 'outbound' | 'inbound';
+  fromEmail: string;
+  toEmail: string;
+  subject: string;
+  bodyText: string;
+  bodyHtml: string;
+  entityType: 'lead' | 'contact' | 'deal' | '';
+  entityId: string;
+  entityLabel: string;
+  openCount: number;
+  firstOpenedAt: string | null;
+  lastOpenedAt: string | null;
+  status: string;
+  sentAt: string;
+}
+
+export interface EmailCrmConfigResponse {
+  account: EmailAccountInfo | null;
+  templates: EmailTemplateItem[];
+  recentMessages: EmailMessageItem[];
+}
+
+// ---------------------------------------------------------------------------
+// B2B Buyer / Dealer Self-Service Magic Portal
+// ---------------------------------------------------------------------------
+
+export interface PortalLineItem {
+  description: string;
+  hsnSac: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+}
+
+export interface PortalQuotationItem {
+  id: string;
+  invoiceNumber: string;
+  clientName: string;
+  contactPerson: string;
+  gstin: string;
+  placeOfSupply: string;
+  taxType: 'cgst_sgst' | 'igst';
+  gstRate: number;
+  items: PortalLineItem[];
+  subTotal: number;
+  discount: number;
+  taxableAmount: number;
+  cgstAmount: number;
+  sgstAmount: number;
+  igstAmount: number;
+  gstAmount: number;
+  grandTotal: number;
+  dueDate: string;
+  notes: string;
+  publicToken: string;
+  quoteApprovalStatus: 'pending' | 'approved' | 'changes_requested';
+  approvedByName: string;
+  approvedAt: string;
+  convertedToInvoiceId: string;
+  createdAt: string;
+}
+
+export interface PortalInvoiceItem {
+  id: string;
+  invoiceNumber: string;
+  clientName: string;
+  gstin: string;
+  placeOfSupply: string;
+  taxType: 'cgst_sgst' | 'igst';
+  gstRate: number;
+  items: PortalLineItem[];
+  subTotal: number;
+  discount: number;
+  taxableAmount: number;
+  cgstAmount: number;
+  sgstAmount: number;
+  igstAmount: number;
+  gstAmount: number;
+  grandTotal: number;
+  amountPaid: number;
+  tdsDeducted: number;
+  balanceDue: number;
+  status: InvoiceStatus;
+  daysOverdue: number;
+  dueDate: string;
+  paymentLink: string;
+  upiDeepLink: string;
+  promisedPaymentDate: string;
+  payments: Array<{
+    id: string;
+    amountPaid: number;
+    tdsDeducted: number;
+    totalSettled: number;
+    paymentMode: string;
+    utrOrChequeNo: string;
+    paymentDate: string;
+  }>;
+  notes: string;
+  createdAt: string;
+}
+
+export interface PortalTicketItem {
+  id: string;
+  ticketNumber: string;
+  subject: string;
+  category: string;
+  priority: string;
+  status: string;
+  linkedInvoiceNumber: string;
+  slaDueAt: string;
+  resolvedAt: string;
+  resolutionSummary: string;
+  comments: Array<{
+    id: string;
+    authorName: string;
+    authorRole: string;
+    message: string;
+    createdAt: string;
+  }>;
+  createdAt: string;
+}
+
+export interface BuyerPortalData {
+  portalToken: string;
+  focusDocId: string;
+  seller: {
+    companyName: string;
+    logoUrl: string;
+    city: string;
+    gstin: string;
+    state: string;
+    phone: string;
+    email: string;
+    address: string;
+    upiId: string;
+    bankAccountNote: string;
+  };
+  buyer: {
+    id: string;
+    name: string;
+    company: string;
+    designation: string;
+    phone: string;
+    email: string;
+    city: string;
+    gstin: string;
+    gstinStatus: string;
+    creditLimitInr: number;
+    creditTermDays: number;
+    creditHold: boolean;
+    creditHoldReason: string;
+    openBalanceInr: number;
+    overdueBalanceInr: number;
+    availableCreditInr: number;
+    totalInvoicedInr: number;
+    totalPaidInr: number;
+  };
+  quotations: PortalQuotationItem[];
+  invoices: PortalInvoiceItem[];
+  tickets: PortalTicketItem[];
+}
+
+export interface PortalPaymentIntentResponse {
+  upiDeepLink: string;
+  upiQrDataUrl: string;
+  upiId: string;
+  bankAccountNote: string;
+  paymentLink: string;
+  message: string;
+  portal: BuyerPortalData;
 }

@@ -1,6 +1,8 @@
 import { apiClient } from '@/lib/api-client';
 import type {
   Campaign,
+  CampaignSegment,
+  CampaignSegmentFilters,
   CampaignStats,
   CreateCampaignPayload,
 } from '@/types/contracts';
@@ -40,6 +42,47 @@ export async function toggleCampaignRecipientOptOut(
   const { data } = await apiClient.post<Campaign>(
     `/campaigns/${campaignId}/opt-out`,
     payload,
+  );
+  return data;
+}
+
+export interface PreviewAudienceResponse {
+  targetSegment: CampaignSegment;
+  totalMatched: number;
+  willDispatchCount: number;
+  excludedDndCount: number;
+  sampleRecipients: Array<{
+    id: string;
+    name: string;
+    company: string;
+    city: string;
+    accountKind: 'business' | 'consumer';
+  }>;
+}
+
+export async function previewCampaignAudience(payload: {
+  targetSegment?: CampaignSegment;
+  segmentFilters?: CampaignSegmentFilters;
+}): Promise<PreviewAudienceResponse> {
+  const { data } = await apiClient.post<PreviewAudienceResponse>(
+    '/campaigns/preview-audience',
+    payload,
+  );
+  return data;
+}
+
+export async function retargetCampaignNonResponders(
+  campaignId: string,
+  payload?: {
+    name?: string;
+    messageBody?: string;
+    ctaLabel?: string;
+    sendNow?: boolean;
+  },
+): Promise<Campaign> {
+  const { data } = await apiClient.post<Campaign>(
+    `/campaigns/${campaignId}/retarget-non-responders`,
+    payload || {},
   );
   return data;
 }

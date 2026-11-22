@@ -113,10 +113,10 @@ export default function AnalyticsPage() {
           `${m.label},${m.leadsCount},${m.pipelineValue},${m.invoicedAmount},${m.paidAmount}`,
       ),
       '',
-      'REP LEADERBOARD,ROLE,TERRITORY,LEADS,WON DEALS,ACHIEVED (INR),TARGET (INR),PROGRESS (%)',
+      'REP LEADERBOARD,ROLE,TERRITORY,LEADS,WON DEALS,WIN RATE %,CALLS,ACHIEVED (INR),TARGET (INR),PROGRESS (%),EST COMMISSION (INR)',
       ...data.repLeaderboard.map(
         (r) =>
-          `"${r.name}",${r.role},"${r.territory}",${r.leadsCount},${r.wonDealsCount},${r.achievedRevenue},${r.monthlyTarget},${r.targetAchievementPct}`,
+          `"${r.name}",${r.role},"${r.territory}",${r.leadsCount},${r.wonDealsCount},${r.winRatePct ?? 0},${r.callsCount ?? 0},${r.achievedRevenue},${r.monthlyTarget},${r.targetAchievementPct},${r.estimatedCommissionInr ?? 0}`,
       ),
     ];
     const blob = new Blob([lines.join('\r\n')], {
@@ -959,29 +959,40 @@ export default function AnalyticsPage() {
                     {(data?.repLeaderboard || []).map((rep, idx) => (
                       <div
                         key={rep.userId}
-                        className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 space-y-2"
+                        className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 space-y-2.5"
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="flex items-center gap-2.5">
                             <span
-                              className={`w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-extrabold ${
+                              className={`w-7 h-7 rounded-xl flex items-center justify-center text-[11px] font-black shrink-0 ${
                                 idx === 0
-                                  ? 'bg-amber-400 text-slate-950'
-                                  : 'bg-slate-200 text-slate-700'
+                                  ? 'bg-amber-400 text-slate-950 shadow-sm'
+                                  : idx === 1
+                                    ? 'bg-slate-300 text-slate-900'
+                                    : idx === 2
+                                      ? 'bg-orange-200 text-orange-900'
+                                      : 'bg-slate-200 text-slate-700'
                               }`}
                             >
                               #{idx + 1}
                             </span>
                             <div>
-                              <div className="text-xs font-extrabold text-brand-navy">
-                                {rep.name}{' '}
+                              <div className="text-xs font-extrabold text-brand-navy flex flex-wrap items-center gap-1.5">
+                                <span>{rep.name}</span>
                                 <span className="text-[10px] font-semibold uppercase text-slate-400">
                                   ({rep.role})
                                 </span>
+                                {rep.activeTierRatePct !== undefined && (
+                                  <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                                    {rep.activeTierRatePct}% Slab
+                                  </span>
+                                )}
                               </div>
                               <div className="text-[11px] text-slate-500">
-                                {rep.territory} · {rep.leadsCount} leads (
-                                {rep.hotLeadsCount} hot) · {rep.wonDealsCount} won
+                                {rep.territory} · {rep.leadsCount} leads ({rep.hotLeadsCount} hot) ·{' '}
+                                <strong>{rep.wonDealsCount} won</strong> ·{' '}
+                                <strong>{rep.winRatePct ?? 0}% win rate</strong> ·{' '}
+                                <strong>{rep.callsCount ?? 0} calls</strong>
                               </div>
                             </div>
                           </div>
@@ -990,12 +1001,19 @@ export default function AnalyticsPage() {
                             <div className="text-xs font-extrabold text-brand-navy">
                               {formatCompactInr(rep.achievedRevenue)}{' '}
                               <span className="text-slate-400 font-normal">
-                                / {formatCompactInr(rep.monthlyTarget)}
+                                / {rep.monthlyTarget > 0 ? formatCompactInr(rep.monthlyTarget) : 'No Target'}
                               </span>
                             </div>
-                            <div className="text-[11px] font-bold text-emerald-600 flex items-center justify-end gap-1">
-                              <Target className="w-3 h-3" />
-                              {rep.targetAchievementPct}% Target
+                            <div className="flex flex-wrap items-center justify-end gap-2 mt-0.5 text-[11px]">
+                              <span className="font-bold text-brand-blue flex items-center gap-1">
+                                <Target className="w-3 h-3" />
+                                {rep.targetAchievementPct}% Quota
+                              </span>
+                              {(rep.estimatedCommissionInr ?? 0) > 0 && (
+                                <span className="font-extrabold text-emerald-600">
+                                  · Comm: ₹{(rep.estimatedCommissionInr ?? 0).toLocaleString('en-IN')}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1003,9 +1021,11 @@ export default function AnalyticsPage() {
                         <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all duration-500 ${
-                              rep.targetAchievementPct >= 80
+                              rep.targetAchievementPct >= 100
                                 ? 'bg-emerald-500'
-                                : 'bg-brand-blue'
+                                : rep.targetAchievementPct >= 75
+                                  ? 'bg-brand-blue'
+                                  : 'bg-amber-500'
                             }`}
                             style={{
                               width: `${Math.min(100, rep.targetAchievementPct)}%`,

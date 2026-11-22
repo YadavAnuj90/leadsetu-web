@@ -14,17 +14,32 @@ import {
   Loader2,
   ShieldCheck,
   Award,
+  KeyRound,
+  ArrowLeft,
 } from 'lucide-react';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { useAuth } from '@/hooks/useAuth';
+import type { TwoFactorChallengeResponse } from '@/types/contracts';
 
 export default function LoginPage() {
-  const { login, isLoading, error, clearError } = useAuth();
+  const {
+    login,
+    verifyTwoFactorLogin,
+    loginWithGoogle,
+    isLoading,
+    error,
+    clearError,
+  } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [resetSuccessBanner, setResetSuccessBanner] = useState(false);
+  const [twoFactorChallenge, setTwoFactorChallenge] =
+    useState<TwoFactorChallengeResponse | null>(null);
+  const [otpCode, setOtpCode] = useState('');
+  const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -38,12 +53,34 @@ export default function LoginPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     clearError();
+    setLocalError(null);
     try {
-      await login({ email, password });
+      const res = await login({ email, password });
+      if ('requiresTwoFactor' in res && res.requiresTwoFactor) {
+        setTwoFactorChallenge(res);
+        setOtpCode('');
+      }
     } catch {
       // Error is handled by useAuth state
     }
   };
+
+  const handleVerifyTwoFactor = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!twoFactorChallenge) return;
+    clearError();
+    setLocalError(null);
+    try {
+      await verifyTwoFactorLogin({
+        challengeToken: twoFactorChallenge.challengeToken,
+        code: otpCode.trim(),
+      });
+    } catch {
+      // Error handled by useAuth state
+    }
+  };
+
+  const displayError = localError || error;
 
   return (
     <div className="min-h-screen flex flex-col font-sans antialiased">
@@ -151,82 +188,160 @@ export default function LoginPage() {
                   </div>
                 )}
 
-                {error && (
+                {displayError && (
                   <div className="mb-5 p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 flex items-start gap-2.5 text-xs sm:text-sm text-rose-700 dark:text-rose-300">
                     <AlertCircle className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
-                    <span>{error}</span>
+                    <span>{displayError}</span>
                   </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5 pl-2">
-                      Work Email Address
-                    </label>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="you@company.in"
-                        className="w-full pl-11 pr-4 py-3 rounded-full border border-slate-300/80 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#0057FF] focus:ring-2 focus:ring-[#0057FF]/15 transition-all"
-                      />
+                {twoFactorChallenge ? (
+                  <form onSubmit={handleVerifyTwoFactor} className="space-y-4">
+                    <div className="p-4 rounded-2xl bg-blue-50/90 dark:bg-sky-950/40 border border-blue-200 dark:border-sky-800 space-y-1.5">
+                      <div className="flex items-center gap-2 text-xs font-extrabold text-[#0057FF] dark:text-sky-300">
+                        <KeyRound className="w-4 h-4" />
+                        <span>2-Step Authenticator Verification Required</span>
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {twoFactorChallenge.message} Account:{' '}
+                        <span className="font-mono font-bold">
+                          {twoFactorChallenge.maskedEmail}
+                        </span>
+                      </p>
                     </div>
-                  </div>
 
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5 px-2">
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                        Password
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5 pl-2">
+                        6-Digit Authenticator Code or 8-Char Backup Code
                       </label>
-                      <Link
-                        href="/forgot-password"
-                        className="text-xs font-bold text-[#0057FF] dark:text-sky-400 hover:underline"
-                      >
-                        Forgot password?
-                      </Link>
-                    </div>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
                       <input
-                        type={showPassword ? 'text' : 'password'}
+                        type="text"
                         required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter your password"
-                        className="w-full pl-11 pr-11 py-3 rounded-full border border-slate-300/80 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#0057FF] focus:ring-2 focus:ring-[#0057FF]/15 transition-all"
+                        autoFocus
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value)}
+                        placeholder="e.g. 482910 or A3F9-C12B"
+                        className="w-full px-5 py-3 rounded-full border border-slate-300/80 dark:border-slate-700 bg-white dark:bg-slate-900 text-center font-mono text-base tracking-[0.25em] font-bold text-slate-900 dark:text-white placeholder:tracking-normal placeholder:font-sans placeholder:text-xs placeholder-slate-400 focus:outline-none focus:border-[#0057FF] focus:ring-2 focus:ring-[#0057FF]/15 transition-all"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                        aria-label="Toggle password visibility"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
                     </div>
-                  </div>
 
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full py-3.5 mt-2 rounded-full font-extrabold text-sm tracking-wide text-white bg-[#E42527] hover:bg-[#C81E1E] shadow-lg shadow-rose-600/25 flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 disabled:opacity-60"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>SIGNING IN...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>SIGN IN TO DASHBOARD</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-                </form>
+                    <button
+                      type="submit"
+                      disabled={isLoading || otpCode.trim().length < 6}
+                      className="w-full py-3.5 rounded-full font-extrabold text-sm tracking-wide text-white bg-[#0057FF] hover:bg-[#0045CC] shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 transition-all disabled:opacity-60"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>VERIFYING CODE...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>VERIFY &amp; OPEN DASHBOARD</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTwoFactorChallenge(null);
+                        setOtpCode('');
+                        clearError();
+                        setLocalError(null);
+                      }}
+                      className="w-full py-2 text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 flex items-center justify-center gap-1.5"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>Use a different account</span>
+                    </button>
+                  </form>
+                ) : (
+                  <>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5 pl-2">
+                          Work Email Address
+                        </label>
+                        <div className="relative">
+                          <Mail className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="email"
+                            required
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="you@company.in"
+                            className="w-full pl-11 pr-4 py-3 rounded-full border border-slate-300/80 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#0057FF] focus:ring-2 focus:ring-[#0057FF]/15 transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5 px-2">
+                          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                            Password
+                          </label>
+                          <Link
+                            href="/forgot-password"
+                            className="text-xs font-bold text-[#0057FF] dark:text-sky-400 hover:underline"
+                          >
+                            Forgot password?
+                          </Link>
+                        </div>
+                        <div className="relative">
+                          <Lock className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            required
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Enter your password"
+                            className="w-full pl-11 pr-11 py-3 rounded-full border border-slate-300/80 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#0057FF] focus:ring-2 focus:ring-[#0057FF]/15 transition-all"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                            aria-label="Toggle password visibility"
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-full py-3.5 mt-2 rounded-full font-extrabold text-sm tracking-wide text-white bg-[#E42527] hover:bg-[#C81E1E] shadow-lg shadow-rose-600/25 flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 disabled:opacity-60"
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>SIGNING IN...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>SIGN IN TO DASHBOARD</span>
+                            <ArrowRight className="w-4 h-4" />
+                          </>
+                        )}
+                      </button>
+                    </form>
+
+                    <div className="mt-4">
+                      <GoogleSignInButton
+                        mode="signin"
+                        onGoogleLogin={loginWithGoogle}
+                        onTwoFactorChallenge={(challenge) => {
+                          setTwoFactorChallenge(challenge);
+                          setOtpCode('');
+                        }}
+                        onError={(msg) => setLocalError(msg)}
+                      />
+                    </div>
+                  </>
+                )}
 
                 <div className="mt-6 pt-5 border-t border-slate-200/70 dark:border-slate-800 flex flex-col items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
                   <div className="flex items-center gap-2">

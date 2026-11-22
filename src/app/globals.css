@@ -74,7 +74,39 @@
   }
 
   body {
-    @apply antialiased text-slate-900 bg-white dark:bg-[#070D19] dark:text-slate-100 transition-colors duration-200 selection:bg-brand-blue/20 selection:text-brand-navy;
+    @apply antialiased text-slate-900 bg-white dark:bg-[#070D19] dark:text-slate-100 transition-colors duration-200;
+  }
+
+  ::selection {
+    background-color: #2563eb;
+    color: #ffffff;
+  }
+
+  ::-moz-selection {
+    background-color: #2563eb;
+    color: #ffffff;
+  }
+
+  html.dark ::selection {
+    background-color: rgba(56, 189, 248, 0.9);
+    color: #061326;
+  }
+
+  html.dark ::-moz-selection {
+    background-color: rgba(56, 189, 248, 0.9);
+    color: #061326;
+  }
+
+  html[data-color-theme='static-emerald'] ::selection,
+  html[data-color-theme='static-emerald'] ::-moz-selection {
+    background-color: #059669;
+    color: #ffffff;
+  }
+
+  html[data-color-theme='static-emerald'].dark ::selection,
+  html[data-color-theme='static-emerald'].dark ::-moz-selection {
+    background-color: rgba(52, 211, 153, 0.9);
+    color: #04130f;
   }
 
   * {
@@ -204,10 +236,14 @@ html.dark .dashboard-shell .bg-slate-200\/70 {
 }
 
 html.dark .dashboard-shell .bg-brand-light,
+html.dark .dashboard-shell .bg-brand-light\/90,
 html.dark .dashboard-shell .bg-brand-light\/80,
+html.dark .dashboard-shell .bg-brand-light\/75,
 html.dark .dashboard-shell .bg-brand-light\/70,
 html.dark .dashboard-shell .bg-brand-light\/60,
 html.dark .dashboard-shell .bg-brand-light\/50,
+html.dark .dashboard-shell .bg-brand-light\/40,
+html.dark .dashboard-shell .bg-brand-light\/30,
 html.dark .dashboard-shell .bg-blue-50,
 html.dark .dashboard-shell .bg-blue-50\/80,
 html.dark .dashboard-shell .bg-blue-50\/70,

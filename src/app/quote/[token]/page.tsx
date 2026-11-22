@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
   CheckCircle2,
@@ -145,6 +146,12 @@ export default function PublicQuotePortalPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href={`/portal/${token}`}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-extrabold text-white"
+            >
+              Open Full Dealer Portal (Invoices, Udhaar &amp; Support) <ExternalLink className="w-3.5 h-3.5" />
+            </Link>
             <button
               type="button"
               onClick={() => window.print()}

@@ -25,6 +25,7 @@ import {
   analyzeLeadAiApi,
 } from '@/hooks/useLeads';
 import { apiClient, getErrorMessage } from '@/lib/api-client';
+import { autoAssignLeadApi } from '@/lib/lead-routing-api';
 import { useAuthStore } from '@/store/auth.store';
 import { isFeatureEnabled } from '@/lib/feature-access';
 import LeadTimeline from '@/components/leads/LeadTimeline';
@@ -33,6 +34,7 @@ import ShareVoiceCallLinkButton from '@/components/calling/ShareVoiceCallLinkBut
 import CallMobileButton from '@/components/calling/CallMobileButton';
 import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
 import CustomFieldsDisplayCard from '@/components/custom-fields/CustomFieldsDisplayCard';
+import { EntityEmailPanel } from '@/components/email/EntityEmailPanel';
 import type { Deal, Lead, LeadActivity, LeadStatus } from '@/types/contracts';
 
 const stages: { id: LeadStatus; label: string }[] = [
@@ -272,6 +274,17 @@ export default function LeadDetailPage() {
           />
           <button
             type="button"
+            onClick={async () => {
+              const res = await autoAssignLeadApi(lead.id);
+              if (res?.lead) setLead(res.lead);
+            }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+            title="Auto-assign lead using Smart Lead Routing rules"
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Auto-Route Rep
+          </button>
+          <button
+            type="button"
             onClick={handleDelete}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-rose-200 text-rose-600 hover:bg-rose-50"
           >
@@ -468,11 +481,26 @@ export default function LeadDetailPage() {
           </div>
         </div>
 
-        {/* Right Activity & Notes Timeline */}
-        <div className="lg:col-span-7">
+        {/* Right Activity, Notes Timeline & 2-Way Email Thread */}
+        <div className="lg:col-span-7 space-y-6">
           <LeadTimeline
             activities={lead.activities || []}
             onAddActivity={handleAddActivity}
+          />
+          <EntityEmailPanel
+            entityType="lead"
+            entityId={lead.id}
+            entityLabel={lead.company || lead.name}
+            defaultToEmail={lead.email || ''}
+            contactName={lead.name}
+            companyName={lead.company || ''}
+            dealValueLabel={
+              lead.estimatedValue
+                ? `₹${Number(lead.estimatedValue).toLocaleString('en-IN')}`
+                : ''
+            }
+            senderName={user?.name || 'Sales Desk'}
+            onEmailActivity={() => void loadLead()}
           />
         </div>
       </div>

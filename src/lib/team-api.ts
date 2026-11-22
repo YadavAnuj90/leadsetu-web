@@ -64,6 +64,40 @@ export async function removeTeamMember(id: string): Promise<{
   return data;
 }
 
+export interface CommissionSlabItem {
+  minRevenueInr: number;
+  maxRevenueInr: number | null;
+  ratePct: number;
+  label: string;
+}
+
+export interface TenantCommissionPolicy {
+  enabled: boolean;
+  basis: 'max_won_or_paid' | 'won_deals' | 'paid_invoices';
+  quotaBonusPct: number;
+  slabs: CommissionSlabItem[];
+}
+
+export interface CommissionComputedSummary {
+  eligibleRevenueInr: number;
+  baseCommissionInr: number;
+  quotaBonusInr: number;
+  totalCommissionInr: number;
+  activeTierLabel: string;
+  activeTierRatePct: number;
+  nextTierMinRevenueInr: number | null;
+  nextTierRemainingInr: number;
+  nextTierRatePct: number | null;
+  quotaAchieved: boolean;
+  slabBreakdown: Array<{
+    label: string;
+    ratePct: number;
+    eligibleAmountInr: number;
+    earnedInr: number;
+    isActive: boolean;
+  }>;
+}
+
 export interface MyPerformanceResponse {
   userId: string;
   name: string;
@@ -72,7 +106,32 @@ export interface MyPerformanceResponse {
   monthlyTarget: number;
   aiDailyCallLimit: number;
   aiCallsToday: number;
-  performance: TeamMember['performance'];
+  performance: TeamMember['performance'] & {
+    dealsCount?: number;
+    paidRevenue?: number;
+    callsCount?: number;
+    achievedRevenue?: number;
+    winRatePct?: number;
+  };
+  commissionPolicy?: TenantCommissionPolicy;
+  commission?: CommissionComputedSummary;
+  rankInTeam?: number;
+  teamTotalReps?: number;
+}
+
+export async function fetchCommissionPolicyApi(): Promise<TenantCommissionPolicy> {
+  const { data } = await apiClient.get<TenantCommissionPolicy>('/team/commission-policy');
+  return data;
+}
+
+export async function updateCommissionPolicyApi(
+  payload: Partial<TenantCommissionPolicy>,
+): Promise<TenantCommissionPolicy> {
+  const { data } = await apiClient.patch<TenantCommissionPolicy>(
+    '/team/commission-policy',
+    payload,
+  );
+  return data;
 }
 
 export interface MyTeamResponse {

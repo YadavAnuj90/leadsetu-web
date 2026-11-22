@@ -15,6 +15,7 @@ import LinkCrmEntityModal from '@/components/inbox/LinkCrmEntityModal';
 import WhatsAppTemplateManagerModal from '@/components/inbox/WhatsAppTemplateManagerModal';
 import VoiceCrmAuditModal from '@/components/ai/VoiceCrmAuditModal';
 import DealerRfqModal from '@/components/ai/DealerRfqModal';
+import { AiConciergeModal } from '@/components/inbox/AiConciergeModal';
 
 function InboxPageContent() {
   const searchParams = useSearchParams();
@@ -36,6 +37,7 @@ function InboxPageContent() {
 
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [rfqModalOpen, setRfqModalOpen] = useState(false);
+  const [conciergeModalOpen, setConciergeModalOpen] = useState(false);
   const [startModalOpen, setStartModalOpen] = useState(false);
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [composerDraft, setComposerDraft] = useState<{
@@ -60,9 +62,13 @@ function InboxPageContent() {
     isLiveConnected,
     waCloudConfig,
     metaTemplates,
+    aiAgentPolicy,
+    setAiAgentPolicy,
     sendMessage,
     generateAiAssist,
     toggleStatus,
+    toggleAutopilot,
+    simulateInbound,
     linkEntity,
     upsertAndSelectConversation,
   } = useInbox(threadParam);
@@ -137,6 +143,9 @@ function InboxPageContent() {
                     });
                   }}
                   isGeneratingAi={isGeneratingAi}
+                  aiAgentMode={aiAgentPolicy?.mode || 'draft_only'}
+                  onOpenAiConcierge={() => setConciergeModalOpen(true)}
+                  onToggleAutopilot={toggleAutopilot}
                   onOpenVoiceAudit={
                     canUseVoiceCrm ? () => setVoiceModalOpen(true) : undefined
                   }
@@ -249,6 +258,21 @@ function InboxPageContent() {
         dealerCity={activeConversation?.city}
         dealerPhone={activeConversation?.phone}
         onInsertReply={(text) => setComposerDraft({ text, seq: Date.now() })}
+      />
+
+      <AiConciergeModal
+        open={conciergeModalOpen}
+        onClose={() => setConciergeModalOpen(false)}
+        activeThreadId={activeConversation?.id}
+        activeThreadName={activeConversation?.contactName}
+        onPolicyUpdated={(policy) => setAiAgentPolicy(policy)}
+        onSimulateInbound={
+          activeConversation
+            ? async (message) => {
+                await simulateInbound(activeConversation.id, message);
+              }
+            : undefined
+        }
       />
     </>
   );

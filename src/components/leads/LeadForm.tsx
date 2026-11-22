@@ -15,7 +15,10 @@ import {
 } from 'lucide-react';
 import { useCustomFields } from '@/hooks/useCustomFields';
 import CustomFieldsInputs from '@/components/custom-fields/CustomFieldsInputs';
+import { useAuthStore } from '@/store/auth.store';
+import { getSegmentCopy } from '@/lib/business-modes';
 import type {
+  ContactAccountKind,
   CreateLeadPayload,
   Lead,
   LeadSource,
@@ -35,7 +38,14 @@ export default function LeadForm({
   onClose,
   onSubmit,
 }: LeadFormProps) {
+  const tenant = useAuthStore((s) => s.tenant);
+  const segCopy = getSegmentCopy(tenant?.businessMode);
+  const defaultAccountKind: ContactAccountKind =
+    initialData?.accountKind ||
+    (segCopy.hideCompanyOnConsumerByDefault ? 'consumer' : 'business');
+
   const [name, setName] = useState(initialData?.name || '');
+  const [accountKind, setAccountKind] = useState<ContactAccountKind>(defaultAccountKind);
   const [company, setCompany] = useState(initialData?.company || '');
   const [phone, setPhone] = useState(initialData?.phone || '');
   const [email, setEmail] = useState(initialData?.email || '');
@@ -67,7 +77,8 @@ export default function LeadForm({
 
     await onSubmit({
       name,
-      company,
+      accountKind,
+      company: accountKind === 'consumer' ? '' : company,
       phone,
       email,
       city,
@@ -109,10 +120,42 @@ export default function LeadForm({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* B2B vs B2C Lead Classification */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+              Inquiry / Buyer Type
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  ['business', 'B2B Business', 'Company / Dealer / Institutional'],
+                  ['consumer', 'B2C Individual', 'Retail customer / Student / Caller'],
+                ] as const
+              ).map(([kindVal, label, sub]) => {
+                const active = accountKind === kindVal;
+                return (
+                  <button
+                    key={kindVal}
+                    type="button"
+                    onClick={() => setAccountKind(kindVal)}
+                    className={`p-2.5 rounded-xl border text-left transition-all ${
+                      active
+                        ? 'border-brand-blue bg-brand-light/70 ring-1 ring-brand-blue/20'
+                        : 'border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="text-xs font-extrabold text-brand-navy">{label}</div>
+                    <div className="text-[10px] text-slate-500">{sub}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className={`grid grid-cols-1 ${accountKind === 'consumer' ? '' : 'sm:grid-cols-2'} gap-4`}>
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                Contact Name *
+                {accountKind === 'consumer' ? 'Full Name *' : 'Contact Name *'}
               </label>
               <div className="relative">
                 <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -127,21 +170,23 @@ export default function LeadForm({
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                Company / Business Name
-              </label>
-              <div className="relative">
-                <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={company}
-                  onChange={(e) => setCompany(e.target.value)}
-                  placeholder="e.g. RS Electricals Pvt. Ltd."
-                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-brand-navy focus:outline-none focus:border-brand-blue"
-                />
+            {accountKind !== 'consumer' && (
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                  Company / Business Name
+                </label>
+                <div className="relative">
+                  <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={company}
+                    onChange={(e) => setCompany(e.target.value)}
+                    placeholder="e.g. RS Electricals Pvt. Ltd."
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-brand-navy focus:outline-none focus:border-brand-blue"
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -219,7 +264,7 @@ export default function LeadForm({
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                Est. Deal Value (₹)
+                {segCopy.leadValueLabel}
               </label>
               <div className="relative">
                 <IndianRupee className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />

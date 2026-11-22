@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import {
   AlertCircle,
+  Bot,
   Check,
   CheckCheck,
   CheckCircle2,
@@ -13,7 +14,9 @@ import {
   Loader2,
   Mic,
   PackageSearch,
+  PauseCircle,
   Phone,
+  PlayCircle,
   Sparkles,
 } from 'lucide-react';
 import AISummaryCard from '@/components/ai/AISummaryCard';
@@ -28,6 +31,9 @@ interface MessageThreadProps {
   onOpenRfqParser?: () => void;
   onRefreshAiSummary?: () => void;
   isGeneratingAi?: boolean;
+  aiAgentMode?: 'autopilot' | 'draft_only' | 'off';
+  onOpenAiConcierge?: () => void;
+  onToggleAutopilot?: (id: string, paused: boolean) => void;
 }
 
 function getEntityHref(type?: LinkedCrmEntityType, id?: string): string {
@@ -47,6 +53,9 @@ export default function MessageThread({
   onOpenRfqParser,
   onRefreshAiSummary,
   isGeneratingAi = false,
+  aiAgentMode = 'draft_only',
+  onOpenAiConcierge,
+  onToggleAutopilot,
 }: MessageThreadProps) {
   const waUrl = buildWhatsAppMeUrl(conversation.phone);
 
@@ -112,6 +121,57 @@ export default function MessageThread({
         </div>
 
         <div className="flex items-center gap-2">
+          {onOpenAiConcierge && (
+            <button
+              type="button"
+              onClick={onOpenAiConcierge}
+              className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${
+                aiAgentMode === 'autopilot'
+                  ? 'border-emerald-400/50 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-600 hover:text-white'
+                  : 'border-slate-200 dark:border-white/15 bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:border-brand-blue'
+              }`}
+              title="Configure 24x7 AI Sales Concierge & Test Simulator"
+            >
+              <Bot className="w-3.5 h-3.5" />
+              <span>
+                {aiAgentMode === 'autopilot'
+                  ? 'AI 24×7 ON'
+                  : aiAgentMode === 'draft_only'
+                    ? 'AI Draft Mode'
+                    : 'AI Off'}
+              </span>
+            </button>
+          )}
+          {onToggleAutopilot && aiAgentMode === 'autopilot' && (
+            <button
+              type="button"
+              onClick={() =>
+                onToggleAutopilot(conversation.id, !conversation.aiAutopilotPaused)
+              }
+              className={`hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-colors ${
+                conversation.aiAutopilotPaused
+                  ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100'
+                  : 'border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-white/15 dark:text-slate-300'
+              }`}
+              title={
+                conversation.aiAutopilotPaused
+                  ? 'Resume AI Auto-Pilot on this thread'
+                  : 'Pause AI Auto-Pilot on this thread (Human takeover)'
+              }
+            >
+              {conversation.aiAutopilotPaused ? (
+                <>
+                  <PlayCircle className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Resume AI</span>
+                </>
+              ) : (
+                <>
+                  <PauseCircle className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Pause AI</span>
+                </>
+              )}
+            </button>
+          )}
           {onRefreshAiSummary && (
             <button
               type="button"
@@ -197,6 +257,53 @@ export default function MessageThread({
           isRefreshing={isGeneratingAi}
           onRefresh={onRefreshAiSummary}
         />
+      )}
+
+      {/* 24x7 AI Concierge Qualification & Handoff Banner */}
+      {(conversation.aiHandoffReason ||
+        conversation.aiQualifiedData?.productName ||
+        conversation.aiQualifiedData?.quantity ||
+        conversation.aiQualifiedData?.gstin) && (
+        <div className="mx-6 mt-2 p-3 rounded-2xl bg-white dark:bg-[#111D33] border border-emerald-200/80 dark:border-emerald-500/30 shadow-xs space-y-1.5 text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-1.5 font-extrabold text-emerald-700 dark:text-emerald-300">
+              <Bot className="w-3.5 h-3.5" />
+              <span>AI Qualification Snapshot (Score {conversation.aiScore}/100)</span>
+            </span>
+            {conversation.aiHandoffReason && (
+              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 text-[10px] font-bold">
+                Handoff: {conversation.aiHandoffReason}
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1.5 text-[11px] font-semibold">
+            {conversation.aiQualifiedData?.productName && (
+              <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 text-brand-navy dark:text-slate-200">
+                SKU: {conversation.aiQualifiedData.productName} ({conversation.aiQualifiedData.hsnSac})
+              </span>
+            )}
+            {conversation.aiQualifiedData?.quantity && (
+              <span className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-brand-blue dark:text-blue-300">
+                Qty: {conversation.aiQualifiedData.quantity}
+              </span>
+            )}
+            {conversation.aiQualifiedData?.city && (
+              <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200">
+                City: {conversation.aiQualifiedData.city}
+              </span>
+            )}
+            {conversation.aiQualifiedData?.gstin && (
+              <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 font-mono text-emerald-700 dark:text-emerald-300">
+                GSTIN: {conversation.aiQualifiedData.gstin}
+              </span>
+            )}
+            {conversation.aiQualifiedData?.estimatedTotal ? (
+              <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold">
+                Est: ₹{conversation.aiQualifiedData.estimatedTotal.toLocaleString('en-IN')}
+              </span>
+            ) : null}
+          </div>
+        </div>
       )}
 
       {/* Messages Scroll Area */}

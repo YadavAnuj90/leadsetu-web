@@ -3,6 +3,7 @@ import type {
   SubscriptionInvoice,
   SubscriptionPlanSpec,
   TenantInfo,
+  WorkspaceBusinessMode,
 } from '@/types/contracts';
 
 export interface TenantWorkspaceResponse {
@@ -82,6 +83,8 @@ export interface UpdateTenantProfilePayload {
   phone?: string;
   email?: string;
   address?: string;
+  businessMode?: WorkspaceBusinessMode;
+  hiddenNavModules?: string[];
 }
 
 export interface SubscribePlanPayload {
