@@ -143,6 +143,9 @@ export default function SettingsPage() {
   // Synced Theme State
   const [isDark, setIsDark] = useState(false);
   const [colorTheme, setColorTheme] = useState<ColorThemeId>('static-blue');
+  const [activeSettingsTab, setActiveSettingsTab] = useState<
+    'overview' | 'modules' | 'security' | 'billing'
+  >('overview');
 
   const canManageWorkspace =
     user?.role === 'owner' || user?.role === 'admin' || !user?.role;
@@ -495,7 +498,11 @@ export default function SettingsPage() {
 
         {/* 4-Tile Live Telemetry Strip Inside Hero */}
         <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6 pt-5 border-t border-white/15">
-          <div className="rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/10 px-4 py-3">
+          <button
+            type="button"
+            onClick={() => setActiveSettingsTab('modules')}
+            className="text-left rounded-2xl bg-white/[0.08] hover:bg-white/[0.14] backdrop-blur-md border border-white/10 px-4 py-3 transition"
+          >
             <div className="text-[10px] font-bold uppercase tracking-wider text-sky-200/80">
               Active Team Seats
             </div>
@@ -507,9 +514,13 @@ export default function SettingsPage() {
                 {seatPct}% used
               </span>
             </div>
-          </div>
+          </button>
 
-          <div className="rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/10 px-4 py-3">
+          <button
+            type="button"
+            onClick={() => setActiveSettingsTab('security')}
+            className="text-left rounded-2xl bg-white/[0.08] hover:bg-white/[0.14] backdrop-blur-md border border-white/10 px-4 py-3 transition"
+          >
             <div className="text-[10px] font-bold uppercase tracking-wider text-sky-200/80">
               Data-Leak Phone Shield
             </div>
@@ -527,9 +538,13 @@ export default function SettingsPage() {
                 {maskEnabled ? 'MASKED' : 'VISIBLE'}
               </span>
             </div>
-          </div>
+          </button>
 
-          <div className="rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/10 px-4 py-3">
+          <button
+            type="button"
+            onClick={() => setActiveSettingsTab('security')}
+            className="text-left rounded-2xl bg-white/[0.08] hover:bg-white/[0.14] backdrop-blur-md border border-white/10 px-4 py-3 transition"
+          >
             <div className="text-[10px] font-bold uppercase tracking-wider text-sky-200/80">
               Immutable Audit Events
             </div>
@@ -541,9 +556,13 @@ export default function SettingsPage() {
                 Verified Logs
               </span>
             </div>
-          </div>
+          </button>
 
-          <div className="rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/10 px-4 py-3">
+          <button
+            type="button"
+            onClick={() => setActiveSettingsTab('overview')}
+            className="text-left rounded-2xl bg-white/[0.08] hover:bg-white/[0.14] backdrop-blur-md border border-white/10 px-4 py-3 transition"
+          >
             <div className="text-[10px] font-bold uppercase tracking-wider text-sky-200/80">
               GSTIN &amp; B2B Channels
             </div>
@@ -555,10 +574,81 @@ export default function SettingsPage() {
                 5 Sync Ready
               </span>
             </div>
-          </div>
+          </button>
         </div>
       </div>
 
+      {/* ─── CLEAN ORGANIZED SETTINGS CATEGORY TABS ──────────────────────── */}
+      <div className="bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-white/10 rounded-2xl p-1.5 shadow-sm flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {[
+            {
+              id: 'overview' as const,
+              label: '1. Organization & Control Directory',
+              badge: '8 Hubs',
+              icon: Building2,
+            },
+            {
+              id: 'modules' as const,
+              label: '2. Business Model & Sidebar Modules',
+              badge: 'Terminology',
+              icon: SlidersHorizontal,
+            },
+            {
+              id: 'security' as const,
+              label: '3. Security, 2FA & Anti-Leak Shield',
+              badge: maskEnabled ? 'Masked' : 'DPDP 2023',
+              icon: ShieldCheck,
+            },
+            {
+              id: 'billing' as const,
+              label: '4. SetuAI Quota & GST Billing Invoices',
+              badge: `${tenant?.plan || 'Growth'} Plan`,
+              icon: CreditCard,
+            },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeSettingsTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveSettingsTab(tab.id)}
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
+                  isActive
+                    ? 'bg-brand-blue text-white shadow-md shadow-brand-blue/25'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06]'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5 shrink-0" />
+                <span>{tab.label}</span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    isActive
+                      ? 'bg-white/20 text-white'
+                      : 'bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  {tab.badge}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <Link
+          href="/settings/integrations"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 text-xs font-extrabold transition"
+        >
+          <PlugZap className="w-3.5 h-3.5" />
+          <span>Open Integrations Hub</span>
+          <ArrowUpRight className="w-3.5 h-3.5" />
+        </Link>
+      </div>
+
+      {/* ─── TAB 1: ORGANIZATION PROFILE, APPEARANCE & 8-MODULE DIRECTORY ─── */}
+      {activeSettingsTab === 'overview' && (
+        <div className="space-y-6">
       {/* ─── INTERACTIVE STUDIO ROW: ORG PROFILE + APPEARANCE & SECURITY ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* LEFT (7 cols): Organization Identity & GST Billing Profile */}
@@ -1002,17 +1092,19 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* ─── MULTI-SEGMENT BUSINESS MODE & NAVIGATION ────────────────────── */}
-      <BusinessModeCard onUpdated={loadWorkspaceData} />
-
-      {/* ─── SYMMETRIC 6-CARD WORKSPACE MODULES GRID (3x2) ───────────────── */}
+      {/* ─── SYMMETRIC WORKSPACE MODULES GRID ───────────────── */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Configure Modules, Team &amp; Compliance
-          </h2>
+          <div>
+            <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Configure Modules, Team &amp; Compliance
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Quickly jump into any specialized workspace configuration hub below
+            </p>
+          </div>
           <span className="text-[11px] font-semibold text-slate-400">
-            6 Enterprise Control Areas
+            8 Enterprise Control Areas
           </span>
         </div>
 
@@ -1416,15 +1508,117 @@ export default function SettingsPage() {
           </Link>
         </div>
       </div>
+        </div>
+      )}
 
-      {/* ─── AUTHENTICATOR APP 2FA & ACCOUNT SECURITY ─── */}
-      <TwoFactorSecurityCard />
+      {/* ─── TAB 2: MULTI-SEGMENT BUSINESS MODE & SIDEBAR MODULES ────────── */}
+      {activeSettingsTab === 'modules' && (
+        <div className="space-y-5">
+          <BusinessModeCard onUpdated={loadWorkspaceData} />
+        </div>
+      )}
 
-      {/* ─── AI GATEWAY HEALTH & TOKEN BUDGET TELEMETRY ─── */}
-      <AiUsageTelemetryCard />
+      {/* ─── TAB 3: AUTHENTICATOR APP 2FA & ANTI-LEAK SECURITY ───────────── */}
+      {activeSettingsTab === 'security' && (
+        <div className="space-y-5">
+          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-extrabold text-brand-navy">
+                    DPDP Act 2023 Anti-Data-Leak Shield &amp; Audit Controls
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Protect your B2B buyer phone numbers and prevent unauthorized bulk CSV exports by sales reps.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/settings/audit"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-blue text-white text-xs font-extrabold shadow-sm hover:opacity-95 transition"
+              >
+                <FileClock className="w-3.5 h-3.5" />
+                View Full Immutable Audit Trail ({auditCount})
+              </Link>
+            </div>
 
-      {/* ─── BILLING SECTION: ATTACHED SUBSCRIPTION PLAN INVOICES (PDF) ─── */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              <div className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/10">
+                <div>
+                  <div className="text-xs font-bold text-brand-navy flex items-center gap-1.5">
+                    <EyeOff className="w-4 h-4 text-amber-500 shrink-0" />
+                    Mask Client Phones for Non-Admin Agents
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    Displays +91 98*** **678 in Leads &amp; Contacts while still allowing 1-click CRM calling and WhatsApp replies.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={togglingKey === 'maskPhoneForAgents'}
+                  onClick={() =>
+                    handleToggleShield('maskPhoneForAgents', !maskEnabled)
+                  }
+                  className={`px-4 py-1.5 rounded-xl text-xs font-extrabold transition-all shrink-0 ${
+                    maskEnabled
+                      ? 'bg-emerald-500 text-white shadow-xs'
+                      : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300'
+                  }`}
+                >
+                  {togglingKey === 'maskPhoneForAgents'
+                    ? '...'
+                    : maskEnabled
+                    ? 'ENABLED'
+                    : 'DISABLED'}
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/10">
+                <div>
+                  <div className="text-xs font-bold text-brand-navy flex items-center gap-1.5">
+                    <Lock className="w-4 h-4 text-brand-blue shrink-0" />
+                    Block Agent CSV Bulk Export
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    Restricts CSV/Excel database exports strictly to Workspace Owners and Admins.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={togglingKey === 'blockAgentExport'}
+                  onClick={() =>
+                    handleToggleShield('blockAgentExport', !exportBlocked)
+                  }
+                  className={`px-4 py-1.5 rounded-xl text-xs font-extrabold transition-all shrink-0 ${
+                    exportBlocked
+                      ? 'bg-emerald-500 text-white shadow-xs'
+                      : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300'
+                  }`}
+                >
+                  {togglingKey === 'blockAgentExport'
+                    ? '...'
+                    : exportBlocked
+                    ? 'LOCKED'
+                    : 'OPEN'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <TwoFactorSecurityCard />
+        </div>
+      )}
+
+      {/* ─── TAB 4: AI GATEWAY TELEMETRY & GST SUBSCRIPTION INVOICES ────── */}
+      {activeSettingsTab === 'billing' && (
+        <div className="space-y-6">
+          <AiUsageTelemetryCard />
+
+          {/* ─── BILLING SECTION: ATTACHED SUBSCRIPTION PLAN INVOICES (PDF) ─── */}
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-100 dark:border-white/10 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-md shadow-amber-500/20">
@@ -1536,7 +1730,9 @@ export default function SettingsPage() {
             </div>
           );
         })()}
-      </div>
+          </div>
+        </div>
+      )}
 
       {previewInvoice && (
         <SubscriptionInvoiceModal

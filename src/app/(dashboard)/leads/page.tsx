@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useLeads } from '@/hooks/useLeads';
 import { useAuthStore } from '@/store/auth.store';
-import { isFeatureEnabled } from '@/lib/feature-access';
+import { isFeatureEnabled, isWorkspaceAdminRole } from '@/lib/feature-access';
 import { getBusinessModeMeta, getSegmentCopy } from '@/lib/business-modes';
 import { Upload, Mic } from 'lucide-react';
 import BulkCsvImportModal from '@/components/leads/BulkCsvImportModal';
@@ -44,12 +44,25 @@ const sourceLabels: Record<string, string> = {
   whatsapp: 'WhatsApp',
   indiamart: 'IndiaMART',
   justdial: 'Justdial',
+  tradeindia: 'TradeIndia',
   meta_ads: 'Meta Ads',
+  meta_lead_ads: 'Meta Lead Ad',
   google_ads: 'Google Ads',
   website: 'Website',
   referral: 'Referral',
   manual: 'Direct',
 };
+
+function formatPhoneForViewer(phone?: string, isAdmin = true): string {
+  const raw = String(phone || '').trim();
+  if (!raw || isAdmin || raw.includes('X')) return raw;
+  const digits = raw.replace(/\D/g, '');
+  const ten = digits.length >= 10 ? digits.slice(-10) : digits;
+  if (ten.length === 10) {
+    return `+91 ${ten.slice(0, 2)}XXXXXX${ten.slice(-2)}`;
+  }
+  return raw;
+}
 
 export default function LeadsPage() {
   const {
@@ -70,6 +83,7 @@ export default function LeadsPage() {
 
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
+  const isAdmin = isWorkspaceAdminRole(user);
   const segCopy = getSegmentCopy(tenant?.businessMode);
   const modeMeta = getBusinessModeMeta(tenant?.businessMode);
   const aiEnabled = isFeatureEnabled(tenant, 'aiScoring', user);
@@ -486,7 +500,9 @@ export default function LeadsPage() {
                                 {lead.accountKind === 'consumer'
                                   ? 'Individual Consumer'
                                   : lead.company || 'Business Buyer'}
-                                {lead.phone ? ` · ${lead.phone}` : ''}
+                                {lead.phone
+                                  ? ` · ${formatPhoneForViewer(lead.phone, isAdmin)}`
+                                  : ''}
                               </span>
                             </div>
                           </div>
@@ -494,9 +510,27 @@ export default function LeadsPage() {
                       </td>
 
                       <td className="py-4 px-4">
-                        <span className="inline-block text-xs font-bold px-2.5 py-0.5 rounded-md bg-brand-light text-brand-blue">
-                          {sourceLabels[lead.source] || lead.source}
-                        </span>
+                        {lead.source === 'meta_lead_ads' ||
+                        Boolean(lead.metaLeadData?.leadgenId) ? (
+                          <span
+                            title={
+                              lead.metaLeadData?.formName
+                                ? `Meta Lead Form: ${lead.metaLeadData.formName}${
+                                    lead.metaLeadData.pageName
+                                      ? ` (${lead.metaLeadData.pageName})`
+                                      : ''
+                                  }`
+                                : lead.adHeadline || 'Meta Instant Lead Form'
+                            }
+                            className="inline-flex items-center gap-1 text-xs font-extrabold px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200"
+                          >
+                            Meta Lead Ad
+                          </span>
+                        ) : (
+                          <span className="inline-block text-xs font-bold px-2.5 py-0.5 rounded-md bg-brand-light text-brand-blue">
+                            {sourceLabels[lead.source] || lead.source}
+                          </span>
+                        )}
                         <div className="text-xs text-slate-400 mt-1">
                           {lead.city || 'Delhi-NCR'}
                         </div>

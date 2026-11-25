@@ -29,10 +29,22 @@ export type LeadSource =
   | 'justdial'
   | 'tradeindia'
   | 'meta_ads'
+  | 'meta_lead_ads'
   | 'google_ads'
   | 'website'
   | 'referral'
   | 'manual';
+
+export interface MetaLeadData {
+  leadgenId: string;
+  pageId?: string;
+  pageName?: string;
+  formId?: string;
+  formName?: string;
+  adId?: string;
+  createdTime?: string;
+  rawFields?: Record<string, string>;
+}
 
 export interface Lead {
   id: string;
@@ -65,6 +77,7 @@ export interface Lead {
   firstContactedAt?: string;
   speedToLeadSeconds?: number;
   autoWhatsAppWelcomeSent?: boolean;
+  metaLeadData?: MetaLeadData;
   customFields?: Record<string, unknown>;
   activities: LeadActivity[];
   createdAt: string;
@@ -1344,13 +1357,75 @@ export type WorkflowActionType =
   | 'send_whatsapp_create_task'
   | 'assign_senior_closer'
   | 'generate_gst_invoice'
+  | 'send_payment_reminder'
+  | 'reassign_rep_sla_alert'
+  | 'multi_step_whatsapp_drip';
+
+export type WorkflowNodeKind = 'trigger' | 'condition' | 'delay' | 'action';
+export type WorkflowDelayUnit = 'minutes' | 'hours' | 'days';
+export type WorkflowConditionGuard =
+  | 'always'
+  | 'if_uncontacted'
+  | 'if_no_whatsapp_reply'
+  | 'if_ai_score_gte'
+  | 'if_deal_value_gte'
+  | 'if_source_matches'
+  | 'if_city_matches';
+
+export type WorkflowNodeActionKind =
+  | 'send_whatsapp'
+  | 'reassign_rep'
+  | 'create_sla_alert'
+  | 'create_task'
+  | 'generate_gst_invoice'
   | 'send_payment_reminder';
+
+export interface WorkflowStepNode {
+  id: string;
+  kind: WorkflowNodeKind;
+  title: string;
+  subtitle?: string;
+  delayValue?: number;
+  delayUnit?: WorkflowDelayUnit;
+  conditionGuard?: WorkflowConditionGuard;
+  conditionValue?: string;
+  actionKind?: WorkflowNodeActionKind;
+  whatsappTemplateBody?: string;
+  language?: 'hinglish' | 'english' | 'hindi';
+  reassignStrategy?: 'round_robin_backup' | 'senior_closer' | 'territory_owner';
+  slaPriority?: 'high' | 'urgent';
+  taskOrAlertTitle?: string;
+  stopOnBuyerReply?: boolean;
+}
 
 export interface WorkflowLogEntry {
   id: string;
   summary: string;
   status: 'success' | 'skipped';
   executedAt: string;
+}
+
+export interface WorkflowEnrollmentStepLog {
+  nodeId: string;
+  kind: WorkflowNodeKind;
+  title: string;
+  status: 'success' | 'skipped' | 'stopped' | 'scheduled';
+  detail: string;
+  executedAt: string;
+}
+
+export interface WorkflowEnrollmentItem {
+  id: string;
+  workflowId: string;
+  leadId: string;
+  leadName: string;
+  leadPhone: string;
+  leadSource: string;
+  currentStepIndex: number;
+  status: 'active' | 'completed' | 'stopped_on_reply' | 'skipped';
+  nextRunAt: string;
+  stopReason: string;
+  stepLogs: WorkflowEnrollmentStepLog[];
 }
 
 export interface WorkflowRule {
@@ -1362,13 +1437,19 @@ export interface WorkflowRule {
   sourceFilter?: string;
   staleStage?: string;
   staleHours?: number;
+  staleMinutes?: number;
   whatsappTemplateBody?: string;
   conditionSummary: string;
   actionType: WorkflowActionType;
   actionSummary: string;
+  nodes?: WorkflowStepNode[];
+  stopOnReply?: boolean;
   active: boolean;
   runsCount: number;
   hoursSaved: number;
+  activeEnrollmentsCount?: number;
+  completedEnrollmentsCount?: number;
+  stoppedOnReplyCount?: number;
   lastRunAt: string;
   executionLogs: WorkflowLogEntry[];
   createdAt: string;
@@ -1380,6 +1461,7 @@ export interface WorkflowStats {
   pausedWorkflows: number;
   totalRuns: number;
   totalHoursSaved: number;
+  activeEnrollments?: number;
 }
 
 export interface CreateWorkflowPayload {
@@ -1389,10 +1471,13 @@ export interface CreateWorkflowPayload {
   sourceFilter?: string;
   staleStage?: string;
   staleHours?: number;
+  staleMinutes?: number;
   whatsappTemplateBody?: string;
   conditionSummary: string;
   actionType?: WorkflowActionType;
   actionSummary: string;
+  nodes?: WorkflowStepNode[];
+  stopOnReply?: boolean;
   active?: boolean;
 }
 

@@ -26,7 +26,9 @@ const sourceLabels: Record<string, string> = {
   whatsapp: 'WhatsApp',
   indiamart: 'IndiaMART',
   justdial: 'Justdial',
+  tradeindia: 'TradeIndia',
   meta_ads: 'Meta Ads',
+  meta_lead_ads: 'Meta Lead Ad',
   google_ads: 'Google Ads',
   website: 'Website',
   referral: 'Referral',
@@ -144,6 +146,22 @@ export default function LeadCard({
 
         {/* Location, CTWA Attribution & Tags */}
         <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
+          {(lead.source === 'meta_lead_ads' ||
+            Boolean(lead.metaLeadData?.leadgenId)) && (
+            <span
+              title={
+                lead.metaLeadData?.formName
+                  ? `Meta Lead Form: ${lead.metaLeadData.formName}`
+                  : 'Meta Instant Lead Form'
+              }
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-extrabold max-w-[210px] truncate"
+            >
+              Meta Lead Ad
+              {lead.metaLeadData?.formName
+                ? ` · ${lead.metaLeadData.formName}`
+                : ''}
+            </span>
+          )}
           {(lead.adPlatform === 'meta_ctwa' ||
             lead.ctwaClid ||
             lead.adId ||

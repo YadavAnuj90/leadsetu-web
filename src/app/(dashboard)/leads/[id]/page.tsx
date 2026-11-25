@@ -27,7 +27,7 @@ import {
 import { apiClient, getErrorMessage } from '@/lib/api-client';
 import { autoAssignLeadApi } from '@/lib/lead-routing-api';
 import { useAuthStore } from '@/store/auth.store';
-import { isFeatureEnabled } from '@/lib/feature-access';
+import { isFeatureEnabled, isWorkspaceAdminRole } from '@/lib/feature-access';
 import LeadTimeline from '@/components/leads/LeadTimeline';
 import VoiceCrmAuditModal from '@/components/ai/VoiceCrmAuditModal';
 import ShareVoiceCallLinkButton from '@/components/calling/ShareVoiceCallLinkButton';
@@ -51,6 +51,7 @@ export default function LeadDetailPage() {
   const leadId = params?.id;
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
+  const isAdmin = isWorkspaceAdminRole(user);
   const voiceCrmEnabled =
     isFeatureEnabled(tenant, 'aiScoring', user) &&
     isFeatureEnabled(tenant, 'aiVoiceCrm', user);
@@ -347,8 +348,21 @@ export default function LeadDetailPage() {
                 </div>
               </div>
 
-              <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-brand-light text-brand-blue uppercase">
-                {lead.source}
+              <span
+                title={
+                  lead.metaLeadData?.formName
+                    ? `Meta Form: ${lead.metaLeadData.formName}`
+                    : undefined
+                }
+                className={`text-xs font-extrabold px-3 py-1 rounded-full uppercase ${
+                  lead.source === 'meta_lead_ads' || lead.metaLeadData?.leadgenId
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                    : 'bg-brand-light text-brand-blue'
+                }`}
+              >
+                {lead.source === 'meta_lead_ads' || lead.metaLeadData?.leadgenId
+                  ? 'Meta Lead Ad'
+                  : lead.source}
               </span>
             </div>
 
@@ -377,7 +391,17 @@ export default function LeadDetailPage() {
               {lead.phone && (
                 <div className="flex items-center gap-2.5">
                   <Phone className="w-4 h-4 text-brand-blue" />
-                  <span>{lead.phone}</span>
+                  <span>
+                    {!isAdmin && !lead.phone.includes('X')
+                      ? (() => {
+                          const d = lead.phone.replace(/\D/g, '');
+                          const ten = d.length >= 10 ? d.slice(-10) : d;
+                          return ten.length === 10
+                            ? `+91 ${ten.slice(0, 2)}XXXXXX${ten.slice(-2)}`
+                            : lead.phone;
+                        })()
+                      : lead.phone}
+                  </span>
                 </div>
               )}
               {lead.email && (
@@ -401,6 +425,87 @@ export default function LeadDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Meta Form Answers Section */}
+          {(lead.metaLeadData || lead.source === 'meta_lead_ads') && (
+            <div className="bg-white rounded-3xl p-6 border border-blue-200/80 shadow-sm space-y-4 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-blue-600">
+                    Meta (Facebook &amp; Instagram) Lead Ads
+                  </div>
+                  <h3 className="text-sm font-extrabold text-brand-navy mt-0.5">
+                    Meta Form Answers
+                    {lead.metaLeadData?.formName
+                      ? ` · ${lead.metaLeadData.formName}`
+                      : ''}
+                  </h3>
+                </div>
+                <span
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold ${
+                    lead.autoWhatsAppWelcomeSent
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : 'bg-slate-100 text-slate-600 border border-slate-200'
+                  }`}
+                >
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>
+                    {lead.autoWhatsAppWelcomeSent
+                      ? 'WhatsApp Auto-Greeting Delivered'
+                      : 'WhatsApp Auto-Greeting Pending'}
+                  </span>
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                  <span className="text-slate-400 block font-bold uppercase text-[10px]">
+                    Ad ID
+                  </span>
+                  <span className="font-mono font-bold text-brand-navy">
+                    {lead.metaLeadData?.adId || lead.adId || '—'}
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                  <span className="text-slate-400 block font-bold uppercase text-[10px]">
+                    Leadgen ID
+                  </span>
+                  <span className="font-mono font-bold text-brand-navy">
+                    {lead.metaLeadData?.leadgenId || lead.externalQueryId || '—'}
+                  </span>
+                </div>
+              </div>
+
+              {lead.metaLeadData?.rawFields &&
+              Object.keys(lead.metaLeadData.rawFields).length > 0 ? (
+                <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200 overflow-hidden">
+                  {Object.entries(lead.metaLeadData.rawFields).map(
+                    ([questionKey, answerVal]) => (
+                      <div
+                        key={questionKey}
+                        className="p-3 bg-slate-50/60 flex items-start justify-between gap-3"
+                      >
+                        <span className="font-mono text-[11px] font-bold text-slate-500">
+                          {questionKey}
+                        </span>
+                        <span className="font-semibold text-brand-navy text-right">
+                          {String(answerVal)}
+                        </span>
+                      </div>
+                    ),
+                  )}
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-slate-50 text-slate-500">
+                  Submitted via Meta Lead Form{' '}
+                  {lead.metaLeadData?.pageName
+                    ? `on ${lead.metaLeadData.pageName}`
+                    : ''}
+                  .
+                </div>
+              )}
+            </div>
+          )}
 
           <CustomFieldsDisplayCard
             entity="lead"

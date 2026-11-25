@@ -47,6 +47,8 @@ import { isWorkspaceAdminRole } from '@/lib/feature-access';
 import MetaCapiPanel from '@/components/integrations/MetaCapiPanel';
 import IndiaMartPullPanel from '@/components/integrations/IndiaMartPullPanel';
 import OmnichannelConnectorsPanel from '@/components/integrations/OmnichannelConnectorsPanel';
+import MetaLeadAdsOAuthPanel from '@/components/integrations/MetaLeadAdsOAuthPanel';
+import UniversalWebhooksManager from '@/components/integrations/UniversalWebhooksManager';
 
 interface FacebookSdkLoginResponse {
   authResponse?: {
@@ -160,6 +162,9 @@ export default function IntegrationsSettingsPage() {
   const [captureResult, setCaptureResult] = useState<WebhookCaptureResponse | null>(
     null,
   );
+  const [activeChannelTab, setActiveChannelTab] = useState<
+    'whatsapp' | 'indiamart' | 'webhooks' | 'meta' | 'omnichannel'
+  >('whatsapp');
 
   // Built-In Leadsetu WhatsApp Onboarding state (only essential company info)
   const [waConfig, setWaConfig] = useState<WhatsAppCloudConfig | null>(null);
@@ -578,61 +583,149 @@ export default function IntegrationsSettingsPage() {
     waConfig.connectionMode === 'leadsetu_managed';
   const isWhatsAppLive = Boolean(waConfig?.enabled && waConfig?.configured);
 
-  const connectors = [
+  const connectors: {
+    id: 'whatsapp' | 'indiamart' | 'webhooks' | 'meta' | 'omnichannel';
+    name: string;
+    shortLabel: string;
+    desc: string;
+    status: string;
+    meta: string;
+    badgeColor: string;
+  }[] = [
     {
-      name: 'WhatsApp Business (Built-In by Leadsetu)',
-      desc: 'Guided 1-click signup for your business number or instant Leadsetu Managed Gateway — zero Meta developer setup.',
+      id: 'whatsapp',
+      name: '1. WhatsApp Business Cloud',
+      shortLabel: 'WhatsApp Cloud',
+      desc: '1-click company WhatsApp onboarding & Leadsetu Managed Gateway.',
       status: isOwnConnected
         ? 'Connected · Own Number'
         : isManagedConnected
           ? 'Connected · Leadsetu Gateway'
-          : 'CRM + wa.me Fallback',
+          : 'CRM + wa.me Ready',
       meta:
         waConfig?.verifiedPhoneNumber ||
         waConfig?.businessDisplayName ||
-        (waConfig?.embeddedSignupAvailable
-          ? 'Ready for 1-click connect'
-          : 'Managed by Leadsetu'),
+        'Zero Meta developer setup',
+      badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
     },
     {
-      name: 'IndiaMART Trade Leads Webhook',
-      desc: 'Capture instant B2B buyer inquiries into Leads Command Center with zero lag.',
-      status: 'Live Webhook Ready',
+      id: 'indiamart',
+      name: '2. IndiaMART Speed-to-Lead',
+      shortLabel: 'IndiaMART Pull & Push',
+      desc: 'Auto-pull CRM Key v2 every 5m + instant push webhook & <10s WhatsApp reply.',
+      status: 'Live Pull + Push Ready',
       meta: 'Auto-maps SENDER_NAME / SENDER_MOBILE',
+      badgeColor: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
     },
     {
-      name: 'Meta Lead Ads (FB & Instagram)',
-      desc: 'Instant webhook capture for ad form submissions with +91 deduplication.',
-      status: 'Webhook Ready',
-      meta: 'Graph Webhook v21.0',
+      id: 'webhooks',
+      name: '3. Universal HTTPS Webhooks',
+      shortLabel: 'Universal Webhooks',
+      desc: 'Self-serve GET/POST HTTPS endpoints with live sample capture & smart +91 phone upsert.',
+      status: 'HTTPS Enforced',
+      meta: 'Upserts Leads · Contacts · Deals',
+      badgeColor: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
     },
     {
-      name: 'Justdial & Website Forms',
-      desc: 'Push inquiry forms directly to Leadsetu with automatic round-robin rep assignment.',
-      status: 'Live Webhook Ready',
-      meta: 'JSON POST Endpoint',
+      id: 'meta',
+      name: '4. Meta Lead Ads & CAPI ROAS',
+      shortLabel: 'Meta Ads & CAPI',
+      desc: 'Facebook & Instagram Lead Form OAuth mapper + Click-to-WhatsApp Conversions API.',
+      status: 'Graph API v25.0',
+      meta: 'LeadSubmitted · Qualified · Purchase ₹',
+      badgeColor: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
     },
     {
-      name: 'Razorpay Payment Links',
-      desc: 'Attach instant UPI / NEFT payment links inside GST Invoices & WhatsApp.',
-      status: 'Connected',
-      meta: 'Auto-reconcile receipts',
+      id: 'omnichannel',
+      name: '5. Justdial, TradeIndia & Booking',
+      shortLabel: 'Justdial · TradeIndia · Booking',
+      desc: 'Marketplace inquiry webhooks & public embeddable demo booking scheduler.',
+      status: 'Multi-Channel Ready',
+      meta: 'Round-robin & territory routing',
+      badgeColor: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
     },
   ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-light text-brand-blue text-xs font-semibold border border-brand-blue/20 mb-2">
-          <Webhook className="w-3.5 h-3.5" />
-          <span>Built-In WhatsApp Business · IndiaMART · Website Webhook Engine</span>
+    <div className="max-w-7xl mx-auto space-y-6 pb-10">
+      {/* Clean Hero Header */}
+      <div className="bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-light text-brand-blue text-xs font-semibold border border-brand-blue/20 mb-2">
+            <Webhook className="w-3.5 h-3.5" />
+            <span>Omnichannel Acquisition · Zero-Leakage +91 Phone Deduplication</span>
+          </div>
+          <h1 className="text-2xl font-extrabold text-brand-navy">
+            Channels, Webhooks &amp; Integrations Hub
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
+            Select any channel card below to configure its connection, map incoming fields, or run a 1-click live test inquiry without clutter.
+          </p>
         </div>
-        <h1 className="text-2xl font-extrabold text-brand-navy">
-          Channels, Webhooks &amp; Integrations
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Connect your WhatsApp Business number in 1 click (provided by Leadsetu) and capture inbound buyer inquiries live with +91 deduplication.
-        </p>
+
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <Link
+            href="/webhooks"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 text-xs font-extrabold transition"
+          >
+            <Webhook className="w-3.5 h-3.5" />
+            <span>Dedicated Webhooks Hub</span>
+          </Link>
+          <Link
+            href="/settings/routing"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.12] text-brand-navy dark:text-slate-200 text-xs font-bold transition"
+          >
+            <Users className="w-3.5 h-3.5 text-brand-blue" />
+            <span>Lead Routing Rules</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* 5-Card Interactive Channel Selector Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        {connectors.map((c) => {
+          const isSelected = activeChannelTab === c.id;
+          return (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setActiveChannelTab(c.id)}
+              className={`text-left rounded-2xl p-4 border transition-all flex flex-col justify-between gap-3 ${
+                isSelected
+                  ? 'bg-brand-blue/10 dark:bg-brand-blue/20 border-brand-blue ring-2 ring-brand-blue/30 shadow-md'
+                  : 'bg-white dark:bg-slate-900/80 border-slate-200/80 dark:border-slate-800 hover:border-brand-blue/50'
+              }`}
+            >
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-1.5">
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${c.badgeColor}`}
+                  >
+                    <CheckCircle2 className="w-2.5 h-2.5 shrink-0" />
+                    <span className="truncate">{c.status}</span>
+                  </span>
+                  {isSelected && (
+                    <span className="w-2 h-2 rounded-full bg-brand-blue animate-ping shrink-0" />
+                  )}
+                </div>
+                <h3 className="text-xs sm:text-sm font-extrabold text-brand-navy leading-snug">
+                  {c.name}
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                  {c.desc}
+                </p>
+              </div>
+              <div className="pt-2 border-t border-slate-100 dark:border-white/10 flex items-center justify-between text-[10px] font-mono text-slate-400">
+                <span className="truncate">{c.meta}</span>
+                <ArrowRight
+                  className={`w-3 h-3 shrink-0 transition-transform ${
+                    isSelected ? 'text-brand-blue translate-x-0.5' : ''
+                  }`}
+                />
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {error && (
@@ -642,6 +735,9 @@ export default function IntegrationsSettingsPage() {
         </div>
       )}
 
+      {/* ─── TAB 1: WHATSAPP BUSINESS CLOUD ──────────────────────────────── */}
+      {activeChannelTab === 'whatsapp' && (
+        <div className="space-y-6">
       {/* Built-In Leadsetu WhatsApp Business Panel */}
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -900,6 +996,14 @@ export default function IntegrationsSettingsPage() {
           </div>
         )}
       </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: INDIAMART PULL API & LIVE PUSH WEBHOOK SIMULATOR ─────── */}
+      {activeChannelTab === 'indiamart' && (
+        <div className="space-y-6">
+          {/* IndiaMART Pull API (CRM Key v2) + <10s Auto-WhatsApp Speed-to-Lead */}
+          <IndiaMartPullPanel />
 
       {/* Live Inbound Webhook Console */}
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
@@ -1116,38 +1220,30 @@ export default function IntegrationsSettingsPage() {
           </div>
         )}
       </div>
+        </div>
+      )}
 
-      {/* IndiaMART Pull API (CRM Key v2) + <10s Auto-WhatsApp Speed-to-Lead */}
-      <IndiaMartPullPanel />
+      {/* ─── TAB 3: UNIVERSAL HTTPS-ONLY INBOUND WEBHOOKS & SMART UPSERT ─── */}
+      {activeChannelTab === 'webhooks' && (
+        <div className="space-y-6">
+          <UniversalWebhooksManager />
+        </div>
+      )}
 
-      {/* Meta Lead Ads, Justdial, TradeIndia & Embeddable Booking Scheduler */}
-      <OmnichannelConnectorsPanel />
+      {/* ─── TAB 4: META LEAD ADS OAUTH + CLICK-TO-WHATSAPP CAPI ────────── */}
+      {activeChannelTab === 'meta' && (
+        <div className="space-y-6">
+          <MetaLeadAdsOAuthPanel />
+          <MetaCapiPanel />
+        </div>
+      )}
 
-      {/* Meta Click-to-WhatsApp Attribution + Conversions API (CAPI) */}
-      <MetaCapiPanel />
-
-      {/* Connector Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {connectors.map((c) => (
-          <div
-            key={c.name}
-            className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between gap-4"
-          >
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="text-sm font-bold text-brand-navy">{c.name}</h3>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
-                  <CheckCircle2 className="w-3 h-3" /> {c.status}
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-2 leading-relaxed">{c.desc}</p>
-            </div>
-            <div className="text-[11px] font-mono text-slate-400 border-t border-slate-100 pt-3">
-              {c.meta}
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* ─── TAB 5: JUSTDIAL, TRADEINDIA & EMBEDDABLE BOOKING SCHEDULER ──── */}
+      {activeChannelTab === 'omnichannel' && (
+        <div className="space-y-6">
+          <OmnichannelConnectorsPanel />
+        </div>
+      )}
     </div>
   );
 }

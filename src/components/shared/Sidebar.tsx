@@ -23,6 +23,7 @@ import {
   UserCircle,
   Hash,
   PhoneCall,
+  Webhook,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCallUiStore } from '@/store/call-ui.store';
@@ -62,6 +63,7 @@ const navItems: Array<{
   { label: 'Quotations', href: '/quotations', icon: ScrollText, badge: 'PDF', feature: 'gstBilling' },
   { label: 'GST Invoices', href: '/invoices', icon: FileText, feature: 'gstBilling' },
   { label: 'Document Center', href: '/documents', icon: FolderOpen, feature: 'documentVault' },
+  { label: 'Webhooks Hub', href: '/webhooks', icon: Webhook, badge: 'HTTPS', adminOnly: true },
   { label: 'Settings', href: '/settings', icon: Settings, adminOnly: true },
   { label: 'My Profile', href: '/profile', icon: UserCircle, userOnly: true },
 ];

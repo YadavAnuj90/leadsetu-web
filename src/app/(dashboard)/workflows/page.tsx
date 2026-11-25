@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, FormEvent } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Workflow,
@@ -18,75 +18,80 @@ import {
   Loader2,
   X,
   Filter,
+  GitBranch,
+  UserCheck,
+  AlertTriangle,
+  Pencil,
+  FlaskConical,
+  ListChecks,
+  ArrowRight,
+  RefreshCw,
 } from 'lucide-react';
 import {
   fetchWorkflows,
-  createWorkflow,
   toggleWorkflowActive,
   executeWorkflowNow,
   runStaleLeadFollowUpsApi,
   deleteWorkflow,
-  draftWorkflowWithAiApi,
+  fetchWorkflowEnrollmentsApi,
+  simulateWorkflowLeadApi,
+  processDueDripsApi,
 } from '@/lib/workflows-api';
 import { getErrorMessage } from '@/lib/api-client';
+import VisualWorkflowCanvasModal from '@/components/workflows/VisualWorkflowCanvasModal';
 import type {
   WorkflowRule,
   WorkflowStats,
   WorkflowTriggerType,
-  WorkflowActionType,
+  WorkflowStepNode,
+  WorkflowEnrollmentItem,
 } from '@/types/contracts';
 
 const TRIGGER_LABELS: Record<WorkflowTriggerType, string> = {
-  'lead.created': 'New Lead Captured (IndiaMART / Website / Meta Ads)',
+  'lead.created': 'New Lead Captured (IndiaMART / Meta / Webhook)',
   'lead.hot_scored': 'SetuAI Scores Lead >= 80 (Hot Buyer)',
-  'lead.stale_followup': 'Lead Stays in New / Proposal Sent for X Hours (Auto Follow-Up)',
+  'lead.stale_followup': 'Lead Stays in New / Proposal Sent for X Hours',
   'deal.stage_changed': 'Deal Stage Moved in Kanban Pipeline',
   'invoice.overdue': 'GST Tax Invoice Passes Due Date',
   'whatsapp.inbound': 'Inbound Buyer Message on WhatsApp',
 };
 
-const WHATSAPP_WORKFLOW_PRESETS = [
-  {
-    label: 'Instant Brochure & Welcome',
-    body: 'Namaste {{buyer_name}} ji 👋, thank you for inquiring for {{company}}. Sharing our latest B2B catalogue & GST quotation options right away!',
-  },
-  {
-    label: '24h Proposal Follow-Up',
-    body: 'Namaste {{buyer_name}} ji 👋, checking in on the GST quotation shared for {{company}} ({{deal_value}}). Reply YES if you need priority dispatch or any revisions!',
-  },
-];
-
-const ACTION_PRESETS: Record<
-  WorkflowActionType,
-  { label: string; defaultSummary: string }
-> = {
-  send_whatsapp_create_task: {
-    label: 'WhatsApp Template + Follow-up Task',
-    defaultSummary:
-      'Send Hinglish Product Catalogue PDF on WhatsApp + Create 15-Min Call Reminder Task',
-  },
-  assign_senior_closer: {
-    label: 'Assign Senior Closer + Priority Alert',
-    defaultSummary:
-      'Assign to Senior Closer + Create High-Priority Call Task + Send WhatsApp Alert',
-  },
-  generate_gst_invoice: {
-    label: 'Auto-Generate 18% GST Invoice Draft',
-    defaultSummary:
-      'Generate 18% CGST/SGST or IGST Tax Invoice + Share Razorpay Link on WhatsApp',
-  },
-  send_payment_reminder: {
-    label: 'Send WhatsApp Razorpay Payment Nudge',
-    defaultSummary:
-      'Send Polite Hinglish Payment Reminder with Razorpay Link + Notify Accounts Team',
-  },
-};
-
-const AI_WORKFLOW_PROMPT_PRESETS = [
-  'Auto-send GST brochure on WhatsApp when an IndiaMART lead in Noida arrives and nudge after 24h',
-  'Follow up on WhatsApp if a lead stays in Proposal Sent for 48 hours without reply',
-  'Send Razorpay payment reminder on WhatsApp when a GST tax invoice passes due date',
-];
+function getNodeChipStyle(node: WorkflowStepNode) {
+  if (node.kind === 'trigger') {
+    return {
+      cls: 'bg-amber-50 border-amber-200 text-amber-800',
+      icon: <Zap className="w-3 h-3 text-amber-500 shrink-0" />,
+    };
+  }
+  if (node.kind === 'delay') {
+    return {
+      cls: 'bg-violet-50 border-violet-200 text-violet-800',
+      icon: <Clock className="w-3 h-3 text-violet-600 shrink-0" />,
+    };
+  }
+  if (node.kind === 'condition') {
+    return {
+      cls: 'bg-sky-50 border-sky-200 text-sky-800',
+      icon: <Filter className="w-3 h-3 text-sky-600 shrink-0" />,
+    };
+  }
+  if (node.actionKind === 'reassign_rep') {
+    return {
+      cls: 'bg-teal-50 border-teal-200 text-teal-800',
+      icon: <UserCheck className="w-3 h-3 text-teal-600 shrink-0" />,
+    };
+  }
+  if (node.actionKind === 'create_sla_alert') {
+    return {
+      cls: 'bg-rose-50 border-rose-200 text-rose-800',
+      icon: <AlertTriangle className="w-3 h-3 text-rose-600 shrink-0" />,
+    };
+  }
+  return {
+    cls: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+    icon: <MessageSquare className="w-3 h-3 text-emerald-600 shrink-0" />,
+  };
+}
 
 export default function WorkflowsPage() {
   const router = useRouter();
@@ -98,6 +103,7 @@ export default function WorkflowsPage() {
     pausedWorkflows: 0,
     totalRuns: 0,
     totalHoursSaved: 0,
+    activeEnrollments: 0,
   });
 
   const [search, setSearch] = useState('');
@@ -106,34 +112,20 @@ export default function WorkflowsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
   const [runningId, setRunningId] = useState<string | null>(null);
+  const [simulatingId, setSimulatingId] = useState<string | null>(null);
+  const [sweepingStale, setSweepingStale] = useState(false);
+  const [processingDrips, setProcessingDrips] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  // Create Modal State
-  const [modalOpen, setModalOpen] = useState(false);
-  const [aiPrompt, setAiPrompt] = useState(AI_WORKFLOW_PROMPT_PRESETS[0]);
-  const [isDraftingAi, setIsDraftingAi] = useState(false);
-  const [aiDraftMeta, setAiDraftMeta] = useState<string | null>(null);
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [triggerType, setTriggerType] =
-    useState<WorkflowTriggerType>('lead.created');
-  const [sourceFilter, setSourceFilter] = useState('all');
-  const [staleStage, setStaleStage] = useState('new');
-  const [staleHours, setStaleHours] = useState('24');
-  const [whatsappTemplateBody, setWhatsappTemplateBody] = useState(
-    WHATSAPP_WORKFLOW_PRESETS[0].body,
-  );
-  const [sweepingStale, setSweepingStale] = useState(false);
-  const [conditionSummary, setConditionSummary] = useState(
-    'Lead Source IN [IndiaMART, WhatsApp] AND City = Noida / Delhi-NCR',
-  );
-  const [actionType, setActionType] = useState<WorkflowActionType>(
-    'send_whatsapp_create_task',
-  );
-  const [actionSummary, setActionSummary] = useState(
-    ACTION_PRESETS.send_whatsapp_create_task.defaultSummary,
-  );
+  // Visual Canvas Modal State
+  const [canvasOpen, setCanvasOpen] = useState(false);
+  const [editingWorkflow, setEditingWorkflow] = useState<WorkflowRule | null>(null);
+
+  // Enrollments Drawer State
+  const [enrollDrawerWf, setEnrollDrawerWf] = useState<WorkflowRule | null>(null);
+  const [enrollments, setEnrollments] = useState<WorkflowEnrollmentItem[]>([]);
+  const [loadingEnrollments, setLoadingEnrollments] = useState(false);
 
   const loadWorkflows = useCallback(async () => {
     setIsLoading(true);
@@ -159,74 +151,29 @@ export default function WorkflowsPage() {
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
-    setTimeout(() => setToastMsg(null), 3500);
+    setTimeout(() => setToastMsg(null), 4500);
   };
 
-  const handleActionTypeChange = (nextType: WorkflowActionType) => {
-    setActionType(nextType);
-    setActionSummary(ACTION_PRESETS[nextType].defaultSummary);
+  const openCreateCanvas = () => {
+    setEditingWorkflow(null);
+    setCanvasOpen(true);
   };
 
-  const handleDraftWithAi = async (overridePrompt?: string) => {
-    const promptToRun = (overridePrompt ?? aiPrompt).trim();
-    if (!promptToRun || isDraftingAi) return;
-    setIsDraftingAi(true);
-    setErrorMsg(null);
+  const openEditCanvas = (wf: WorkflowRule) => {
+    setEditingWorkflow(wf);
+    setCanvasOpen(true);
+  };
+
+  const openEnrollmentsDrawer = async (wf: WorkflowRule) => {
+    setEnrollDrawerWf(wf);
+    setLoadingEnrollments(true);
     try {
-      const draft = await draftWorkflowWithAiApi({
-        prompt: promptToRun,
-        language: 'hinglish',
-      });
-      setName(draft.name);
-      setDescription(draft.description);
-      setTriggerType(draft.triggerType);
-      setSourceFilter(draft.sourceFilter || 'all');
-      setStaleStage(draft.staleStage || 'new');
-      setStaleHours(String(draft.staleHours ?? 24));
-      setConditionSummary(draft.conditionSummary);
-      setActionType(draft.actionType);
-      setActionSummary(draft.actionSummary);
-      if (draft.whatsappTemplateBody) {
-        setWhatsappTemplateBody(draft.whatsappTemplateBody);
-      }
-      setAiDraftMeta(
-        `SetuAI filled rule (${draft.provider} · ${draft.model}) — review & click Save below!`,
-      );
+      const res = await fetchWorkflowEnrollmentsApi(wf.id);
+      setEnrollments(res.enrollments || []);
     } catch (err) {
       setErrorMsg(getErrorMessage(err));
     } finally {
-      setIsDraftingAi(false);
-    }
-  };
-
-  const handleCreate = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-    setIsMutating(true);
-    setErrorMsg(null);
-    try {
-      await createWorkflow({
-        name: name.trim(),
-        description: description.trim(),
-        triggerType,
-        sourceFilter,
-        staleStage,
-        staleHours: Math.max(0, Number(staleHours) || 0),
-        whatsappTemplateBody: whatsappTemplateBody.trim(),
-        conditionSummary: conditionSummary.trim(),
-        actionType,
-        actionSummary: actionSummary.trim(),
-        active: true,
-      });
-      setModalOpen(false);
-      setName('');
-      setDescription('');
-      showToast('New AI Workflow saved & activated in workspace!');
-      await loadWorkflows();
-    } catch (err) {
-      setErrorMsg(getErrorMessage(err));
-    } finally {
-      setIsMutating(false);
+      setLoadingEnrollments(false);
     }
   };
 
@@ -245,6 +192,26 @@ export default function WorkflowsPage() {
       setErrorMsg(getErrorMessage(err));
     } finally {
       setSweepingStale(false);
+    }
+  };
+
+  const handleProcessDueDrips = async () => {
+    setProcessingDrips(true);
+    setErrorMsg(null);
+    try {
+      const res = await processDueDripsApi({ forceAdvance: true });
+      showToast(
+        `Processed ${res.processed} drip enrollment(s): ${res.completed} completed, ${res.stoppedOnReply} auto-stopped on buyer reply.`,
+      );
+      await loadWorkflows();
+      if (enrollDrawerWf) {
+        const ref = await fetchWorkflowEnrollmentsApi(enrollDrawerWf.id);
+        setEnrollments(ref.enrollments || []);
+      }
+    } catch (err) {
+      setErrorMsg(getErrorMessage(err));
+    } finally {
+      setProcessingDrips(false);
     }
   };
 
@@ -268,13 +235,30 @@ export default function WorkflowsPage() {
     try {
       await executeWorkflowNow(wf.id);
       showToast(
-        `Executed "${wf.name}" — Follow-up task created in /tasks & logged!`,
+        `Executed "${wf.name}" — Actions dispatched & logged cleanly!`,
       );
       await loadWorkflows();
     } catch (err) {
       setErrorMsg(getErrorMessage(err));
     } finally {
       setRunningId(null);
+    }
+  };
+
+  const handleSimulateFullFlow = async (wf: WorkflowRule) => {
+    setSimulatingId(wf.id);
+    setErrorMsg(null);
+    try {
+      const res = await simulateWorkflowLeadApi(wf.id, { forceAdvance: true });
+      showToast(
+        `Simulated "${res.enrollment.leadName}" through ${res.enrollment.stepLogs.length} visual steps (Status: ${res.enrollment.status.toUpperCase()})!`,
+      );
+      await loadWorkflows();
+      await openEnrollmentsDrawer(wf);
+    } catch (err) {
+      setErrorMsg(getErrorMessage(err));
+    } finally {
+      setSimulatingId(null);
     }
   };
 
@@ -291,7 +275,7 @@ export default function WorkflowsPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6 pb-10">
       {/* Top Back Navigation */}
       <div className="flex items-center justify-between">
         <button
@@ -307,37 +291,51 @@ export default function WorkflowsPage() {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-blue mb-1">
-            <Sparkles className="w-3.5 h-3.5" /> Zero-Code IF-THIS-THEN-THAT CRM Engine
+            <GitBranch className="w-3.5 h-3.5" /> Visual No-Code Trigger → Condition → Delay → Action Engine
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-navy tracking-tight">
-            AI Workflows &amp; Auto-Routing
+            Visual Workflows &amp; WhatsApp Drips
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Automatically trigger WhatsApp replies, create follow-up tasks, and generate 18% GST invoices whenever leads or deals change.
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5 max-w-2xl">
+            Build multi-step Hinglish WhatsApp drip sequences, 10-minute uncontacted Speed-to-Lead SLA escalations, backup rep reassignment, and auto-stop-on-reply flows.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             type="button"
-            disabled={sweepingStale}
-            onClick={handleRunStaleFollowUps}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs sm:text-sm font-bold shadow-sm disabled:opacity-50"
+            disabled={processingDrips}
+            onClick={handleProcessDueDrips}
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-violet-300 bg-violet-50 hover:bg-violet-100 text-violet-800 text-xs font-bold shadow-xs disabled:opacity-50"
           >
-            {sweepingStale ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+            {processingDrips ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
-              <Clock className="w-4 h-4" />
+              <RefreshCw className="w-3.5 h-3.5" />
             )}
-            Run Stale Follow-Ups Now
+            Advance Due Drips
           </button>
 
           <button
             type="button"
-            onClick={() => setModalOpen(true)}
+            disabled={sweepingStale}
+            onClick={handleRunStaleFollowUps}
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold shadow-xs disabled:opacity-50"
+          >
+            {sweepingStale ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Clock className="w-3.5 h-3.5" />
+            )}
+            Run Stale Sweeps
+          </button>
+
+          <button
+            type="button"
+            onClick={openCreateCanvas}
             className="btn-primary-brand inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white shadow-sm"
           >
-            <Plus className="w-4 h-4" /> Create Automation Rule
+            <Plus className="w-4 h-4" /> Open Visual Flow Builder
           </button>
         </div>
       </div>
@@ -345,7 +343,7 @@ export default function WorkflowsPage() {
       {toastMsg && (
         <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 flex items-center justify-between">
           <span className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             {toastMsg}
           </span>
           <button type="button" onClick={() => setToastMsg(null)}>
@@ -367,7 +365,7 @@ export default function WorkflowsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
           <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
-            <span>Active Automations</span>
+            <span>Active Visual Flows</span>
             <Workflow className="w-4 h-4 text-brand-blue" />
           </div>
           <div className="text-2xl font-extrabold text-brand-navy mt-2">
@@ -377,46 +375,46 @@ export default function WorkflowsPage() {
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Listening to live workspace events
+            Listening to live IndiaMART, Meta &amp; Webhook events
           </p>
         </div>
 
         <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
           <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
-            <span>Total Workflow Runs</span>
+            <span>Total Executions</span>
             <Zap className="w-4 h-4 text-amber-500" />
           </div>
           <div className="text-2xl font-extrabold text-brand-navy mt-2">
             {stats.totalRuns.toLocaleString('en-IN')}
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Auto-triggered on lead &amp; deal events
+            WhatsApp drips, rep reassignments &amp; SLA alerts
           </p>
         </div>
 
         <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
           <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
-            <span>Sales Rep Hours Saved</span>
+            <span>Active Drip Queue</span>
+            <Activity className="w-4 h-4 text-violet-600" />
+          </div>
+          <div className="text-2xl font-extrabold text-violet-700 mt-2">
+            {stats.activeEnrollments || 0}
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            Leads currently waiting on delay timers
+          </p>
+        </div>
+
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
+          <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
+            <span>Rep Hours Saved</span>
             <Clock className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="text-2xl font-extrabold text-emerald-600 mt-2">
             {stats.totalHoursSaved} hrs
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Eliminated manual data entry &amp; follow-ups
-          </p>
-        </div>
-
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
-          <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
-            <span>Avg Response SLA</span>
-            <Activity className="w-4 h-4 text-indigo-600" />
-          </div>
-          <div className="text-2xl font-extrabold text-brand-navy mt-2">
-            14 sec
-          </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Instant WhatsApp &amp; task creation speed
+            Auto-stopped whenever buyer replies
           </p>
         </div>
       </div>
@@ -429,7 +427,7 @@ export default function WorkflowsPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search workflows by name, trigger condition, or action..."
+            placeholder="Search visual flows by name, trigger condition, or action..."
             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm focus:outline-none focus:border-brand-blue"
           />
         </div>
@@ -443,7 +441,7 @@ export default function WorkflowsPage() {
             <option value="all">All Event Triggers</option>
             <option value="lead.created">New Lead Captured</option>
             <option value="lead.hot_scored">Hot Lead Scored (AI &gt;= 80)</option>
-            <option value="lead.stale_followup">Stale Lead Follow-Up (New / Proposal)</option>
+            <option value="lead.stale_followup">Stale Lead Follow-Up</option>
             <option value="deal.stage_changed">Deal Stage Changed</option>
             <option value="invoice.overdue">Overdue GST Invoice</option>
           </select>
@@ -460,66 +458,85 @@ export default function WorkflowsPage() {
         </div>
       </div>
 
-      {/* Workflows Grid */}
+      {/* Workflows Visual Cards */}
       {isLoading ? (
         <div className="bg-white rounded-3xl p-16 border border-slate-200/80 flex flex-col items-center justify-center gap-3 text-slate-400">
           <Loader2 className="w-7 h-7 animate-spin text-brand-blue" />
           <p className="text-xs font-semibold">
-            Loading AI Workflows &amp; Execution Logs from Leadsetu Cloud...
+            Loading Visual Workflows &amp; Drip Sequences...
           </p>
         </div>
       ) : workflows.length === 0 ? (
         <div className="bg-white rounded-3xl p-16 border border-slate-200/80 text-center max-w-lg mx-auto space-y-4">
           <div className="w-12 h-12 rounded-2xl bg-brand-light text-brand-blue flex items-center justify-center mx-auto">
-            <Workflow className="w-6 h-6" />
+            <GitBranch className="w-6 h-6" />
           </div>
           <div>
             <h3 className="text-base font-extrabold text-brand-navy">
-              No Automation Workflows Found
+              No Visual Workflows Found
             </h3>
             <p className="text-xs text-slate-500 mt-1">
-              Build a custom zero-code workflow to automate WhatsApp replies, task routing, and GST invoicing.
+              Launch the Visual Flow Builder to set up a 10-minute Speed-to-Lead rescue or Hinglish WhatsApp drip sequence.
             </p>
           </div>
-          <div className="flex items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={() => setModalOpen(true)}
-              className="btn-primary-brand px-4 py-2 rounded-xl text-xs font-bold text-white"
-            >
-              + Create Rule
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={openCreateCanvas}
+            className="btn-primary-brand px-5 py-2.5 rounded-xl text-xs font-bold text-white"
+          >
+            + Open Visual Flow Builder
+          </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {workflows.map((wf) => (
-            <div
-              key={wf.id}
-              className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between space-y-5 hover:border-brand-blue/40 transition-all"
-            >
-              <div className="space-y-4">
-                <div className="flex items-start justify-between gap-3">
+        <div className="grid grid-cols-1 gap-5">
+          {workflows.map((wf) => {
+            const nodes = wf.nodes || [];
+            return (
+              <div
+                key={wf.id}
+                className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-4 hover:border-brand-blue/40 transition-all"
+              >
+                {/* Top Card Header */}
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
                     <div
-                      className={`w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+                      className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
                         wf.active
                           ? 'bg-brand-light text-brand-blue'
                           : 'bg-slate-100 text-slate-400'
                       }`}
                     >
-                      <Workflow className="w-5 h-5" />
+                      <GitBranch className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="font-extrabold text-base text-brand-navy">
-                        {wf.name}
-                      </h3>
-                      <div className="flex flex-wrap items-center gap-2 mt-0.5 text-[11px] text-slate-400">
-                        <span className="font-semibold text-slate-600">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-extrabold text-base text-brand-navy">
+                          {wf.name}
+                        </h3>
+                        {wf.stopOnReply !== false && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Auto-Stop on Reply
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2.5 mt-1 text-[11px] text-slate-500">
+                        <span className="font-semibold text-slate-700">
                           {wf.runsCount} runs
                         </span>
                         <span>·</span>
                         <span>{wf.hoursSaved} hrs saved</span>
+                        <span>·</span>
+                        <span className="text-violet-700 font-bold">
+                          {wf.activeEnrollmentsCount || 0} waiting in drip
+                        </span>
+                        <span>·</span>
+                        <span className="text-emerald-700 font-bold">
+                          {wf.completedEnrollmentsCount || 0} completed
+                        </span>
+                        <span>·</span>
+                        <span>
+                          Trigger: {TRIGGER_LABELS[wf.triggerType] || wf.triggerType}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -527,7 +544,7 @@ export default function WorkflowsPage() {
                   <button
                     type="button"
                     onClick={() => handleToggle(wf.id)}
-                    className={`px-3 py-1 rounded-full text-xs font-bold transition-colors flex-shrink-0 ${
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors shrink-0 ${
                       wf.active
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                         : 'bg-slate-100 text-slate-500 border border-slate-200'
@@ -537,63 +554,33 @@ export default function WorkflowsPage() {
                   </button>
                 </div>
 
-                {/* IF -> CONDITION -> THEN Blocks */}
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2.5 text-xs">
-                  <div className="flex items-start gap-2 text-slate-700">
-                    <Zap className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-extrabold text-brand-navy uppercase text-[10px] tracking-wider block">
-                        WHEN TRIGGER ({wf.triggerType})
-                      </span>
-                      <span>{TRIGGER_LABELS[wf.triggerType] || wf.triggerType}</span>
+                {/* Visual Pipeline Strip */}
+                {nodes.length > 0 && (
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 overflow-x-auto">
+                    <div className="flex items-center gap-2 min-w-max">
+                      {nodes.map((node, i) => {
+                        const style = getNodeChipStyle(node);
+                        return (
+                          <div key={node.id} className="flex items-center gap-2">
+                            {i > 0 && (
+                              <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => openEditCanvas(wf)}
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition hover:shadow-xs ${style.cls}`}
+                            >
+                              {style.icon}
+                              <span>{node.title}</span>
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
+                )}
 
-                  <div className="flex items-start gap-2 text-slate-700 pt-1.5 border-t border-slate-200/60">
-                    <Filter className="w-3.5 h-3.5 text-brand-blue flex-shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-extrabold text-brand-navy uppercase text-[10px] tracking-wider block">
-                        IF CONDITION
-                      </span>
-                      <span>{wf.conditionSummary}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2 text-slate-700 pt-1.5 border-t border-slate-200/60">
-                    <MessageSquare className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-extrabold text-brand-navy uppercase text-[10px] tracking-wider block">
-                        THEN EXECUTE ACTION
-                      </span>
-                      <span className="font-semibold text-emerald-800">
-                        {wf.actionSummary}
-                      </span>
-                      {(wf.sourceFilter && wf.sourceFilter !== 'all') ||
-                      wf.triggerType === 'lead.stale_followup' ? (
-                        <div className="flex flex-wrap gap-1.5 mt-1.5">
-                          {wf.sourceFilter && wf.sourceFilter !== 'all' && (
-                            <span className="px-2 py-0.5 rounded-full bg-white border border-slate-200 text-[10px] font-bold text-slate-600">
-                              Source: {wf.sourceFilter.toUpperCase()}
-                            </span>
-                          )}
-                          {wf.triggerType === 'lead.stale_followup' && (
-                            <span className="px-2 py-0.5 rounded-full bg-white border border-slate-200 text-[10px] font-bold text-amber-700">
-                              Stage: {wf.staleStage || 'new/proposal'} · After{' '}
-                              {wf.staleHours ?? 24}h
-                            </span>
-                          )}
-                        </div>
-                      ) : null}
-                      {wf.whatsappTemplateBody && (
-                        <p className="mt-1.5 text-[11px] text-slate-600 bg-white p-2 rounded-lg border border-slate-200/70 italic">
-                          &ldquo;{wf.whatsappTemplateBody}&rdquo;
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Recent Audit Log Entry */}
+                {/* Latest Execution Log */}
                 {wf.executionLogs && wf.executionLogs.length > 0 && (
                   <div className="px-3.5 py-2.5 rounded-xl bg-emerald-50/50 border border-emerald-100 text-[11px] text-slate-600 flex items-center justify-between gap-2">
                     <span className="truncate">
@@ -602,342 +589,191 @@ export default function WorkflowsPage() {
                     </span>
                   </div>
                 )}
-              </div>
 
-              {/* Card Footer Actions */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleExecuteNow(wf)}
-                  disabled={runningId === wf.id}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-brand-light hover:bg-brand-blue hover:text-white text-brand-blue text-xs font-bold transition-colors"
-                >
-                  {runningId === wf.id ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Play className="w-3.5 h-3.5" />
-                  )}
-                  Test / Run Now
-                </button>
+                {/* Footer Controls */}
+                <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openEditCanvas(wf)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-brand-navy text-xs font-bold transition"
+                    >
+                      <Pencil className="w-3.5 h-3.5 text-brand-blue" />
+                      Edit Visual Flow ({nodes.length} steps)
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => handleDelete(wf.id)}
-                  className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                  title="Delete Workflow"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSimulateFullFlow(wf)}
+                      disabled={simulatingId === wf.id}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold transition"
+                    >
+                      {simulatingId === wf.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <FlaskConical className="w-3.5 h-3.5" />
+                      )}
+                      Simulate Full Flow (1-Click)
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => openEnrollmentsDrawer(wf)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 text-xs font-bold transition"
+                    >
+                      <ListChecks className="w-3.5 h-3.5" />
+                      Drip Enrollments &amp; Logs
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleExecuteNow(wf)}
+                      disabled={runningId === wf.id}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-brand-light hover:bg-brand-blue hover:text-white text-brand-blue text-xs font-bold transition"
+                    >
+                      {runningId === wf.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Play className="w-3.5 h-3.5" />
+                      )}
+                      Run Now
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(wf.id)}
+                    disabled={isMutating}
+                    className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                    title="Delete Workflow"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      {/* ─── CREATE WORKFLOW MODAL ────────────────────────────── */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden my-8">
+      {/* Visual Canvas Modal */}
+      {canvasOpen && (
+        <VisualWorkflowCanvasModal
+          open={canvasOpen}
+          editingWorkflow={editingWorkflow}
+          onClose={() => setCanvasOpen(false)}
+          onSaved={async (_saved, isNew) => {
+            setCanvasOpen(false);
+            showToast(
+              isNew
+                ? 'Visual Workflow saved & activated!'
+                : 'Visual Workflow updated cleanly!',
+            );
+            await loadWorkflows();
+          }}
+        />
+      )}
+
+      {/* Live Drip Enrollments & Step-by-Step Logs Modal */}
+      {enrollDrawerWf && (
+        <div className="fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[85vh] flex flex-col border border-slate-200 shadow-2xl overflow-hidden">
             <div className="px-6 py-4 bg-brand-navy text-white flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <Workflow className="w-5 h-5 text-brand-blue" />
-                <div>
-                  <h2 className="text-base font-extrabold">
-                    Create Zero-Code AI Automation Rule
-                  </h2>
-                  <p className="text-[11px] text-slate-300">
-                    Automatically runs when Leads, Deals, or GST Invoices change in workspace
-                  </p>
-                </div>
+              <div>
+                <h3 className="text-sm font-extrabold">
+                  Drip Enrollments &amp; Step Execution Logs
+                </h3>
+                <p className="text-[11px] text-slate-300 truncate max-w-md">
+                  {enrollDrawerWf.name}
+                </p>
               </div>
               <button
                 type="button"
-                onClick={() => setModalOpen(false)}
+                onClick={() => setEnrollDrawerWf(null)}
                 className="p-1.5 rounded-lg hover:bg-white/10 text-slate-300"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form
-              onSubmit={handleCreate}
-              className="p-6 space-y-4 max-h-[82vh] overflow-y-auto"
-            >
-              {/* Ask AI to Build Rule Prompt Bar */}
-              <div
-                className="p-4 rounded-2xl text-white space-y-3 border border-brand-blue/30"
-                style={{
-                  background:
-                    'linear-gradient(135deg, #17243A 0%, #1E3358 100%)',
-                }}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-brand-sky">
-                    <Sparkles className="w-4 h-4" /> Ask AI to Build Rule (English / Hinglish)
-                  </span>
-                  {aiDraftMeta && (
-                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">
-                      {aiDraftMeta}
-                    </span>
-                  )}
+            <div className="p-6 overflow-y-auto space-y-4 flex-1 bg-slate-50">
+              {loadingEnrollments ? (
+                <div className="py-12 text-center text-xs text-slate-500">
+                  Loading enrollments...
                 </div>
-
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <input
-                    type="text"
-                    value={aiPrompt}
-                    onChange={(e) => setAiPrompt(e.target.value)}
-                    placeholder="e.g. Auto-send GST brochure on WhatsApp when an IndiaMART lead in Noida arrives and nudge after 24h"
-                    className="flex-1 px-3.5 py-2 rounded-xl bg-white/10 border border-white/15 text-xs text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-sky"
-                  />
-                  <button
-                    type="button"
-                    disabled={isDraftingAi || !aiPrompt.trim()}
-                    onClick={() => void handleDraftWithAi()}
-                    className="btn-primary-brand inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white whitespace-nowrap disabled:opacity-60"
-                  >
-                    {isDraftingAi ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-3.5 h-3.5" />
-                    )}
-                    Build with SetuAI
-                  </button>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {AI_WORKFLOW_PROMPT_PRESETS.map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      disabled={isDraftingAi}
-                      onClick={() => {
-                        setAiPrompt(preset);
-                        void handleDraftWithAi(preset);
-                      }}
-                      className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 transition-colors text-left truncate max-w-full"
-                    >
-                      ✨ {preset}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Workflow Rule Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. IndiaMART Hot Lead -> Instant WhatsApp Brochure & Call Task"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  1. WHEN Event Trigger Occurs
-                </label>
-                <select
-                  value={triggerType}
-                  onChange={(e) => {
-                    const nextTrig = e.target.value as WorkflowTriggerType;
-                    setTriggerType(nextTrig);
-                    if (nextTrig === 'lead.stale_followup') {
-                      setWhatsappTemplateBody(WHATSAPP_WORKFLOW_PRESETS[1].body);
-                    } else if (
-                      nextTrig === 'lead.created' ||
-                      nextTrig === 'lead.hot_scored'
-                    ) {
-                      setWhatsappTemplateBody(WHATSAPP_WORKFLOW_PRESETS[0].body);
-                    }
-                  }}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm bg-white font-semibold"
-                >
-                  <option value="lead.created">
-                    New Lead Captured (IndiaMART / Website / Meta Ads)
-                  </option>
-                  <option value="lead.hot_scored">
-                    SetuAI Scores Lead &gt;= 80 (Hot Buyer)
-                  </option>
-                  <option value="lead.stale_followup">
-                    Lead Stays in New / Proposal Sent for X Hours (Auto Follow-Up)
-                  </option>
-                  <option value="deal.stage_changed">
-                    Deal Stage Moved in Kanban Pipeline
-                  </option>
-                  <option value="invoice.overdue">
-                    GST Tax Invoice Passes Due Date
-                  </option>
-                  <option value="whatsapp.inbound">
-                    Inbound Buyer Message on WhatsApp
-                  </option>
-                </select>
-              </div>
-
-              {(triggerType === 'lead.created' ||
-                triggerType === 'lead.hot_scored') && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Lead Source Filter
-                  </label>
-                  <select
-                    value={sourceFilter}
-                    onChange={(e) => setSourceFilter(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm bg-white font-semibold"
-                  >
-                    <option value="all">
-                      All Sources (IndiaMART + Website + Meta Ads + Manual)
-                    </option>
-                    <option value="indiamart">IndiaMART Inquiries Only</option>
-                    <option value="website">Website Forms Only</option>
-                    <option value="meta_ads">Meta Lead Ads Only</option>
-                    <option value="whatsapp">WhatsApp Leads Only</option>
-                    <option value="justdial">Justdial Inquiries Only</option>
-                  </select>
-                </div>
-              )}
-
-              {triggerType === 'lead.stale_followup' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200">
-                  <div>
-                    <label className="block text-xs font-bold text-amber-900 mb-1">
-                      Target Lead Stage
-                    </label>
-                    <select
-                      value={staleStage}
-                      onChange={(e) => setStaleStage(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-amber-200 text-xs bg-white font-semibold"
-                    >
-                      <option value="new">New (Uncontacted)</option>
-                      <option value="proposal">Proposal Sent</option>
-                      <option value="contacted">Contacted</option>
-                      <option value="qualified">Qualified</option>
-                      <option value="any">Either New or Proposal Sent</option>
-                    </select>
+              ) : enrollments.length === 0 ? (
+                <div className="bg-white rounded-2xl p-8 text-center border border-slate-200 space-y-3">
+                  <Sparkles className="w-7 h-7 text-brand-blue mx-auto" />
+                  <div className="text-xs font-bold text-brand-navy">
+                    No Leads Enrolled Yet
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-amber-900 mb-1">
-                      Inactivity Delay (Hours)
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={720}
-                      value={staleHours}
-                      onChange={(e) => setStaleHours(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-amber-200 text-xs bg-white font-bold"
-                    />
-                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Click <strong>Simulate Full Flow (1-Click)</strong> to run a test lead through every Trigger, Delay, Condition, and WhatsApp/SLA step.
+                  </p>
                 </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  2. IF Condition Matches *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={conditionSummary}
-                  onChange={(e) => setConditionSummary(e.target.value)}
-                  placeholder="e.g. Source = IndiaMART AND Estimated Value >= ₹1,00,000"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm"
-                />
-              </div>
-
-              <div>
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
-                  <label className="text-xs font-bold text-slate-700">
-                    WhatsApp Auto-Message Template (sent via Built-In WhatsApp)
-                  </label>
-                  <div className="flex items-center gap-1.5">
-                    {WHATSAPP_WORKFLOW_PRESETS.map((p) => (
-                      <button
-                        key={p.label}
-                        type="button"
-                        onClick={() => setWhatsappTemplateBody(p.body)}
-                        className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-brand-light text-[10px] font-bold text-brand-blue"
+              ) : (
+                enrollments.map((enr) => (
+                  <div
+                    key={enr.id}
+                    className="bg-white rounded-2xl p-4 border border-slate-200 space-y-3"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                      <div>
+                        <div className="text-xs font-extrabold text-brand-navy">
+                          {enr.leadName}{' '}
+                          <span className="font-mono text-slate-500 font-normal">
+                            ({enr.leadPhone || 'No Phone'})
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          Source: {enr.leadSource || 'webhook'}
+                        </div>
+                      </div>
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                          enr.status === 'completed'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : enr.status === 'stopped_on_reply'
+                              ? 'bg-sky-100 text-sky-800'
+                              : enr.status === 'active'
+                                ? 'bg-violet-100 text-violet-800'
+                                : 'bg-slate-100 text-slate-600'
+                        }`}
                       >
-                        {p.label}
-                      </button>
-                    ))}
+                        {enr.status.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      {enr.stepLogs.map((sl, idx) => (
+                        <div
+                          key={`${sl.nodeId}-${idx}`}
+                          className="flex items-start justify-between gap-3 text-[11px] px-3 py-2 rounded-xl bg-slate-50 border border-slate-100"
+                        >
+                          <div>
+                            <span className="font-bold text-brand-navy">
+                              {idx + 1}. {sl.title}
+                            </span>
+                            <div className="text-slate-600 mt-0.5">{sl.detail}</div>
+                          </div>
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase shrink-0 ${
+                              sl.status === 'success'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : sl.status === 'scheduled'
+                                  ? 'bg-violet-100 text-violet-700'
+                                  : 'bg-amber-100 text-amber-700'
+                            }`}
+                          >
+                            {sl.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <textarea
-                  rows={3}
-                  value={whatsappTemplateBody}
-                  onChange={(e) => setWhatsappTemplateBody(e.target.value)}
-                  placeholder="Namaste {{buyer_name}} ji, thank you for inquiring for {{company}}..."
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm"
-                />
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  Variables supported: <code>{'{{buyer_name}}'}</code>,{' '}
-                  <code>{'{{company}}'}</code>, <code>{'{{city}}'}</code>,{' '}
-                  <code>{'{{deal_value}}'}</code>
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  3. THEN Action Type
-                </label>
-                <select
-                  value={actionType}
-                  onChange={(e) =>
-                    handleActionTypeChange(e.target.value as WorkflowActionType)
-                  }
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm bg-white font-semibold"
-                >
-                  <option value="send_whatsapp_create_task">
-                    Send WhatsApp Catalogue + Create Follow-up Task
-                  </option>
-                  <option value="assign_senior_closer">
-                    Assign to Senior Closer + High-Priority Alert
-                  </option>
-                  <option value="generate_gst_invoice">
-                    Auto-Generate 18% GST Tax Invoice Draft
-                  </option>
-                  <option value="send_payment_reminder">
-                    Send WhatsApp Razorpay Payment Reminder
-                  </option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Action Details *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={actionSummary}
-                  onChange={(e) => setActionSummary(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isMutating}
-                  className="btn-primary-brand inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white"
-                >
-                  {isMutating && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Save &amp; Activate Workflow
-                </button>
-              </div>
-            </form>
+                ))
+              )}
+            </div>
           </div>
         </div>
       )}
