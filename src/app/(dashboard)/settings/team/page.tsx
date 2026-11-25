@@ -33,7 +33,9 @@ import {
   ExternalLink,
   Trophy,
   Sparkles,
+  BarChart3,
 } from 'lucide-react';
+import UserScorecardDrawer from '@/components/team/UserScorecardDrawer';
 import {
   fetchTeam,
   addTeamMember,
@@ -161,6 +163,9 @@ export default function TeamSettingsPage() {
   const [credentials, setCredentials] = useState<
     (MemberCredentials & { name: string; phone: string; isReset: boolean }) | null
   >(null);
+
+  // User 360° Scorecard & Security Audit Drawer
+  const [scorecardMemberId, setScorecardMemberId] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -855,14 +860,21 @@ export default function TeamSettingsPage() {
                               .toUpperCase()}
                           </div>
                           <div className="min-w-0">
-                            <div className="font-bold text-brand-navy flex items-center gap-1.5">
-                              {m.name}
+                            <button
+                              type="button"
+                              onClick={() => setScorecardMemberId(m.id)}
+                              className="font-bold text-brand-navy hover:text-brand-blue flex items-center gap-1.5 text-left transition-colors"
+                              title="Open User 360° Scorecard & Security Audit Drawer"
+                            >
+                              <span className="underline decoration-slate-300 hover:decoration-brand-blue underline-offset-2">
+                                {m.name}
+                              </span>
                               {isSelf && (
-                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-light text-brand-blue">
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-light text-brand-blue no-underline">
                                   You
                                 </span>
                               )}
-                            </div>
+                            </button>
                             <div className="text-xs text-slate-500 flex items-center gap-1">
                               <Mail className="w-3 h-3" /> {m.email}
                             </div>
@@ -972,6 +984,26 @@ export default function TeamSettingsPage() {
                           >
                             {m.isActive ? 'Active' : 'Deactivated'}
                           </span>
+                          {m.isActive && (
+                            <button
+                              type="button"
+                              onClick={() => setScorecardMemberId(m.id)}
+                              className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                m.availabilityStatus === 'on_leave'
+                                  ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                  : m.availabilityStatus === 'away'
+                                    ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                    : 'bg-sky-50 text-sky-700 border-sky-200'
+                              }`}
+                              title={`Shift ${m.shiftStart || '09:30'}–${m.shiftEnd || '19:30'}${m.leaveNote ? ` · ${m.leaveNote}` : ''}`}
+                            >
+                              {m.availabilityStatus === 'on_leave'
+                                ? 'On Leave'
+                                : m.availabilityStatus === 'away'
+                                  ? 'Away / Break'
+                                  : `On Shift (${m.shiftStart || '09:30'}–${m.shiftEnd || '19:30'})`}
+                            </button>
+                          )}
                           {m.inviteStatus === 'pending' && (
                             <span className="inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30">
                               Invite Sent · Pending
@@ -985,6 +1017,16 @@ export default function TeamSettingsPage() {
                             <Loader2 className="w-4 h-4 animate-spin text-brand-blue" />
                           ) : (
                             <>
+                              {(manageable || isSelf) && (
+                                <button
+                                  type="button"
+                                  onClick={() => setScorecardMemberId(m.id)}
+                                  title="User 360° Scorecard, Availability & Audit Trail"
+                                  className="p-2 rounded-lg border border-indigo-200 bg-indigo-50/70 text-indigo-700 hover:bg-indigo-100"
+                                >
+                                  <BarChart3 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                               {manageable && (m.role === 'manager' || m.role === 'agent') && (
                                 <button
                                   type="button"
@@ -1548,6 +1590,14 @@ export default function TeamSettingsPage() {
           </div>
         </div>
       )}
+
+      {/* ─── USER 360° SCORECARD & SECURITY AUDIT DRAWER ─── */}
+      <UserScorecardDrawer
+        memberId={scorecardMemberId}
+        canManage={Boolean(viewer?.canManageTeam)}
+        onClose={() => setScorecardMemberId(null)}
+        onUpdated={() => void loadTeam()}
+      />
     </div>
   );
 }

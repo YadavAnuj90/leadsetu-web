@@ -35,6 +35,7 @@ import CallMobileButton from '@/components/calling/CallMobileButton';
 import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
 import CustomFieldsDisplayCard from '@/components/custom-fields/CustomFieldsDisplayCard';
 import { EntityEmailPanel } from '@/components/email/EntityEmailPanel';
+import Customer360TimelineCard from '@/components/timeline/Customer360TimelineCard';
 import type { Deal, Lead, LeadActivity, LeadStatus } from '@/types/contracts';
 
 const stages: { id: LeadStatus; label: string }[] = [
@@ -588,6 +589,11 @@ export default function LeadDetailPage() {
 
         {/* Right Activity, Notes Timeline & 2-Way Email Thread */}
         <div className="lg:col-span-7 space-y-6">
+          <Customer360TimelineCard
+            entityType="lead"
+            entityId={lead.id}
+            onActivityAdded={() => void loadLead()}
+          />
           <LeadTimeline
             activities={lead.activities || []}
             onAddActivity={handleAddActivity}

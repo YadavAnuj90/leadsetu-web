@@ -381,6 +381,11 @@ export interface RepRoutingCandidate extends RepRoutingConfig {
   email: string;
   role: string;
   userCode: string;
+  availabilityStatus?: 'available' | 'away' | 'on_leave';
+  availableForLeads?: boolean;
+  shiftStart?: string;
+  shiftEnd?: string;
+  leaveNote?: string;
   openLeadsCount: number;
   todayAssignedCount: number;
 }
@@ -709,6 +714,11 @@ export interface AuthUser {
   impersonatorEmail?: string;
   twoFactorEnabled?: boolean;
   authProvider?: 'local' | 'google';
+  availabilityStatus?: 'available' | 'away' | 'on_leave';
+  availableForLeads?: boolean;
+  shiftStart?: string;
+  shiftEnd?: string;
+  leaveNote?: string;
 }
 
 export type WorkspaceBusinessMode =
@@ -1546,6 +1556,14 @@ export interface TeamMember {
   territory: string;
   monthlyTarget: number;
   maskPhones?: boolean;
+  twoFactorEnabled?: boolean;
+  sessionVersion?: number;
+  availabilityStatus?: 'available' | 'away' | 'on_leave';
+  availableForLeads?: boolean;
+  shiftStart?: string;
+  shiftEnd?: string;
+  leaveNote?: string;
+  availabilityUpdatedAt?: string | null;
   aiDailyCallLimit?: number;
   aiCallsToday?: number;
   featureAccess?: Record<UserFeatureKey, boolean>;

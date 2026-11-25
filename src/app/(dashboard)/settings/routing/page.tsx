@@ -587,8 +587,20 @@ export default function SmartLeadRoutingPage() {
                   {reps.map((rep) => (
                     <tr key={rep.userId}>
                       <td className="py-3.5 pr-4">
-                        <div className="font-extrabold text-sm text-brand-navy">
-                          {rep.name}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-extrabold text-sm text-brand-navy">
+                            {rep.name}
+                          </span>
+                          {rep.availabilityStatus === 'on_leave' && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                              On Leave (Skipped)
+                            </span>
+                          )}
+                          {rep.availabilityStatus === 'away' && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                              Away (Skipped)
+                            </span>
+                          )}
                         </div>
                         <div className="text-[11px] text-slate-500 capitalize">
                           {rep.role} · {rep.email}

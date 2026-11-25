@@ -25,6 +25,7 @@ import CallMobileButton from '@/components/calling/CallMobileButton';
 import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
 import CustomFieldsDisplayCard from '@/components/custom-fields/CustomFieldsDisplayCard';
 import { EntityEmailPanel } from '@/components/email/EntityEmailPanel';
+import Customer360TimelineCard from '@/components/timeline/Customer360TimelineCard';
 import type { Deal, DealStage } from '@/types/contracts';
 
 export default function DealDetailPage() {
@@ -427,6 +428,11 @@ export default function DealDetailPage() {
         </div>
 
         <div className="lg:col-span-7 space-y-6">
+          <Customer360TimelineCard
+            entityType="deal"
+            entityId={deal.id}
+            onActivityAdded={() => void loadDeal()}
+          />
           <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-5">
             <h3 className="font-extrabold text-base text-brand-navy">
               Deal Activity &amp; Negotiation Log

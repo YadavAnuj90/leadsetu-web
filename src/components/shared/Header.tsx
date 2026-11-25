@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import ThemeToggle from '@/components/shared/ThemeToggle';
+import NavbarBreakToggle from '@/components/shared/NavbarBreakToggle';
 import AskAiCopilotDrawer from '@/components/ai/AskAiCopilotDrawer';
 import { useCallUiStore } from '@/store/call-ui.store';
 import { fetchNotificationsApi, globalSearchApi } from '@/lib/command-api';
@@ -339,6 +340,8 @@ export default function Header() {
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             {tenant?.city || 'Delhi-NCR'} · Live Sync
           </span>
+
+          <NavbarBreakToggle />
 
           <ThemeToggle />
 

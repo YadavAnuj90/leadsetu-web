@@ -40,6 +40,7 @@ import { apiClient } from '@/lib/api-client';
 import {
   fetchMyPerformanceApi,
   fetchMyTeamApi,
+  updateMyAvailabilityApi,
   type MyPerformanceResponse,
   type MyTeamResponse,
 } from '@/lib/team-api';
@@ -178,6 +179,19 @@ export default function ProfilePage() {
     UserCallAnalyticsItem[]
   >([]);
 
+  // Rep Shift & Availability status
+  const [availabilityStatus, setAvailabilityStatus] = useState<
+    'available' | 'away' | 'on_leave'
+  >('available');
+  const [shiftStart, setShiftStart] = useState('09:30');
+  const [shiftEnd, setShiftEnd] = useState('19:30');
+  const [leaveNote, setLeaveNote] = useState('');
+  const [savingAvail, setSavingAvail] = useState(false);
+  const [availNotice, setAvailNotice] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
+
   useEffect(() => {
     if (!user?.id) return;
     let cancelled = false;
@@ -223,6 +237,10 @@ export default function ProfilePage() {
     setName(user.name || '');
     setPhone(user.phone || '');
     setTerritory(user.territory || '');
+    setAvailabilityStatus(user.availabilityStatus || 'available');
+    setShiftStart(user.shiftStart || '09:30');
+    setShiftEnd(user.shiftEnd || '19:30');
+    setLeaveNote(user.leaveNote || '');
   }, [user]);
 
   useEffect(() => {
@@ -537,6 +555,150 @@ export default function ProfilePage() {
                 </span>
               )}
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Rep Shift & Lead-Routing Availability Card */}
+      <div className="card-surface p-6 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-extrabold text-brand-navy flex items-center gap-2">
+              <Clock className="w-4 h-4 text-emerald-500" />
+              <span>My Shift &amp; Lead-Routing Availability</span>
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Switch to Away or On Leave anytime without locking your CRM account — Lead Routing and 10-min SLA workflows automatically route new inquiries to active teammates.
+            </p>
+          </div>
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-extrabold border ${
+              availabilityStatus === 'available'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : availabilityStatus === 'away'
+                  ? 'bg-amber-50 text-amber-800 border-amber-200'
+                  : 'bg-rose-50 text-rose-700 border-rose-200'
+            }`}
+          >
+            {availabilityStatus === 'available'
+              ? '● Available for New Leads'
+              : availabilityStatus === 'away'
+                ? '◐ Away / Break (Routing Paused)'
+                : '○ On Leave (Routing Paused)'}
+          </span>
+        </div>
+
+        {availNotice && (
+          <div
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold border ${
+              availNotice.type === 'success'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                : 'bg-rose-50 border-rose-200 text-rose-700'
+            }`}
+          >
+            {availNotice.text}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
+          <div className="lg:col-span-5 grid grid-cols-3 gap-2">
+            {(
+              [
+                { id: 'available', label: 'Available' },
+                { id: 'away', label: 'Away' },
+                { id: 'on_leave', label: 'On Leave' },
+              ] as const
+            ).map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setAvailabilityStatus(opt.id)}
+                className={`py-2.5 px-3 rounded-xl border text-xs font-extrabold transition ${
+                  availabilityStatus === opt.id
+                    ? opt.id === 'available'
+                      ? 'bg-emerald-50 border-emerald-500 text-emerald-800'
+                      : opt.id === 'away'
+                        ? 'bg-amber-50 border-amber-500 text-amber-800'
+                        : 'bg-rose-50 border-rose-500 text-rose-800'
+                    : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="lg:col-span-2">
+            <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+              Shift Start
+            </label>
+            <input
+              type="time"
+              value={shiftStart}
+              onChange={(e) => setShiftStart(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-brand-navy"
+            />
+          </div>
+
+          <div className="lg:col-span-2">
+            <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+              Shift End
+            </label>
+            <input
+              type="time"
+              value={shiftEnd}
+              onChange={(e) => setShiftEnd(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-brand-navy"
+            />
+          </div>
+
+          <div className="lg:col-span-3 flex gap-2">
+            <input
+              type="text"
+              value={leaveNote}
+              onChange={(e) => setLeaveNote(e.target.value)}
+              placeholder="Note (e.g. Field visit till 4 PM)"
+              className="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-brand-navy"
+            />
+            <button
+              type="button"
+              disabled={savingAvail}
+              onClick={async () => {
+                setSavingAvail(true);
+                setAvailNotice(null);
+                try {
+                  await updateMyAvailabilityApi({
+                    availabilityStatus,
+                    shiftStart,
+                    shiftEnd,
+                    leaveNote,
+                  });
+                  await refreshProfile();
+                  setAvailNotice({
+                    type: 'success',
+                    text: 'Availability & shift updated — synced live with Lead Routing!',
+                  });
+                } catch (err) {
+                  setAvailNotice({
+                    type: 'error',
+                    text:
+                      err instanceof Error
+                        ? err.message
+                        : 'Unable to update availability.',
+                  });
+                } finally {
+                  setSavingAvail(false);
+                }
+              }}
+              className="btn-primary-brand px-4 py-2 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 shrink-0"
+            >
+              {savingAvail ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Save className="w-3.5 h-3.5" />
+              )}
+              Save
+            </button>
           </div>
         </div>
       </div>

@@ -19,6 +19,7 @@ import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
 import CustomFieldsDisplayCard from '@/components/custom-fields/CustomFieldsDisplayCard';
 import { EntityEmailPanel } from '@/components/email/EntityEmailPanel';
 import { ContactPortalLinkCard } from '@/components/portal/ContactPortalLinkCard';
+import Customer360TimelineCard from '@/components/timeline/Customer360TimelineCard';
 import type { Contact } from '@/types/contracts';
 
 export default function ContactDetailPage() {
@@ -254,60 +255,11 @@ export default function ContactDetailPage() {
         onEmailActivity={() => void loadContact()}
       />
 
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-brand-blue" />
-            <h2 className="text-sm font-extrabold text-brand-navy">Call & Activity Timeline</h2>
-          </div>
-          <span className="text-[11px] font-semibold text-slate-400">
-            {(contact.activities || []).length} events
-          </span>
-        </div>
-
-        {(contact.activities || []).length === 0 ? (
-          <p className="text-xs text-slate-500">
-            No call logs or activities recorded yet. Use Call Mobile to dial and log outcomes directly to this contact timeline.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {[...(contact.activities || [])]
-              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-              .map((act) => (
-                <div
-                  key={act.id}
-                  className="flex items-start gap-3 p-3.5 rounded-2xl border border-slate-100 bg-slate-50/70"
-                >
-                  <div
-                    className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
-                      act.type === 'whatsapp'
-                        ? 'bg-emerald-50 text-emerald-600'
-                        : 'bg-blue-50 text-brand-blue'
-                    }`}
-                  >
-                    {act.type === 'whatsapp' ? (
-                      <MessageSquare className="w-3.5 h-3.5" />
-                    ) : act.type === 'call' ? (
-                      <Phone className="w-3.5 h-3.5" />
-                    ) : (
-                      <Clock className="w-3.5 h-3.5" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-brand-navy whitespace-pre-line">
-                      {act.description}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-slate-400">
-                      {act.authorName && <span className="font-semibold text-slate-500">{act.authorName}</span>}
-                      <span>·</span>
-                      <span>{new Date(act.createdAt).toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-          </div>
-        )}
-      </div>
+      <Customer360TimelineCard
+        entityType="contact"
+        entityId={contact.id}
+        onActivityAdded={() => void loadContact()}
+      />
     </div>
   );
 }

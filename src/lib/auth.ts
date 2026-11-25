@@ -112,6 +112,10 @@ export async function updateSelfProfileApi(payload: {
   name?: string;
   phone?: string;
   territory?: string;
+  availabilityStatus?: 'available' | 'away' | 'on_leave';
+  shiftStart?: string;
+  shiftEnd?: string;
+  leaveNote?: string;
 }): Promise<{ user: AuthUser; tenant: TenantInfo | null }> {
   const { data } = await apiClient.patch<{ user: AuthUser; tenant: TenantInfo | null }>(
     '/auth/profile',

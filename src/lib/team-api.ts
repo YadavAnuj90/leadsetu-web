@@ -64,6 +64,86 @@ export async function removeTeamMember(id: string): Promise<{
   return data;
 }
 
+export interface RepAvailabilityPayload {
+  availabilityStatus?: 'available' | 'away' | 'on_leave';
+  shiftStart?: string;
+  shiftEnd?: string;
+  leaveNote?: string;
+}
+
+export interface UserScorecardResponse {
+  member: TeamMember;
+  security: {
+    lastLoginAt: string | null;
+    twoFactorEnabled: boolean;
+    sessionVersion: number;
+    maskPhones: boolean;
+    authProvider: string;
+    inviteStatus: string;
+  };
+  workload: {
+    openLeadsCount: number;
+    newUncontactedLeadsCount: number;
+    pendingTasksCount: number;
+    openTicketsCount: number;
+    openPipelineInr: number;
+    wonDealsCount: number;
+    wonRevenueInr: number;
+    avgSlaResponseMinutes: number | null;
+    calls: {
+      totalCalls: number;
+      answeredCalls: number;
+      missedCalls: number;
+      totalDurationSec: number;
+    };
+  };
+  recentAuditEvents: Array<{
+    id: string;
+    action: string;
+    entityType: string;
+    entityLabel: string;
+    summary: string;
+    actorName: string;
+    createdAt: string;
+  }>;
+}
+
+export async function updateMyAvailabilityApi(
+  payload: RepAvailabilityPayload,
+): Promise<TeamMember> {
+  const { data } = await apiClient.patch<TeamMember>('/team/me/availability', payload);
+  return data;
+}
+
+export async function updateMemberAvailabilityApi(
+  id: string,
+  payload: RepAvailabilityPayload,
+): Promise<TeamMember> {
+  const { data } = await apiClient.patch<TeamMember>(
+    `/team/${encodeURIComponent(id)}/availability`,
+    payload,
+  );
+  return data;
+}
+
+export async function fetchMemberScorecardApi(
+  id: string,
+): Promise<UserScorecardResponse> {
+  const { data } = await apiClient.get<UserScorecardResponse>(
+    `/team/${encodeURIComponent(id)}/scorecard`,
+  );
+  return data;
+}
+
+export async function revokeMemberSessionsApi(
+  id: string,
+): Promise<{ success: boolean; userId: string; sessionVersion: number }> {
+  const { data } = await apiClient.post(
+    `/team/${encodeURIComponent(id)}/revoke-sessions`,
+  );
+  return data;
+}
+
 export interface CommissionSlabItem {
   minRevenueInr: number;
   maxRevenueInr: number | null;
