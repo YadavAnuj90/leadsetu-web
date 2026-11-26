@@ -26,6 +26,7 @@ import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
 import CustomFieldsDisplayCard from '@/components/custom-fields/CustomFieldsDisplayCard';
 import { EntityEmailPanel } from '@/components/email/EntityEmailPanel';
 import Customer360TimelineCard from '@/components/timeline/Customer360TimelineCard';
+import MentionNoteInput, { MentionText } from '@/components/shared/MentionNoteInput';
 import type { Deal, DealStage } from '@/types/contracts';
 
 export default function DealDetailPage() {
@@ -439,12 +440,11 @@ export default function DealDetailPage() {
             </h3>
 
             <form onSubmit={handleAddNote} className="flex gap-2">
-              <input
-                type="text"
+              <MentionNoteInput
                 value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Log negotiation update, discount approval, or payment milestone..."
-                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-brand-navy"
+                onChange={setNote}
+                placeholder="Log negotiation update, discount approval, or type @Name to alert a teammate..."
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-brand-navy focus:outline-none focus:border-brand-blue"
               />
               <button
                 type="submit"
@@ -471,7 +471,7 @@ export default function DealDetailPage() {
                     }`}
                   />
                   <div className="text-xs sm:text-sm font-medium text-brand-navy dark:text-slate-100 leading-relaxed">
-                    {act.description}
+                    <MentionText text={act.description} />
                   </div>
                   <div className="text-[11px] text-slate-400 mt-1">
                     @{act.authorName} ·{' '}

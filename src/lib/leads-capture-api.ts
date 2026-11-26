@@ -1,17 +1,41 @@
 import { apiClient } from '@/lib/api-client';
 import type {
+  BulkImportLeadsOptions,
   BulkImportLeadsResponse,
   CreateLeadPayload,
+  DuplicatesResponse,
+  MergeLeadsPayload,
+  MergeLeadsResponse,
   WebhookCaptureResponse,
   WebhookConfigResponse,
 } from '@/types/contracts';
 
 export async function bulkImportLeadsApi(
   rows: CreateLeadPayload[],
+  options?: BulkImportLeadsOptions,
 ): Promise<BulkImportLeadsResponse> {
   const { data } = await apiClient.post<BulkImportLeadsResponse>(
     '/leads/bulk-import',
-    { rows },
+    {
+      rows,
+      ...(options?.duplicateMode ? { duplicateMode: options.duplicateMode } : {}),
+      ...(options?.autoRoute !== undefined ? { autoRoute: options.autoRoute } : {}),
+    },
+  );
+  return data;
+}
+
+export async function fetchDuplicateLeadsApi(): Promise<DuplicatesResponse> {
+  const { data } = await apiClient.get<DuplicatesResponse>('/leads/duplicates');
+  return data;
+}
+
+export async function mergeDuplicateLeadsApi(
+  payload: MergeLeadsPayload,
+): Promise<MergeLeadsResponse> {
+  const { data } = await apiClient.post<MergeLeadsResponse>(
+    '/leads/merge',
+    payload,
   );
   return data;
 }

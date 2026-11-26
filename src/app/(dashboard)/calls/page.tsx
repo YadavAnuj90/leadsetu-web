@@ -36,10 +36,14 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { playDtmfTone } from '@/lib/call-sound';
 import {
+  aiTranscribeCallApi,
   createCallShareLinkApi,
+  createTaskFromCallAiApi,
+  fetchActiveCallsMonitorApi,
   fetchCallCrmEntitiesApi,
   fetchUserCallAnalyticsApi,
   resolveCallCallbackApi,
+  type ActiveCallMonitorItem,
   type CrmLinkableEntity,
   type ShareCallLinkResponse,
   type UserCallAnalyticsItem,
@@ -171,6 +175,11 @@ export default function CrmPhonePage() {
   );
   const [copiedShareUrl, setCopiedShareUrl] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
+  const [activeMonitorCalls, setActiveMonitorCalls] = useState<ActiveCallMonitorItem[]>([]);
+  const [transcribingCallId, setTranscribingCallId] = useState<string | null>(null);
+  const [creatingTaskCallId, setCreatingTaskCallId] = useState<string | null>(null);
+  const [expandedTranscripts, setExpandedTranscripts] = useState<Record<string, boolean>>({});
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const isAdminViewer = ['owner', 'admin', 'manager', 'super_admin'].includes(
     user?.role || '',
@@ -193,6 +202,57 @@ export default function CrmPhonePage() {
   useEffect(() => {
     loadAnalyticsBoard();
   }, [history.length]);
+
+  useEffect(() => {
+    if (!isAdminViewer) return;
+    let active = true;
+    const pollActive = () => {
+      fetchActiveCallsMonitorApi()
+        .then((res) => {
+          if (active && Array.isArray(res.activeCalls)) {
+            setActiveMonitorCalls(res.activeCalls);
+          }
+        })
+        .catch(() => {});
+    };
+    pollActive();
+    const interval = setInterval(pollActive, 5000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [isAdminViewer, callState]);
+
+  const handleAiTranscribeCall = async (callId: string, forceRefresh = false) => {
+    setTranscribingCallId(callId);
+    setAiError(null);
+    try {
+      await aiTranscribeCallApi(callId, { forceRefresh });
+      await handlers?.refreshHistory(historyFilter);
+      setExpandedTranscripts((prev) => ({ ...prev, [callId]: true }));
+    } catch (err) {
+      setAiError(
+        err instanceof Error ? err.message : 'Unable to run AI transcription.',
+      );
+    } finally {
+      setTranscribingCallId(null);
+    }
+  };
+
+  const handleCreateAiTask = async (callId: string, title?: string) => {
+    setCreatingTaskCallId(callId);
+    setAiError(null);
+    try {
+      await createTaskFromCallAiApi(callId, title);
+      await handlers?.refreshHistory(historyFilter);
+    } catch (err) {
+      setAiError(
+        err instanceof Error ? err.message : 'Unable to create follow-up task.',
+      );
+    } finally {
+      setCreatingTaskCallId(null);
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -303,7 +363,12 @@ export default function CrmPhonePage() {
     return history.filter(
       (item) =>
         (item.peerName || '').toLowerCase().includes(q) ||
-        (item.peerUserCode || '').toLowerCase().includes(q),
+        (item.peerUserCode || '').toLowerCase().includes(q) ||
+        (item.linkedEntityLabel || '').toLowerCase().includes(q) ||
+        (item.notes || '').toLowerCase().includes(q) ||
+        (item.aiSummary || '').toLowerCase().includes(q) ||
+        (item.aiTranscript || '').toLowerCase().includes(q) ||
+        (item.aiObjections || []).some((o) => o.toLowerCase().includes(q)),
     );
   }, [history, historySearch]);
 
@@ -1063,11 +1128,17 @@ export default function CrmPhonePage() {
                 type="text"
                 value={historySearch}
                 onChange={(e) => setHistorySearch(e.target.value)}
-                placeholder="Search history by name or UID..."
+                placeholder="Search name, notes, transcript, objections..."
                 className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-brand-navy dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-blue"
               />
             </div>
           </div>
+
+          {aiError && (
+            <div className="mx-4 mt-3 px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-[11px] font-semibold text-rose-700 dark:text-rose-200">
+              {aiError}
+            </div>
+          )}
 
           <div className="p-4 space-y-2.5 flex-1 max-h-[440px] overflow-y-auto">
             {loadingHistory && history.length === 0 ? (
@@ -1268,6 +1339,98 @@ export default function CrmPhonePage() {
                               {item.notes}
                             </p>
                           )}
+
+                          {(item.aiSummary || item.aiTranscript) && (
+                            <div className="mt-1.5 rounded-xl border border-indigo-200/80 dark:border-indigo-500/30 bg-indigo-50/50 dark:bg-indigo-950/25 p-2.5 space-y-2">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
+                                  <Sparkles className="w-3 h-3" />
+                                  AI Call Summary
+                                </span>
+                                {item.aiSentiment && (
+                                  <span
+                                    className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold capitalize ${
+                                      item.aiSentiment === 'positive'
+                                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300'
+                                        : item.aiSentiment === 'negative'
+                                          ? 'bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300'
+                                          : item.aiSentiment === 'mixed'
+                                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300'
+                                            : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+                                    }`}
+                                  >
+                                    {item.aiSentiment} sentiment
+                                  </span>
+                                )}
+                              </div>
+
+                              {item.aiSummary && (
+                                <p className="text-[11px] text-slate-700 dark:text-slate-200 leading-relaxed">
+                                  {item.aiSummary}
+                                </p>
+                              )}
+
+                              {item.aiObjections && item.aiObjections.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {item.aiObjections.map((obj, oIdx) => (
+                                    <span
+                                      key={oIdx}
+                                      className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-indigo-200/70 dark:border-indigo-500/30 text-[10px] font-semibold text-indigo-800 dark:text-indigo-200"
+                                    >
+                                      • {obj}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+
+                              <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                                {item.aiTranscript && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setExpandedTranscripts((prev) => ({
+                                        ...prev,
+                                        [item.id]: !prev[item.id],
+                                      }))
+                                    }
+                                    className="text-[10px] font-bold text-brand-blue dark:text-sky-300 hover:underline"
+                                  >
+                                    {expandedTranscripts[item.id]
+                                      ? 'Hide Transcript'
+                                      : 'View Full Transcript'}
+                                  </button>
+                                )}
+
+                                {!item.followUpTaskId && item.aiSuggestedTaskTitle && (
+                                  <button
+                                    type="button"
+                                    disabled={creatingTaskCallId === item.id}
+                                    onClick={() =>
+                                      void handleCreateAiTask(
+                                        item.id,
+                                        item.aiSuggestedTaskTitle,
+                                      )
+                                    }
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brand-blue hover:bg-blue-700 text-white text-[10px] font-bold disabled:opacity-50"
+                                    title={item.aiSuggestedTaskTitle}
+                                  >
+                                    {creatingTaskCallId === item.id ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <CalendarCheck className="w-3 h-3" />
+                                    )}
+                                    <span>Create Suggested Task</span>
+                                  </button>
+                                )}
+                              </div>
+
+                              {expandedTranscripts[item.id] && item.aiTranscript && (
+                                <pre className="whitespace-pre-wrap font-sans text-[11px] text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 rounded-lg p-2.5 max-h-40 overflow-y-auto">
+                                  {item.aiTranscript}
+                                </pre>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -1309,6 +1472,36 @@ export default function CrmPhonePage() {
                                 ? 'Called Back ✓'
                                 : 'Mark Called Back'}
                             </span>
+                          </button>
+                        )}
+
+                        {(item.recordingUrl || item.durationSeconds > 0 || item.notes) && (
+                          <button
+                            type="button"
+                            disabled={transcribingCallId === item.id}
+                            onClick={() =>
+                              void handleAiTranscribeCall(
+                                item.id,
+                                Boolean(item.aiSummary),
+                              )
+                            }
+                            className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold border inline-flex items-center gap-1 transition-colors disabled:opacity-50 ${
+                              item.aiSummary
+                                ? 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300'
+                                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-indigo-400 hover:text-indigo-600 text-slate-600 dark:text-slate-300'
+                            }`}
+                            title={
+                              item.aiSummary
+                                ? 'Re-run AI Transcript & Objection Analysis'
+                                : '1-Click AI Transcribe, Summarize & Extract Objections'
+                            }
+                          >
+                            {transcribingCallId === item.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Sparkles className="w-3.5 h-3.5" />
+                            )}
+                            <span>{item.aiSummary ? 'AI Ready' : 'AI Analyze'}</span>
                           </button>
                         )}
 
@@ -1549,6 +1742,73 @@ export default function CrmPhonePage() {
           )}
         </div>
       </div>
+
+      {/* ─── MANAGER LIVE ACTIVE CALLS MONITOR ───────────────────────────────── */}
+      {isAdminViewer && (
+        <div className="rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="text-sm font-extrabold text-brand-navy dark:text-white flex items-center gap-2">
+                <Activity className="w-4 h-4 text-emerald-500 animate-pulse" />
+                Manager Live Active Calls Monitor
+              </h2>
+              <p className="text-[11px] text-slate-400">
+                Real-time view of ringing, connecting, and ongoing voice sessions across your sales floor
+              </p>
+            </div>
+            <span
+              className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
+                activeMonitorCalls.length > 0
+                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300'
+                  : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+              }`}
+            >
+              {activeMonitorCalls.length} Live Call{activeMonitorCalls.length === 1 ? '' : 's'}
+            </span>
+          </div>
+
+          {activeMonitorCalls.length === 0 ? (
+            <div className="px-6 py-5 text-xs text-slate-400 flex items-center justify-between">
+              <span>No active calls in progress right now. Active calls appear here automatically every 5s.</span>
+            </div>
+          ) : (
+            <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              {activeMonitorCalls.map((live) => (
+                <div
+                  key={live.id}
+                  className="rounded-2xl border border-emerald-200/80 dark:border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-950/20 p-4 space-y-2.5"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                      {live.status}
+                    </span>
+                    <span className="font-mono text-xs font-extrabold text-brand-navy dark:text-white">
+                      {formatCallDuration(live.liveDurationSeconds)}
+                    </span>
+                  </div>
+
+                  <div className="text-xs font-bold text-brand-navy dark:text-white truncate">
+                    {live.callerName} → {live.calleeName}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                    <span className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-semibold text-slate-600 dark:text-slate-300">
+                      {live.turnUsed ? 'TURN Relay' : 'Direct P2P'}
+                      {live.rttMs > 0 ? ` · ${live.rttMs}ms` : ''}
+                    </span>
+                    {live.linkedEntityLabel && (
+                      <span className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/50 text-brand-blue dark:text-sky-300 font-bold truncate max-w-[180px]">
+                        {live.linkedEntityLabel}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ─── SECTION D: LIVE MANAGER CALL BOARD (TODAY + DISPOSITION BREAKDOWN) ───── */}
       {isAdminViewer && isAdminAnalytics && (

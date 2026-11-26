@@ -24,6 +24,12 @@ import {
   Command,
   FolderOpen,
   Phone,
+  AtSign,
+  Coffee,
+  GitMerge,
+  Plus,
+  Upload,
+  CreditCard,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import ThemeToggle from '@/components/shared/ThemeToggle';
@@ -80,6 +86,8 @@ const TYPE_META: Record<
 };
 
 const NOTIF_ICON: Record<NotificationItem['category'], typeof Users> = {
+  billing: CreditCard,
+  mention: AtSign,
   lead: Sparkles,
   invoice: FileText,
   task: CheckSquare,
@@ -268,22 +276,183 @@ export default function Header() {
     [router],
   );
 
+  interface QuickActionItem {
+    id: string;
+    title: string;
+    subtitle: string;
+    badge: string;
+    keywords: string;
+    icon: typeof Plus;
+    pillClass: string;
+    run: () => void;
+  }
+
+  const allQuickActions = useMemo<QuickActionItem[]>(() => {
+    const isBreakEligibleRole =
+      user?.role === 'manager' || user?.role === 'agent';
+    const isAway =
+      user?.availabilityStatus === 'away' ||
+      user?.availabilityStatus === 'on_leave';
+
+    const openLeadsAction = (action: 'new' | 'duplicates' | 'import') => {
+      setPaletteOpen(false);
+      setSearchQuery('');
+      if (pathname === '/leads') {
+        window.dispatchEvent(
+          new CustomEvent('leadsetu:leads-action', { detail: { action } }),
+        );
+      } else {
+        router.push(`/leads?action=${action}`);
+      }
+    };
+
+    const actions: QuickActionItem[] = [
+      {
+        id: 'qa-new-lead',
+        title: 'New Lead',
+        subtitle: 'Create & SetuAI-score a buyer inquiry',
+        badge: 'Quick Action',
+        keywords: 'new lead create add buyer inquiry',
+        icon: Plus,
+        pillClass:
+          'bg-blue-50 text-brand-blue dark:bg-blue-500/20 dark:text-sky-300',
+        run: () => openLeadsAction('new'),
+      },
+      {
+        id: 'qa-find-duplicates',
+        title: 'Find Duplicates',
+        subtitle: 'Scan matching +91 phones & emails and merge records',
+        badge: 'Quick Action',
+        keywords: 'duplicate merge cleanup phone email dedup',
+        icon: GitMerge,
+        pillClass:
+          'bg-amber-50 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300',
+        run: () => openLeadsAction('duplicates'),
+      },
+      {
+        id: 'qa-import-csv',
+        title: 'Import CSV / Excel',
+        subtitle: 'Launch 3-step mapped .csv / .xlsx lead wizard',
+        badge: 'Quick Action',
+        keywords: 'import csv excel xlsx upload bulk leads',
+        icon: Upload,
+        pillClass:
+          'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300',
+        run: () => openLeadsAction('import'),
+      },
+      ...(isBreakEligibleRole
+        ? [
+            isAway
+              ? {
+                  id: 'qa-end-break',
+                  title: 'End Break & Resume Leads',
+                  subtitle: 'Mark yourself Available so Smart Lead Routing resumes',
+                  badge: 'Availability',
+                  keywords: 'break resume available coffee tea routing',
+                  icon: Coffee,
+                  pillClass:
+                    'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
+                  run: () => {
+                    setPaletteOpen(false);
+                    setSearchQuery('');
+                    window.dispatchEvent(new CustomEvent('leadsetu:end-break'));
+                  },
+                }
+              : {
+                  id: 'qa-coffee-break',
+                  title: 'Start Coffee Break (15 min)',
+                  subtitle: 'Set status Away for 15 min & pause lead routing',
+                  badge: 'Break Mode',
+                  keywords: 'coffee tea casual break away pause timer',
+                  icon: Coffee,
+                  pillClass:
+                    'bg-amber-50 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300',
+                  run: () => {
+                    setPaletteOpen(false);
+                    setSearchQuery('');
+                    window.dispatchEvent(
+                      new CustomEvent('leadsetu:start-break', {
+                        detail: { breakType: 'Coffee Break', durationMin: 15 },
+                      }),
+                    );
+                  },
+                },
+          ]
+        : []),
+      {
+        id: 'qa-softphone',
+        title: 'Open Voice Softphone',
+        subtitle: 'Make click-to-call WebRTC / SIM calls & view callbacks',
+        badge: 'Calling',
+        keywords: 'call phone dialer softphone webrtc',
+        icon: Phone,
+        pillClass:
+          'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
+        run: () => {
+          setPaletteOpen(false);
+          setSearchQuery('');
+          setDialerDrawerOpen(true);
+        },
+      },
+      {
+        id: 'qa-inbox',
+        title: 'Open WhatsApp Inbox',
+        subtitle: 'Jump to live buyer conversations & SetuAI replies',
+        badge: 'Go to Page',
+        keywords: 'whatsapp inbox chat messages',
+        icon: MessageSquare,
+        pillClass:
+          'bg-teal-50 text-teal-700 dark:bg-teal-500/20 dark:text-teal-300',
+        run: () => {
+          setPaletteOpen(false);
+          setSearchQuery('');
+          router.push('/inbox');
+        },
+      },
+    ];
+
+    return actions;
+  }, [pathname, router, setDialerDrawerOpen, user?.availabilityStatus, user?.role]);
+
+  const filteredQuickActions = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return allQuickActions;
+    return allQuickActions.filter(
+      (a) =>
+        a.title.toLowerCase().includes(q) ||
+        a.subtitle.toLowerCase().includes(q) ||
+        a.keywords.toLowerCase().includes(q),
+    );
+  }, [allQuickActions, searchQuery]);
+
+  const totalPaletteItems = filteredQuickActions.length + searchResults.length;
+
+  const activatePaletteIndex = useCallback(
+    (idx: number) => {
+      if (idx < filteredQuickActions.length) {
+        filteredQuickActions[idx]?.run();
+      } else {
+        const record = searchResults[idx - filteredQuickActions.length];
+        if (record) navigateFromPalette(record);
+      }
+    },
+    [filteredQuickActions, navigateFromPalette, searchResults],
+  );
+
   const onPaletteKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setSelectedIndex((i) =>
-        searchResults.length ? (i + 1) % searchResults.length : 0,
+        totalPaletteItems ? (i + 1) % totalPaletteItems : 0,
       );
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setSelectedIndex((i) =>
-        searchResults.length
-          ? (i - 1 + searchResults.length) % searchResults.length
-          : 0,
+        totalPaletteItems ? (i - 1 + totalPaletteItems) % totalPaletteItems : 0,
       );
-    } else if (e.key === 'Enter' && searchResults[selectedIndex]) {
+    } else if (e.key === 'Enter' && totalPaletteItems > 0) {
       e.preventDefault();
-      navigateFromPalette(searchResults[selectedIndex]);
+      activatePaletteIndex(selectedIndex);
     }
   };
 
@@ -341,7 +510,9 @@ export default function Header() {
             {tenant?.city || 'Delhi-NCR'} · Live Sync
           </span>
 
-          <NavbarBreakToggle />
+          {(user?.role === 'manager' || user?.role === 'agent') && (
+            <NavbarBreakToggle />
+          )}
 
           <ThemeToggle />
 
@@ -571,7 +742,7 @@ export default function Header() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={onPaletteKeyDown}
-                placeholder="Search any Lead, B2B Contact, GSTIN, Deal, Invoice #, Task, or Ticket..."
+                placeholder="Search records or type a Quick Action (New Lead, Find Duplicates, Coffee Break)..."
                 className="flex-1 bg-transparent text-sm font-medium text-brand-navy dark:text-white placeholder-slate-400 focus:outline-none"
               />
               {isSearching && (
@@ -586,59 +757,120 @@ export default function Header() {
               </button>
             </div>
 
-            <div className="max-h-[420px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
-              {searchResults.length === 0 ? (
+            <div className="max-h-[440px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+              {filteredQuickActions.length > 0 && (
+                <div>
+                  <div className="px-5 py-2 bg-slate-50/90 dark:bg-slate-900/70 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    Quick Actions
+                  </div>
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {filteredQuickActions.map((qa, qIdx) => {
+                      const Icon = qa.icon;
+                      const active = qIdx === selectedIndex;
+                      return (
+                        <button
+                          key={qa.id}
+                          type="button"
+                          onMouseEnter={() => setSelectedIndex(qIdx)}
+                          onClick={qa.run}
+                          className={`w-full text-left px-5 py-3 flex items-center justify-between gap-4 transition-colors ${
+                            active
+                              ? 'bg-brand-light/60 dark:bg-brand-blue/15'
+                              : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div
+                              className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${qa.pillClass}`}
+                            >
+                              <Icon className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs sm:text-sm font-bold text-brand-navy dark:text-white truncate">
+                                  {qa.title}
+                                </span>
+                                <span
+                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${qa.pillClass}`}
+                                >
+                                  {qa.badge}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                                {qa.subtitle}
+                              </div>
+                            </div>
+                          </div>
+                          <ArrowRight className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {searchResults.length > 0 && (
+                <div>
+                  <div className="px-5 py-2 bg-slate-50/90 dark:bg-slate-900/70 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    {searchQuery.trim() ? 'Matching CRM Records' : 'Recent CRM Records'}
+                  </div>
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {searchResults.map((item, idx) => {
+                      const meta = TYPE_META[item.type] || TYPE_META.lead;
+                      const Icon = meta.icon;
+                      const flatIdx = filteredQuickActions.length + idx;
+                      const active = flatIdx === selectedIndex;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onMouseEnter={() => setSelectedIndex(flatIdx)}
+                          onClick={() => navigateFromPalette(item)}
+                          className={`w-full text-left px-5 py-3.5 flex items-center justify-between gap-4 transition-colors ${
+                            active
+                              ? 'bg-brand-light/60 dark:bg-brand-blue/15'
+                              : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0 text-brand-blue">
+                              <Icon className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs sm:text-sm font-bold text-brand-navy dark:text-white truncate">
+                                  {item.title}
+                                </span>
+                                <span
+                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${meta.pill}`}
+                                >
+                                  {meta.label}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                                {item.subtitle}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                              {item.badge}
+                            </span>
+                            <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {filteredQuickActions.length === 0 && searchResults.length === 0 && (
                 <div className="p-10 text-center text-xs text-slate-400">
                   {isSearching
                     ? 'Searching across all Leadsetu CRM collections...'
-                    : `No matching records found for "${searchQuery}".`}
+                    : `No matching actions or records found for "${searchQuery}".`}
                 </div>
-              ) : (
-                searchResults.map((item, idx) => {
-                  const meta = TYPE_META[item.type] || TYPE_META.lead;
-                  const Icon = meta.icon;
-                  const active = idx === selectedIndex;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onMouseEnter={() => setSelectedIndex(idx)}
-                      onClick={() => navigateFromPalette(item)}
-                      className={`w-full text-left px-5 py-3.5 flex items-center justify-between gap-4 transition-colors ${
-                        active
-                          ? 'bg-brand-light/60 dark:bg-brand-blue/15'
-                          : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0 text-brand-blue">
-                          <Icon className="w-4 h-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs sm:text-sm font-bold text-brand-navy dark:text-white truncate">
-                              {item.title}
-                            </span>
-                            <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${meta.pill}`}
-                            >
-                              {meta.label}
-                            </span>
-                          </div>
-                          <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                            {item.subtitle}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                          {item.badge}
-                        </span>
-                        <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-                      </div>
-                    </button>
-                  );
-                })
               )}
             </div>
 

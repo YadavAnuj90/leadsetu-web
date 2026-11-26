@@ -97,6 +97,13 @@ export interface CallHistoryEntry {
   recordedAt?: string | null;
   transferredFromName?: string;
   transferredToName?: string;
+  aiTranscript?: string;
+  aiSummary?: string;
+  aiObjections?: string[];
+  aiSentiment?: 'positive' | 'neutral' | 'negative' | 'mixed' | '';
+  aiSuggestedTaskTitle?: string;
+  aiSuggestedTaskPriority?: 'high' | 'medium' | 'low';
+  aiTranscribedAt?: string | null;
   connection?: {
     icePath: CallIcePath;
     turnUsed: boolean;

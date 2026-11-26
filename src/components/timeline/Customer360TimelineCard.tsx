@@ -26,6 +26,7 @@ import {
   Customer360TimelineResponse,
 } from '@/lib/timeline-api';
 import { getErrorMessage } from '@/lib/api-client';
+import MentionNoteInput, { MentionText } from '@/components/shared/MentionNoteInput';
 
 interface Props {
   entityType: TimelineEntityType;
@@ -296,12 +297,11 @@ export default function Customer360TimelineCard({
           <option value="call">📞 Call Log</option>
           <option value="whatsapp">💬 WhatsApp Note</option>
         </select>
-        <input
-          type="text"
+        <MentionNoteInput
           value={noteText}
-          onChange={(e) => setNoteText(e.target.value)}
-          placeholder="Add a quick note, call summary, or follow-up update to the 360° timeline..."
-          className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm text-brand-navy focus:outline-none focus:border-brand-blue"
+          onChange={setNoteText}
+          placeholder="Add a quick note, call summary, or type @Name to notify a teammate..."
+          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm text-brand-navy focus:outline-none focus:border-brand-blue"
         />
         <button
           type="submit"
@@ -391,7 +391,7 @@ export default function Customer360TimelineCard({
                   </div>
 
                   <p className="text-xs text-slate-600 mt-1 whitespace-pre-line leading-relaxed">
-                    {ev.description}
+                    <MentionText text={ev.description} />
                   </p>
 
                   <div className="flex flex-wrap items-center gap-2 mt-1.5 text-[11px] text-slate-400">

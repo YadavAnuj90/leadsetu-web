@@ -543,3 +543,93 @@ export async function submitPowerDialOutcomeApi(
   );
   return data;
 }
+
+export interface PreCallContextBrief {
+  found: boolean;
+  entityType: '' | 'lead' | 'deal' | 'ticket' | 'contact';
+  entityId: string;
+  recordName: string;
+  company: string;
+  stageOrStatus: string;
+  estimatedValue: number;
+  aiScore: number;
+  aiLabel: string;
+  aiNextAction: string;
+  lastWhatsApp: {
+    text: string;
+    direction: string;
+    at: string;
+    status: string;
+  } | null;
+  billing: {
+    openQuotesCount: number;
+    pendingInvoicesCount: number;
+    pendingBalanceInr: number;
+    latestDocNumber: string;
+  };
+}
+
+export interface ActiveCallMonitorItem {
+  id: string;
+  status: 'ringing' | 'connecting' | 'connected';
+  callChannel: 'webrtc' | 'sim_mobile';
+  callerType: 'agent' | 'customer';
+  callerName: string;
+  callerUserCode: string;
+  calleeName: string;
+  calleeUserCode: string;
+  customerPhone: string;
+  linkedEntityType: string;
+  linkedEntityId: string;
+  linkedEntityLabel: string;
+  startedAt: string;
+  connectedAt: string | null;
+  liveDurationSeconds: number;
+  icePath: CallIcePath;
+  turnUsed: boolean;
+  rttMs: number;
+}
+
+export async function fetchPreCallContextApi(params: {
+  entityType?: string;
+  entityId?: string;
+  phone?: string;
+}): Promise<PreCallContextBrief> {
+  const { data } = await apiClient.get<PreCallContextBrief>('/calls/context', {
+    params,
+  });
+  return data;
+}
+
+export async function fetchActiveCallsMonitorApi(): Promise<{
+  isAdminView: boolean;
+  activeCalls: ActiveCallMonitorItem[];
+}> {
+  const { data } = await apiClient.get<{
+    isAdminView: boolean;
+    activeCalls: ActiveCallMonitorItem[];
+  }>('/calls/active');
+  return data;
+}
+
+export async function aiTranscribeCallApi(
+  callId: string,
+  options?: { customTranscript?: string; forceRefresh?: boolean },
+): Promise<{ cached: boolean; call: CallHistoryEntry }> {
+  const { data } = await apiClient.post<{
+    cached: boolean;
+    call: CallHistoryEntry;
+  }>(`/calls/${callId}/ai-transcribe`, options || {});
+  return data;
+}
+
+export async function createTaskFromCallAiApi(
+  callId: string,
+  title?: string,
+): Promise<{ call: CallHistoryEntry; taskId: string }> {
+  const { data } = await apiClient.post<{
+    call: CallHistoryEntry;
+    taskId: string;
+  }>(`/calls/${callId}/ai-create-task`, title ? { title } : {});
+  return data;
+}

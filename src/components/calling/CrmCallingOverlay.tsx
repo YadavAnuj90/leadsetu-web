@@ -37,6 +37,7 @@ import { playDtmfTone, playRingPulse } from '@/lib/call-sound';
 import CallDispositionModal, {
   CALL_OUTCOME_OPTIONS,
 } from '@/components/calling/CallDispositionModal';
+import PreCallContextCard from '@/components/calling/PreCallContextCard';
 import {
   useCallUiStore,
   formatCallDuration,
@@ -744,6 +745,16 @@ export default function CrmCallingOverlay() {
                 )}
               </div>
 
+              {(activeCall.peer.linkedEntityId ||
+                activeCall.peer.customerPhone) && (
+                <PreCallContextCard
+                  entityType={activeCall.peer.linkedEntityType}
+                  entityId={activeCall.peer.linkedEntityId}
+                  phone={activeCall.peer.customerPhone}
+                  variant="dark"
+                />
+              )}
+
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <button
                   type="button"
@@ -938,6 +949,16 @@ export default function CrmCallingOverlay() {
                     </div>
                   </div>
                 </div>
+
+                {(activeCall.peer.linkedEntityId ||
+                  activeCall.peer.customerPhone) && (
+                  <PreCallContextCard
+                    entityType={activeCall.peer.linkedEntityType}
+                    entityId={activeCall.peer.linkedEntityId}
+                    phone={activeCall.peer.customerPhone}
+                    variant="dark"
+                  />
+                )}
 
                 {callState === 'connected' && (
                   <div className="space-y-2">

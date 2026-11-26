@@ -33,6 +33,7 @@ import {
 } from '@/lib/calls-api';
 import { getErrorMessage } from '@/lib/api-client';
 import { formatCallDuration } from '@/store/call-ui.store';
+import PreCallContextCard from '@/components/calling/PreCallContextCard';
 
 interface PowerDialerDeckProps {
   onOutcomeLogged?: () => Promise<void> | void;
@@ -469,6 +470,13 @@ export default function PowerDialerDeck({ onOutcomeLogged }: PowerDialerDeckProp
                   </p>
                 </div>
               )}
+
+              <PreCallContextCard
+                entityType="lead"
+                entityId={activeLead.id}
+                phone={activeLead.phone}
+                variant="light"
+              />
             </div>
 
             {/* Right: Notes + 1-Tap Disposition Strip + Queue Preview */}

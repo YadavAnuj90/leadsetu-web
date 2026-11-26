@@ -29,10 +29,18 @@ apiClient.interceptors.request.use(
 // Response interceptor: auto-refresh on 401 using the HttpOnly refresh cookie
 apiClient.interceptors.response.use(
   (response) => response,
-  async (error: AxiosError<{ message?: string | string[]; error?: string }>) => {
+  async (error: AxiosError<{ message?: string | string[]; error?: string; code?: string }>) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
+
+    if (
+      typeof window !== 'undefined' &&
+      error.response?.status === 402 &&
+      error.response?.data?.code === 'PLAN_EXPIRED'
+    ) {
+      window.dispatchEvent(new CustomEvent('leadsetu:plan-expired'));
+    }
 
     if (
       error.response?.status === 401 &&

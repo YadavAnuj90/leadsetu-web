@@ -10,7 +10,7 @@ import WhatsAppQuickSendModal from '@/components/inbox/WhatsAppQuickSendModal';
 import SubscriptionDunningBanner from '@/components/settings/SubscriptionDunningBanner';
 import { useAuth } from '@/hooks/useAuth';
 import { getRouteFeatureRestriction, isWorkspaceAdminRole } from '@/lib/feature-access';
-import { Loader2, ShieldAlert, Lock, ArrowLeft, UserCircle } from 'lucide-react';
+import { Loader2, ShieldAlert, Lock, ArrowLeft, UserCircle, CreditCard, ShieldCheck } from 'lucide-react';
 
 export default function DashboardLayout({
   children,
@@ -34,11 +34,23 @@ export default function DashboardLayout({
     const onFocus = () => {
       refreshProfile();
     };
+    const onPlanExpired = () => {
+      refreshProfile();
+    };
     window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
+    window.addEventListener('leadsetu:plan-expired', onPlanExpired);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('leadsetu:plan-expired', onPlanExpired);
+    };
   }, [isHydrated, isAuthenticated, refreshProfile]);
 
   const isAdmin = isWorkspaceAdminRole(user);
+  const isBillingRoute = pathname?.startsWith('/settings/billing');
+  const isPlanLocked =
+    Boolean(tenant?.planExpired) &&
+    user?.role !== 'super_admin' &&
+    !(isAdmin && isBillingRoute);
   const restriction = getRouteFeatureRestriction(pathname, tenant, user);
 
   if (!isHydrated) {
@@ -62,7 +74,8 @@ export default function DashboardLayout({
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <Header />
         <SubscriptionDunningBanner
-          enabled={isAdmin && user?.role !== 'super_admin'}
+          enabled={user?.role !== 'super_admin'}
+          isAdmin={isAdmin}
         />
         {(tenant?.quotas?.aiWarning ||
           tenant?.quotas?.waWarning ||
@@ -106,6 +119,46 @@ export default function DashboardLayout({
               <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
                 Leadsetu Cloud has temporarily paused workspace access for scheduled maintenance. All CRM records remain safely preserved.
               </p>
+            </div>
+          ) : isPlanLocked ? (
+            <div className="max-w-xl mx-auto mt-12 rounded-3xl border border-rose-500/35 bg-white dark:bg-[#0D1628] p-8 text-center shadow-2xl space-y-5">
+              <div className="mx-auto w-14 h-14 rounded-2xl bg-rose-500/15 text-rose-500 flex items-center justify-center">
+                <Lock className="w-7 h-7" />
+              </div>
+              <div className="space-y-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/15 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-300">
+                  Subscription Plan Expired
+                </span>
+                <h2 className="text-xl font-black text-brand-navy dark:text-white">
+                  All Manual &amp; AI Features Are Paused
+                </h2>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Your workspace subscription ended
+                  {tenant?.trialEndsAt
+                    ? ` on ${new Date(tenant.trialEndsAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}`
+                    : ''}
+                  . Your account remains open and all CRM data is safe, but Admin, Manager, and Team members cannot use any manual or AI module until the plan is renewed.
+                </p>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-700/50 px-3.5 py-2 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                <ShieldCheck className="w-4 h-4 shrink-0" />
+                Zero Data Loss — All Leads, Deals, Invoices &amp; Call History Safe
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+                {isAdmin ? (
+                  <Link
+                    href="/settings/billing"
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#0057FF] px-5 py-2.5 text-xs font-extrabold text-white shadow-md hover:bg-blue-700 transition"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    Open Platform Billing &amp; Renew Plan
+                  </Link>
+                ) : (
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                    Please ask your Workspace Owner / Admin to renew in Platform Billing.
+                  </div>
+                )}
+              </div>
             </div>
           ) : restriction ? (
             <div className="max-w-xl mx-auto mt-12 rounded-3xl border border-amber-500/30 bg-white dark:bg-[#0D1628] p-8 text-center shadow-xl space-y-5">

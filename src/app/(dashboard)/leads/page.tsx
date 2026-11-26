@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   Plus,
@@ -21,8 +21,9 @@ import { useLeads } from '@/hooks/useLeads';
 import { useAuthStore } from '@/store/auth.store';
 import { isFeatureEnabled, isWorkspaceAdminRole } from '@/lib/feature-access';
 import { getBusinessModeMeta, getSegmentCopy } from '@/lib/business-modes';
-import { Upload, Mic } from 'lucide-react';
+import { Upload, Mic, GitMerge } from 'lucide-react';
 import BulkCsvImportModal from '@/components/leads/BulkCsvImportModal';
+import LeadDuplicatesModal from '@/components/leads/LeadDuplicatesModal';
 import VoiceCrmAuditModal from '@/components/ai/VoiceCrmAuditModal';
 import LeadForm from '@/components/leads/LeadForm';
 import LeadCard from '@/components/leads/LeadCard';
@@ -91,8 +92,42 @@ export default function LeadsPage() {
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [modalOpen, setModalOpen] = useState(false);
   const [csvModalOpen, setCsvModalOpen] = useState(false);
+  const [duplicatesModalOpen, setDuplicatesModalOpen] = useState(false);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
+
+  useEffect(() => {
+    const triggerLeadsAction = (action: string | null) => {
+      if (action === 'new') {
+        setEditingLead(null);
+        setModalOpen(true);
+      } else if (action === 'import') {
+        setCsvModalOpen(true);
+      } else if (action === 'duplicates') {
+        setDuplicatesModalOpen(true);
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlAction = params.get('action');
+      if (urlAction) {
+        triggerLeadsAction(urlAction);
+        params.delete('action');
+        const nextUrl = `${window.location.pathname}${
+          params.toString() ? `?${params.toString()}` : ''
+        }`;
+        window.history.replaceState({}, '', nextUrl);
+      }
+    }
+
+    const onLeadsAction = (ev: Event) => {
+      const action = (ev as CustomEvent<{ action?: string }>).detail?.action || null;
+      triggerLeadsAction(action);
+    };
+    window.addEventListener('leadsetu:leads-action', onLeadsAction);
+    return () => window.removeEventListener('leadsetu:leads-action', onLeadsAction);
+  }, []);
 
   const handleOpenCreate = () => {
     setEditingLead(null);
@@ -149,11 +184,20 @@ export default function LeadsPage() {
 
           <button
             type="button"
+            onClick={() => setDuplicatesModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border border-amber-200 bg-amber-50/70 text-amber-800 hover:bg-amber-100/80 transition-all"
+          >
+            <GitMerge className="w-4 h-4 text-amber-600" />
+            <span>Find Duplicates</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setCsvModalOpen(true)}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border border-slate-200 bg-white text-brand-navy hover:bg-slate-50 transition-all"
           >
             <Upload className="w-4 h-4 text-brand-blue" />
-            <span>Import CSV</span>
+            <span>Import CSV / Excel</span>
           </button>
 
           <button
@@ -662,11 +706,19 @@ export default function LeadsPage() {
         />
       )}
 
-      {/* CSV Bulk Importer Modal */}
+      {/* CSV & Excel Bulk Importer Wizard */}
       {csvModalOpen && (
         <BulkCsvImportModal
           onClose={() => setCsvModalOpen(false)}
           onImported={() => fetchLeads()}
+        />
+      )}
+
+      {/* Duplicate Detector & Side-by-Side Merge Modal */}
+      {duplicatesModalOpen && (
+        <LeadDuplicatesModal
+          onClose={() => setDuplicatesModalOpen(false)}
+          onMerged={() => fetchLeads()}
         />
       )}
 

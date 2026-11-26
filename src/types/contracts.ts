@@ -762,6 +762,9 @@ export interface TenantInfo {
   globalKillSwitches?: GlobalKillSwitches;
   maintenanceMode?: boolean;
   sessionTtlHours?: number;
+  trialEndsAt?: string;
+  planExpired?: boolean;
+  daysUntilExpiry?: number | null;
   quotas?: {
     maxMonthlyAiCalls: number;
     maxMonthlyWhatsapp: number;
@@ -1840,7 +1843,7 @@ export interface GlobalSearchResponse {
 
 export interface NotificationItem {
   id: string;
-  category: 'lead' | 'invoice' | 'task' | 'inbox' | 'ticket';
+  category: 'billing' | 'mention' | 'lead' | 'invoice' | 'task' | 'inbox' | 'ticket';
   severity: 'urgent' | 'high' | 'medium' | 'info';
   title: string;
   subtitle: string;
@@ -1908,13 +1911,73 @@ export interface CreateProductPayload {
   inStock?: boolean;
 }
 
-// ─── CSV Bulk Import & Webhook Capture ────────────────
+// ─── CSV/Excel Bulk Import, Duplicates & Webhook Capture ────────────────
+export interface BulkImportLeadsOptions {
+  duplicateMode?: 'update' | 'skip';
+  autoRoute?: boolean;
+}
+
 export interface BulkImportLeadsResponse {
   importedCount: number;
   duplicateUpdatedCount: number;
   skippedCount: number;
+  routedCount?: number;
   totalProcessed: number;
+  errors?: Array<{ rowNumber: number; name: string; reason: string }>;
   data: Lead[];
+}
+
+export interface DuplicateLeadCandidate extends Lead {
+  ownerName?: string;
+  dealsCount?: number;
+  tasksCount?: number;
+  activitiesCount?: number;
+}
+
+export interface DuplicateLeadGroup {
+  groupId: string;
+  matchReason: 'phone' | 'email' | 'phone_and_email';
+  matchKey: string;
+  suggestedPrimaryId: string;
+  leads: DuplicateLeadCandidate[];
+}
+
+export interface DuplicatesResponse {
+  totalGroups: number;
+  totalDuplicateRecords: number;
+  groups: DuplicateLeadGroup[];
+}
+
+export interface MergeLeadsPayload {
+  primaryId: string;
+  secondaryIds: string[];
+  fieldOverrides?: {
+    name?: string;
+    company?: string;
+    phone?: string;
+    email?: string;
+    city?: string;
+    source?: LeadSource;
+    status?: LeadStatus;
+    accountKind?: 'business' | 'consumer';
+    estimatedValue?: number;
+    notes?: string;
+  };
+}
+
+export interface MergeLeadsResponse {
+  merged: boolean;
+  mergedCount: number;
+  repointedCounts: {
+    deals: number;
+    tasks: number;
+    calls: number;
+    conversations: number;
+    invoices: number;
+    appointments: number;
+    metaCapiEvents: number;
+  };
+  primaryLead: Lead;
 }
 
 export interface WebhookConfigResponse {

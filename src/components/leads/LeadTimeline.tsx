@@ -11,6 +11,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import type { LeadActivity } from '@/types/contracts';
+import MentionNoteInput, { MentionText } from '@/components/shared/MentionNoteInput';
 
 interface LeadTimelineProps {
   activities: LeadActivity[];
@@ -88,12 +89,11 @@ export default function LeadTimeline({
         </div>
 
         <div className="flex gap-2">
-          <input
-            type="text"
+          <MentionNoteInput
             value={noteText}
-            onChange={(e) => setNoteText(e.target.value)}
-            placeholder="Log call summary, buyer objection, or next follow-up date..."
-            className="flex-1 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-sm text-brand-navy focus:outline-none focus:border-brand-blue"
+            onChange={setNoteText}
+            placeholder="Log call summary, objection, or type @Name to notify a teammate..."
+            className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-sm text-brand-navy focus:outline-none focus:border-brand-blue"
           />
           <button
             type="submit"
@@ -133,7 +133,7 @@ export default function LeadTimeline({
 
             <div className="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100">
               <div className="text-xs sm:text-sm font-medium text-brand-navy">
-                {act.description}
+                <MentionText text={act.description} />
               </div>
               <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-1">
                 <span className="font-semibold text-slate-500">

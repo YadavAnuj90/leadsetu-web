@@ -286,6 +286,8 @@ export default function NavbarBreakToggle() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const storageKey = useMemo(() => getStorageKey(user?.id), [user?.id]);
+  const isBreakEligibleRole =
+    user?.role === 'manager' || user?.role === 'agent';
 
   // Restore saved active timer from localStorage when mounted or user changes
   useEffect(() => {
@@ -396,37 +398,74 @@ export default function NavbarBreakToggle() {
     }
   }, [activeBreak, storageKey, submitting, user?.availabilityStatus]);
 
-  const handleStartBreak = async () => {
-    setSubmitting(true);
-    setErrorMsg(null);
-    try {
-      const endAtMs = Date.now() + selectedDuration * 60_000;
-      const note = `${selectedType} (${selectedDuration} min · ends ${formatReturnClock(endAtMs)})`;
-      await updateMyAvailabilityApi({
-        availabilityStatus: 'away',
-        leaveNote: note,
-      });
+  const startBreakWith = useCallback(
+    async (type: BreakTypeOption, durationMin: BreakDurationMinutes) => {
+      setSubmitting(true);
+      setErrorMsg(null);
+      try {
+        const endAtMs = Date.now() + durationMin * 60_000;
+        const note = `${type} (${durationMin} min · ends ${formatReturnClock(endAtMs)})`;
+        await updateMyAvailabilityApi({
+          availabilityStatus: 'away',
+          leaveNote: note,
+        });
 
-      const timerPayload: StoredBreakTimer = {
-        endAtMs,
-        durationMin: selectedDuration,
-        breakType: selectedType,
-      };
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(storageKey, JSON.stringify(timerPayload));
+        const timerPayload: StoredBreakTimer = {
+          endAtMs,
+          durationMin,
+          breakType: type,
+        };
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(storageKey, JSON.stringify(timerPayload));
+        }
+        setSelectedType(type);
+        setSelectedDuration(durationMin);
+        setNowMs(Date.now());
+        setActiveBreak(timerPayload);
+        await refreshProfile();
+        setOpen(false);
+      } catch (err) {
+        setErrorMsg(
+          err instanceof Error ? err.message : 'Failed to turn on break mode',
+        );
+      } finally {
+        setSubmitting(false);
       }
-      setNowMs(Date.now());
-      setActiveBreak(timerPayload);
-      await refreshProfile();
-      setOpen(false);
-    } catch (err) {
-      setErrorMsg(
-        err instanceof Error ? err.message : 'Failed to turn on break mode',
+    },
+    [refreshProfile, storageKey],
+  );
+
+  // Listen for Ctrl+K Quick Actions to start or end break remotely (manager & sales user panels only)
+  useEffect(() => {
+    if (!isBreakEligibleRole) return;
+    const onStartBreak = (ev: Event) => {
+      const detail = (
+        ev as CustomEvent<{
+          breakType?: BreakTypeOption;
+          durationMin?: BreakDurationMinutes;
+        }>
+      ).detail;
+      void startBreakWith(
+        detail?.breakType || 'Coffee Break',
+        detail?.durationMin || 15,
       );
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    };
+    const onEndBreak = () => {
+      void finishBreakAndResume(false);
+    };
+    window.addEventListener('leadsetu:start-break', onStartBreak);
+    window.addEventListener('leadsetu:end-break', onEndBreak);
+    return () => {
+      window.removeEventListener('leadsetu:start-break', onStartBreak);
+      window.removeEventListener('leadsetu:end-break', onEndBreak);
+    };
+  }, [finishBreakAndResume, isBreakEligibleRole, startBreakWith]);
+
+  if (!isBreakEligibleRole) {
+    return null;
+  }
+
+  const handleStartBreak = () => startBreakWith(selectedType, selectedDuration);
 
   const remainingSeconds = activeBreak
     ? Math.max(0, Math.ceil((activeBreak.endAtMs - nowMs) / 1000))

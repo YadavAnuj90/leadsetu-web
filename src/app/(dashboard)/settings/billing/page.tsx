@@ -7,10 +7,12 @@ import {
   Activity,
   AlertTriangle,
   ArrowLeft,
+  ArrowRight,
   Building2,
   CalendarClock,
   Check,
   CheckCircle2,
+  Clock,
   CreditCard,
   Download,
   Eye,
@@ -39,7 +41,6 @@ import {
   createBillingCheckoutOrderApi,
   authorizeBillingSandboxOrderApi,
   verifyBillingCheckoutPaymentApi,
-  createTopupRequestApi,
   cancelBillingSubscriptionApi,
   resumeBillingAutoRenewalApi,
   scheduleBillingDowngradeApi,
@@ -48,10 +49,10 @@ import {
   type BillingUsageDashboardResponse,
   type BillingCouponValidationResponse,
   type BillingCheckoutOrderResponse,
-  type TopupPackSpec,
 } from '@/lib/tenants-api';
 import { downloadSubscriptionInvoicePdf } from '@/lib/subscription-pdf';
 import { getErrorMessage } from '@/lib/api-client';
+import BillingNavTabs from '@/components/settings/BillingNavTabs';
 import SubscriptionInvoiceModal from '@/components/settings/SubscriptionInvoiceModal';
 import type { SubscriptionInvoice } from '@/types/contracts';
 
@@ -100,8 +101,6 @@ export default function BillingSettingsPage() {
   );
   const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
   const [activatingPlan, setActivatingPlan] = useState<string | null>(null);
-  const [buyingPackId, setBuyingPackId] = useState<string | null>(null);
-  const [requestingPackId, setRequestingPackId] = useState<string | null>(null);
   const [isUpdatingLifecycle, setIsUpdatingLifecycle] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [downgradeTarget, setDowngradeTarget] = useState<'starter' | 'growth'>(
@@ -113,6 +112,7 @@ export default function BillingSettingsPage() {
   const [isSubmittingRefund, setIsSubmittingRefund] = useState(false);
   const [previewInvoice, setPreviewInvoice] =
     useState<SubscriptionInvoice | null>(null);
+  const [invoiceFilter, setInvoiceFilter] = useState<'all' | 'plan' | 'addon'>('all');
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -319,52 +319,6 @@ export default function BillingSettingsPage() {
     }
   };
 
-  const handleBuyTopupPack = async (pack: TopupPackSpec) => {
-    setBuyingPackId(pack.id);
-    setError(null);
-    try {
-      const activePlanId = (billing?.tenant.plan ||
-        tenant?.plan ||
-        'growth') as 'starter' | 'growth' | 'enterprise';
-      const order = await createBillingCheckoutOrderApi({
-        orderType: 'topup_pack',
-        topupPackId: pack.id,
-        plan: activePlanId,
-        billingCycle,
-        couponCode: appliedCoupon?.code || undefined,
-        greetingNote: `Instant Quota Add-On: ${pack.name} — ${pack.description}`,
-      });
-      setCheckoutOrder(order);
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setBuyingPackId(null);
-    }
-  };
-
-  const handleRequestTopupApproval = async (pack: TopupPackSpec) => {
-    if (pack.resource === 'storage') return;
-    setRequestingPackId(pack.id);
-    setError(null);
-    try {
-      await createTopupRequestApi({
-        resource: pack.resource,
-        quantity: pack.quantity,
-        note: `Self-serve request from /settings/billing: ${pack.name} (List ₹${pack.priceInr})`,
-      });
-      const refreshedUsage = await fetchBillingUsageApi();
-      setUsage(refreshedUsage);
-      setToast(
-        `Submitted ${pack.name} approval request to Leadsetu Super Admin HQ!`,
-      );
-      setTimeout(() => setToast(null), 4500);
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setRequestingPackId(null);
-    }
-  };
-
   const handleCancelAutoRenewal = async () => {
     if (!canManageBilling) return;
     setIsUpdatingLifecycle(true);
@@ -450,6 +404,12 @@ export default function BillingSettingsPage() {
 
   const activePlan = billing?.tenant.plan || tenant?.plan || 'growth';
   const invoices = billing?.invoices || [];
+  const filteredInvoices = invoices.filter((inv) => {
+    const isAddon = String(inv.invoiceNumber || '').startsWith('LS-ADDON');
+    if (invoiceFilter === 'plan') return !isAddon;
+    if (invoiceFilter === 'addon') return isAddon;
+    return true;
+  });
   const latestInv = invoices[0];
 
   return (
@@ -470,6 +430,11 @@ export default function BillingSettingsPage() {
           Workspace Settings Hub
         </Link>
       </div>
+
+      <BillingNavTabs
+        aiExceeded={Boolean(usage?.aiCalls && usage.aiCalls.remaining <= 0)}
+        aiRemaining={usage?.aiCalls.remaining}
+      />
 
       {toast && (
         <div className="rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-700/60 px-4 py-3 text-xs font-bold text-emerald-800 dark:text-emerald-200 flex items-center gap-2 shadow-sm">
@@ -821,121 +786,28 @@ export default function BillingSettingsPage() {
             </div>
           </div>
 
-          {/* 1-Click AI & WhatsApp Self-Serve Top-Up Packs */}
-          <div className="pt-2 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
+          {/* Quick Redirect to Page 2: AI Credit & Quota Top-Up Purchases */}
+          <div className="rounded-2xl border border-indigo-200/80 bg-indigo-50/60 dark:border-indigo-500/30 dark:bg-indigo-950/30 p-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-start gap-2.5">
+              <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-300 shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-sm font-extrabold text-brand-navy flex items-center gap-1.5">
-                  <Zap className="w-4 h-4 text-emerald-600" />
-                  1-Click AI, WhatsApp &amp; Storage Top-Up Packs
-                </h3>
-                <p className="text-[11px] text-slate-500">
-                  Buy instantly via Razorpay (with 18% GST Invoice PDF) or submit an Admin Quota Approval Request.
+                <div className="text-xs font-extrabold text-brand-navy dark:text-white">
+                  Need More AI Credits? Top Up on the Dedicated AI Credits Page
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-slate-300">
+                  {usage.aiCalls.remaining <= 0
+                    ? 'Your monthly AI credits are exhausted. Buy an AI Credit Top-Up pack to resume AI features immediately.'
+                    : `${usage.aiCalls.remaining.toLocaleString('en-IN')} AI credits remaining. Manage AI & WhatsApp top-up packs and credit invoices separately.`}
                 </p>
               </div>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-              {(usage.topupPacks || []).map((pack) => {
-                const packCalc = computePlanPreviewPricing(pack.priceInr);
-                return (
-                  <div
-                    key={pack.id}
-                    className="p-4 rounded-2xl border border-slate-200/80 bg-white flex flex-col justify-between gap-3 hover:border-brand-blue/40 transition-colors"
-                  >
-                    <div className="space-y-1.5">
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-xs font-extrabold text-brand-navy">
-                          {pack.name}
-                        </span>
-                        {pack.badge && (
-                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-brand-light text-brand-blue whitespace-nowrap">
-                            {pack.badge}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-slate-500 leading-snug">
-                        {pack.description}
-                      </p>
-                      <div className="text-sm font-extrabold text-brand-navy pt-0.5">
-                        ₹{packCalc.netBase.toLocaleString('en-IN')}{' '}
-                        <span className="text-[11px] font-semibold text-slate-500">
-                          + 18% GST (Total ₹{packCalc.total.toLocaleString('en-IN')})
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 pt-1">
-                      <button
-                        type="button"
-                        disabled={!canManageBilling || buyingPackId === pack.id}
-                        onClick={() => void handleBuyTopupPack(pack)}
-                        className="flex-1 btn-primary-brand inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-extrabold text-white disabled:opacity-50"
-                      >
-                        {buyingPackId === pack.id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <CreditCard className="w-3.5 h-3.5" />
-                        )}
-                        Buy via Razorpay
-                      </button>
-
-                      {pack.resource !== 'storage' && (
-                        <button
-                          type="button"
-                          disabled={
-                            !canManageBilling || requestingPackId === pack.id
-                          }
-                          onClick={() => void handleRequestTopupApproval(pack)}
-                          className="px-3 py-2 rounded-xl border border-slate-200 text-[11px] font-bold text-brand-navy hover:border-brand-blue disabled:opacity-50"
-                          title="Request Super Admin Quota Approval"
-                        >
-                          {requestingPackId === pack.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            'Request'
-                          )}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {usage.topupRequests && usage.topupRequests.length > 0 && (
-              <div className="pt-2 space-y-1.5">
-                <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
-                  Recent Quota Top-Up Approval Requests ({usage.topupRequests.length})
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {usage.topupRequests.slice(0, 4).map((req) => (
-                    <div
-                      key={req.id}
-                      className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] flex items-center gap-2"
-                    >
-                      <span className="font-extrabold uppercase text-brand-blue">
-                        {req.resource}
-                      </span>
-                      <span className="font-bold text-brand-navy">
-                        +{req.quantity.toLocaleString('en-IN')}
-                      </span>
-                      <span
-                        className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase ${
-                          req.status === 'approved'
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : req.status === 'rejected'
-                              ? 'bg-rose-100 text-rose-700'
-                              : 'bg-amber-100 text-amber-800'
-                        }`}
-                      >
-                        {req.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <Link
+              href="/settings/billing/ai-credits"
+              className="btn-primary-brand inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-extrabold text-white shrink-0"
+            >
+              <span>Go to AI Credits &amp; Top-Up</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
         </div>
       )}
@@ -949,8 +821,7 @@ export default function BillingSettingsPage() {
               Choose or Upgrade Your Leadsetu Subscription Plan
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Selecting any plan attaches its 18% GST Tax Invoice PDF directly to
-              your workspace billing ledger.
+              Only one active plan runs at a time — switching to another plan immediately replaces previous plan benefits &amp; quotas and archives a GST Tax Invoice PDF.
             </p>
           </div>
 
@@ -1379,22 +1250,54 @@ export default function BillingSettingsPage() {
             </div>
           </div>
 
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-700/50 px-3 py-1 rounded-full">
-            <ShieldCheck className="w-3.5 h-3.5" /> Leadsetu Verified Tax Receipts
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex rounded-xl border border-slate-200 dark:border-white/10 p-0.5 bg-slate-100 dark:bg-white/[0.04] text-[11px] font-bold">
+              {(
+                [
+                  { id: 'all', label: 'All' },
+                  { id: 'plan', label: 'Platform Plans' },
+                  { id: 'addon', label: 'AI & Top-Ups' },
+                ] as const
+              ).map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setInvoiceFilter(tab.id)}
+                  className={`px-2.5 py-1 rounded-lg transition ${
+                    invoiceFilter === tab.id
+                      ? 'bg-white dark:bg-brand-blue text-brand-navy dark:text-white shadow-xs'
+                      : 'text-slate-500 dark:text-slate-300'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-700/50 px-3 py-1 rounded-full">
+              <ShieldCheck className="w-3.5 h-3.5" /> Leadsetu Verified Tax Receipts
+            </span>
+          </div>
         </div>
 
         {isLoading ? (
           <div className="p-12 flex items-center justify-center">
             <Loader2 className="w-7 h-7 animate-spin text-brand-blue" />
           </div>
-        ) : invoices.length === 0 ? (
+        ) : filteredInvoices.length === 0 ? (
           <div className="p-12 text-center text-xs text-slate-400">
             Select any plan above to generate your first GST Tax Invoice PDF.
           </div>
         ) : (
           <div className="divide-y divide-slate-100 dark:divide-white/10">
-            {invoices.map((inv) => (
+            {filteredInvoices.map((inv) => {
+              const isAddonInv = String(inv.invoiceNumber || '').startsWith('LS-ADDON');
+              const paidTimestamp = inv.issuedAt
+                ? new Date(inv.issuedAt).toLocaleString('en-IN', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                  })
+                : '';
+              return (
               <div
                 key={inv.id}
                 className="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-slate-50/70 transition-colors"
@@ -1405,8 +1308,16 @@ export default function BillingSettingsPage() {
                       {inv.invoiceNumber}
                     </span>
                     <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700/50">
-                      {inv.planName} ({inv.billingCycle})
+                      {isAddonInv
+                        ? 'AI Credit / Top-Up'
+                        : `${inv.planName} (${inv.billingCycle})`}
                     </span>
+                    {paidTimestamp && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 dark:text-slate-300">
+                        <Clock className="w-3 h-3 text-brand-blue" />
+                        {paidTimestamp}
+                      </span>
+                    )}
                     {inv.couponCode && (
                       <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-400/30">
                         Promo {inv.couponCode} (-₹
@@ -1491,7 +1402,8 @@ export default function BillingSettingsPage() {
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
