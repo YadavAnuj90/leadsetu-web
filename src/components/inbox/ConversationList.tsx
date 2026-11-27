@@ -31,7 +31,7 @@ export default function ConversationList({
   return (
     <div className="h-full flex flex-col border-r border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#0D1628]">
       {/* Top Filter & Search */}
-      <div className="p-4 border-b border-slate-100 dark:border-white/10 space-y-3">
+      <div className="p-3 sm:p-4 border-b border-slate-100 dark:border-white/10 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
             <h2 className="font-extrabold text-base text-brand-navy dark:text-slate-100 truncate">

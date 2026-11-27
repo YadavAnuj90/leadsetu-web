@@ -3,6 +3,7 @@ import type {
   AddTicketCommentPayload,
   CreateTicketPayload,
   Ticket,
+  TicketAssignee,
   TicketsListResponse,
 } from '@/types/contracts';
 
@@ -11,12 +12,20 @@ export async function fetchTicketsApi(params?: {
   priority?: string;
   category?: string;
   slaBreached?: string;
+  assignedOnly?: string;
   search?: string;
 }): Promise<TicketsListResponse> {
   const { data } = await apiClient.get<TicketsListResponse>('/tickets', {
     params,
   });
   return data;
+}
+
+export async function fetchTicketAssigneesApi(): Promise<TicketAssignee[]> {
+  const { data } = await apiClient.get<{ data: TicketAssignee[] }>(
+    '/tickets/assignees',
+  );
+  return data.data || [];
 }
 
 export async function fetchTicketByIdApi(id: string): Promise<Ticket> {

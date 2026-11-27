@@ -7,6 +7,7 @@ import type {
   Lead,
   LeadActivity,
   LeadAiAnalysisResponse,
+  LeadGstinProfile,
   LeadsListResponse,
   LeadsStats,
 } from '@/types/contracts';
@@ -198,6 +199,30 @@ export async function addLeadActivityApi(
   const { data } = await apiClient.post<Lead>(
     `/leads/${id}/activities`,
     payload
+  );
+  return data;
+}
+
+export async function verifyGstinPreviewApi(payload: {
+  gstin: string;
+  company?: string;
+  city?: string;
+  phone?: string;
+}): Promise<LeadGstinProfile> {
+  const { data } = await apiClient.post<LeadGstinProfile>(
+    '/leads/verify-gstin',
+    payload,
+  );
+  return data;
+}
+
+export async function verifyLeadGstinApi(
+  id: string,
+  gstin?: string,
+): Promise<{ profile: LeadGstinProfile; lead: Lead }> {
+  const { data } = await apiClient.post<{ profile: LeadGstinProfile; lead: Lead }>(
+    `/leads/${id}/verify-gstin`,
+    gstin ? { gstin } : {},
   );
   return data;
 }

@@ -186,6 +186,30 @@ export interface DealerRfqAiResult {
   missingDetails: string[];
 }
 
+export interface MatchedQuoteLineItem {
+  itemText: string;
+  quantity: number;
+  unit: string;
+  matchedProductId?: string;
+  matchedSku?: string;
+  matchedName?: string;
+  hsnSac: string;
+  unitPrice: number;
+  gstRate: number;
+  lineTotal: number;
+  matchConfidence: 'exact' | 'fuzzy' | 'unmatched';
+}
+
+export interface VoiceNoteRfqQuoteResult extends DealerRfqAiResult {
+  transcript: string;
+  sttProvider: 'openai-whisper' | 'provided-transcript' | 'fallback';
+  languageDetected: 'hinglish' | 'hindi' | 'english';
+  matchedItems: MatchedQuoteLineItem[];
+  estimatedSubtotalInr: number;
+  estimatedGstInr: number;
+  estimatedGrandTotalInr: number;
+}
+
 export interface BeatStopInput {
   id: string;
   dealerName: string;
@@ -225,6 +249,21 @@ export async function parseAiDealerRfqApi(payload: {
     ...payload,
     mode: 'rfq',
   });
+  return data;
+}
+
+export async function parseVoiceNoteToQuoteApi(payload: {
+  audioUrl?: string;
+  audioDataUrl?: string;
+  transcript?: string;
+  dealerName?: string;
+  dealerCity?: string;
+  companyName?: string;
+}): Promise<{
+  source: string;
+  response: AiGatewayEnvelope<VoiceNoteRfqQuoteResult> | null;
+}> {
+  const { data } = await apiClient.post('/ai-copilot/voice-quote', payload);
   return data;
 }
 

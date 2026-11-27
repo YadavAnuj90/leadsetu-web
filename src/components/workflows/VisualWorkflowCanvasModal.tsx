@@ -181,42 +181,42 @@ const NODE_STYLE: Record<
   { bg: string; border: string; badge: string; label: string }
 > = {
   trigger: {
-    bg: 'bg-amber-50/90',
-    border: 'border-amber-300',
+    bg: 'bg-amber-50/90 dark:bg-amber-500/10',
+    border: 'border-amber-300 dark:border-amber-500/35',
     badge: 'bg-amber-500 text-white',
     label: 'TRIGGER',
   },
   condition: {
-    bg: 'bg-sky-50/90',
-    border: 'border-sky-300',
+    bg: 'bg-sky-50/90 dark:bg-sky-500/10',
+    border: 'border-sky-300 dark:border-sky-500/35',
     badge: 'bg-sky-600 text-white',
     label: 'IF CONDITION',
   },
   delay: {
-    bg: 'bg-violet-50/90',
-    border: 'border-violet-300',
+    bg: 'bg-violet-50/90 dark:bg-violet-500/10',
+    border: 'border-violet-300 dark:border-violet-500/35',
     badge: 'bg-violet-600 text-white',
     label: 'WAIT DELAY',
   },
   action: {
-    bg: 'bg-emerald-50/90',
-    border: 'border-emerald-300',
+    bg: 'bg-emerald-50/90 dark:bg-emerald-500/10',
+    border: 'border-emerald-300 dark:border-emerald-500/35',
     badge: 'bg-emerald-600 text-white',
     label: 'THEN ACTION',
   },
 };
 
 function NodeIcon({ node }: { node: WorkflowStepNode }) {
-  if (node.kind === 'trigger') return <Zap className="w-4 h-4 text-amber-600" />;
-  if (node.kind === 'condition') return <Filter className="w-4 h-4 text-sky-600" />;
-  if (node.kind === 'delay') return <Clock className="w-4 h-4 text-violet-600" />;
+  if (node.kind === 'trigger') return <Zap className="w-4 h-4 text-amber-500 dark:text-amber-300" />;
+  if (node.kind === 'condition') return <Filter className="w-4 h-4 text-sky-600 dark:text-sky-300" />;
+  if (node.kind === 'delay') return <Clock className="w-4 h-4 text-violet-600 dark:text-violet-300" />;
   if (node.actionKind === 'reassign_rep')
-    return <UserCheck className="w-4 h-4 text-emerald-700" />;
+    return <UserCheck className="w-4 h-4 text-emerald-700 dark:text-emerald-300" />;
   if (node.actionKind === 'create_sla_alert')
-    return <AlertTriangle className="w-4 h-4 text-rose-600" />;
+    return <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-300" />;
   if (node.actionKind === 'create_task')
-    return <CheckSquare className="w-4 h-4 text-emerald-700" />;
-  return <MessageSquare className="w-4 h-4 text-emerald-700" />;
+    return <CheckSquare className="w-4 h-4 text-emerald-700 dark:text-emerald-300" />;
+  return <MessageSquare className="w-4 h-4 text-emerald-700 dark:text-emerald-300" />;
 }
 
 export default function VisualWorkflowCanvasModal({
@@ -454,19 +454,19 @@ export default function VisualWorkflowCanvasModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
-      <div className="bg-white rounded-3xl max-w-6xl w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-2.5 sm:p-5 overflow-y-auto">
+      <div className="bg-white dark:bg-[#0D1628] rounded-2xl sm:rounded-3xl max-w-6xl w-full border border-slate-200 dark:border-white/[0.1] shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Modal Top Header */}
-        <div className="px-6 py-4 bg-brand-navy text-white flex items-center justify-between gap-4 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-brand-blue/25 border border-brand-blue/40 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-sky-300" />
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 bg-brand-navy dark:bg-[#081020] border-b border-white/10 text-white flex items-center justify-between gap-4 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-brand-blue/25 border border-brand-blue/40 flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-sky-300" />
             </div>
-            <div>
-              <h2 className="text-base font-extrabold">
+            <div className="min-w-0">
+              <h2 className="text-sm sm:text-base font-extrabold truncate">
                 Visual No-Code Workflow &amp; WhatsApp Drip Canvas
               </h2>
-              <p className="text-[11px] text-slate-300">
+              <p className="text-[11px] text-slate-300 truncate">
                 Chain Triggers, Speed-to-Lead Delays, Uncontacted Conditions, Hinglish WhatsApp Steps, Rep Reassignment &amp; SLA Alerts
               </p>
             </div>
@@ -475,16 +475,16 @@ export default function VisualWorkflowCanvasModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl hover:bg-white/10 text-slate-300"
+            className="p-2 rounded-xl hover:bg-white/10 text-slate-300 shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* AI + Blueprint Toolbar */}
-        <div className="px-6 py-3.5 bg-slate-900 text-white border-b border-slate-800 space-y-2.5 shrink-0">
+        <div className="px-4 sm:px-6 py-3 bg-slate-900 dark:bg-[#0A1324] text-white border-b border-slate-800 space-y-2.5 shrink-0">
           <div className="flex flex-col lg:flex-row lg:items-center gap-2.5">
-            <div className="flex-1 flex items-center gap-2">
+            <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <input
                 type="text"
                 value={aiPrompt}
@@ -496,7 +496,7 @@ export default function VisualWorkflowCanvasModal({
                 type="button"
                 disabled={draftingAi}
                 onClick={() => void handleDraftWithAi()}
-                className="btn-primary-brand inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white whitespace-nowrap disabled:opacity-60"
+                className="btn-primary-brand inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white whitespace-nowrap disabled:opacity-60"
               >
                 {draftingAi ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -529,29 +529,29 @@ export default function VisualWorkflowCanvasModal({
         </div>
 
         {/* Main 2-Column Split: Left Visual Pipeline Canvas + Right Node Inspector */}
-        <div className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
+        <div className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-200 dark:divide-white/[0.08]">
           {/* LEFT: Visual Flow Canvas (7 cols) */}
-          <div className="lg:col-span-7 p-6 bg-slate-50/70 space-y-4 overflow-y-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white p-4 rounded-2xl border border-slate-200">
+          <div className="lg:col-span-7 p-4 sm:p-6 bg-slate-50/70 dark:bg-[#081020] space-y-4 overflow-y-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white dark:bg-[#0D1628] p-4 rounded-2xl border border-slate-200 dark:border-white/[0.08]">
               <div>
-                <label className="block text-[11px] font-bold uppercase text-slate-500 mb-1">
+                <label className="block text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
                   Workflow Name *
                 </label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-brand-navy"
+                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-[#081020] border border-slate-200 dark:border-white/10 text-xs font-bold text-brand-navy dark:text-white focus:outline-none focus:border-brand-blue"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-bold uppercase text-slate-500 mb-1">
+                <label className="block text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
                   Inbound Source Filter
                 </label>
                 <select
                   value={sourceFilter}
                   onChange={(e) => setSourceFilter(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-brand-navy bg-white"
+                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-[#081020] border border-slate-200 dark:border-white/10 text-xs font-bold text-brand-navy dark:text-white focus:outline-none focus:border-brand-blue"
                 >
                   <option value="all">All Sources (IndiaMART + Meta + Webhook)</option>
                   <option value="indiamart">IndiaMART Only</option>
@@ -572,8 +572,8 @@ export default function VisualWorkflowCanvasModal({
                   <React.Fragment key={node.id}>
                     {index > 0 && (
                       <div className="flex justify-center py-1">
-                        <div className="w-6 h-6 rounded-full bg-white border border-slate-300 flex items-center justify-center shadow-xs">
-                          <ArrowConnector className="w-3.5 h-3.5 text-slate-500" />
+                        <div className="w-6 h-6 rounded-full bg-white dark:bg-[#0D1628] border border-slate-300 dark:border-white/15 flex items-center justify-center shadow-xs">
+                          <ArrowConnector className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                         </div>
                       </div>
                     )}
@@ -588,7 +588,7 @@ export default function VisualWorkflowCanvasModal({
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3 min-w-0">
-                          <div className="w-9 h-9 rounded-xl bg-white border border-slate-200/80 flex items-center justify-center shrink-0 shadow-xs">
+                          <div className="w-9 h-9 rounded-xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-white/10 flex items-center justify-center shrink-0 shadow-xs">
                             <NodeIcon node={node} />
                           </div>
                           <div className="min-w-0">
@@ -599,26 +599,26 @@ export default function VisualWorkflowCanvasModal({
                                 {st.label}
                               </span>
                               {node.kind === 'delay' && (
-                                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white border border-violet-200 text-violet-700">
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white dark:bg-[#0D1628] border border-violet-200 dark:border-violet-500/35 text-violet-700 dark:text-violet-300">
                                   {node.delayValue || 10} {node.delayUnit || 'minutes'}
                                 </span>
                               )}
                               {node.kind === 'action' && node.language && (
-                                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white border border-emerald-200 text-emerald-700 uppercase">
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white dark:bg-[#0D1628] border border-emerald-200 dark:border-emerald-500/35 text-emerald-700 dark:text-emerald-300 uppercase">
                                   {node.language}
                                 </span>
                               )}
                             </div>
-                            <h4 className="text-xs sm:text-sm font-extrabold text-brand-navy mt-1">
+                            <h4 className="text-xs sm:text-sm font-extrabold text-brand-navy dark:text-white mt-1">
                               {node.title}
                             </h4>
                             {node.subtitle && (
-                              <p className="text-[11px] text-slate-600 mt-0.5">
+                              <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">
                                 {node.subtitle}
                               </p>
                             )}
                             {node.whatsappTemplateBody && (
-                              <p className="mt-2 text-[11px] italic text-slate-700 bg-white/85 px-3 py-1.5 rounded-lg border border-emerald-200/70 line-clamp-2">
+                              <p className="mt-2 text-[11px] italic text-slate-700 dark:text-slate-200 bg-white/85 dark:bg-[#0D1628]/80 px-3 py-1.5 rounded-lg border border-emerald-200/70 dark:border-emerald-500/25 line-clamp-2">
                                 &ldquo;{node.whatsappTemplateBody}&rdquo;
                               </p>
                             )}
@@ -634,7 +634,7 @@ export default function VisualWorkflowCanvasModal({
                               type="button"
                               onClick={() => moveNode(index, -1)}
                               disabled={index <= 1}
-                              className="p-1 rounded-lg bg-white/80 hover:bg-white border border-slate-200 text-slate-500 disabled:opacity-30"
+                              className="p-1 rounded-lg bg-white/80 dark:bg-[#0D1628] hover:bg-white dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-300 disabled:opacity-30"
                               title="Move Up"
                             >
                               <ArrowUp className="w-3.5 h-3.5" />
@@ -643,7 +643,7 @@ export default function VisualWorkflowCanvasModal({
                               type="button"
                               onClick={() => moveNode(index, 1)}
                               disabled={index >= nodes.length - 1}
-                              className="p-1 rounded-lg bg-white/80 hover:bg-white border border-slate-200 text-slate-500 disabled:opacity-30"
+                              className="p-1 rounded-lg bg-white/80 dark:bg-[#0D1628] hover:bg-white dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-300 disabled:opacity-30"
                               title="Move Down"
                             >
                               <ArrowDown className="w-3.5 h-3.5" />
@@ -651,7 +651,7 @@ export default function VisualWorkflowCanvasModal({
                             <button
                               type="button"
                               onClick={() => removeNode(node.id, index)}
-                              className="p-1 rounded-lg bg-white/80 hover:bg-rose-50 border border-slate-200 text-slate-400 hover:text-rose-600"
+                              className="p-1 rounded-lg bg-white/80 dark:bg-[#0D1628] hover:bg-rose-50 dark:hover:bg-rose-500/20 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-rose-600 dark:hover:text-rose-300"
                               title="Remove Step"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -666,42 +666,42 @@ export default function VisualWorkflowCanvasModal({
             </div>
 
             {/* Add Step Buttons */}
-            <div className="pt-3 border-t border-slate-200 flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-extrabold uppercase text-slate-500 mr-1">
+            <div className="pt-3 border-t border-slate-200 dark:border-white/[0.08] flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-extrabold uppercase text-slate-500 dark:text-slate-400 mr-1">
                 + Add Step:
               </span>
               <button
                 type="button"
                 onClick={() => addNode('condition')}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-sky-100 hover:bg-sky-200 text-sky-800 text-xs font-bold transition"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-sky-100 dark:bg-sky-500/15 hover:bg-sky-200 dark:hover:bg-sky-500/25 text-sky-800 dark:text-sky-200 border border-transparent dark:border-sky-500/30 text-xs font-bold transition"
               >
                 <Plus className="w-3.5 h-3.5" /> IF Condition
               </button>
               <button
                 type="button"
                 onClick={() => addNode('delay')}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-violet-100 hover:bg-violet-200 text-violet-800 text-xs font-bold transition"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-violet-100 dark:bg-violet-500/15 hover:bg-violet-200 dark:hover:bg-violet-500/25 text-violet-800 dark:text-violet-200 border border-transparent dark:border-violet-500/30 text-xs font-bold transition"
               >
                 <Plus className="w-3.5 h-3.5" /> Wait Delay
               </button>
               <button
                 type="button"
                 onClick={() => addNode('action', 'send_whatsapp')}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-xs font-bold transition"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-500/15 hover:bg-emerald-200 dark:hover:bg-emerald-500/25 text-emerald-800 dark:text-emerald-200 border border-transparent dark:border-emerald-500/30 text-xs font-bold transition"
               >
                 <Plus className="w-3.5 h-3.5" /> WhatsApp Message
               </button>
               <button
                 type="button"
                 onClick={() => addNode('action', 'reassign_rep')}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-teal-100 hover:bg-teal-200 text-teal-800 text-xs font-bold transition"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-teal-100 dark:bg-teal-500/15 hover:bg-teal-200 dark:hover:bg-teal-500/25 text-teal-800 dark:text-teal-200 border border-transparent dark:border-teal-500/30 text-xs font-bold transition"
               >
                 <Plus className="w-3.5 h-3.5" /> Reassign Rep
               </button>
               <button
                 type="button"
                 onClick={() => addNode('action', 'create_sla_alert')}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 text-xs font-bold transition"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-100 dark:bg-rose-500/15 hover:bg-rose-200 dark:hover:bg-rose-500/25 text-rose-800 dark:text-rose-200 border border-transparent dark:border-rose-500/30 text-xs font-bold transition"
               >
                 <Plus className="w-3.5 h-3.5" /> SLA Alert
               </button>
@@ -709,13 +709,13 @@ export default function VisualWorkflowCanvasModal({
           </div>
 
           {/* RIGHT: Node Inspector & Guardrails (5 cols) */}
-          <div className="lg:col-span-5 p-6 bg-white space-y-5 overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="lg:col-span-5 p-4 sm:p-6 bg-white dark:bg-[#0D1628] space-y-5 overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/[0.08] pb-3">
               <div>
-                <h3 className="text-sm font-extrabold text-brand-navy">
+                <h3 className="text-sm font-extrabold text-brand-navy dark:text-white">
                   Step Inspector
                 </h3>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Click any node on the canvas to configure its rules &amp; template
                 </p>
               </div>
@@ -731,20 +731,20 @@ export default function VisualWorkflowCanvasModal({
             {selectedNode && (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">
                     Step Title
                   </label>
                   <input
                     type="text"
                     value={selectedNode.title}
                     onChange={(e) => updateSelectedNode({ title: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-brand-navy"
+                    className="w-full px-3 py-2 rounded-xl bg-white dark:bg-[#081020] border border-slate-200 dark:border-white/10 text-xs font-bold text-brand-navy dark:text-white focus:outline-none focus:border-brand-blue"
                   />
                 </div>
 
                 {selectedNode.kind === 'trigger' && (
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">
                       CRM Event Trigger
                     </label>
                     <select
@@ -752,7 +752,7 @@ export default function VisualWorkflowCanvasModal({
                       onChange={(e) =>
                         setTriggerType(e.target.value as WorkflowTriggerType)
                       }
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white"
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-[#081020] border border-slate-200 dark:border-white/10 text-xs font-semibold text-brand-navy dark:text-white"
                     >
                       <option value="lead.created">
                         New Lead Captured (IndiaMART / Meta / Webhook)
@@ -769,14 +769,17 @@ export default function VisualWorkflowCanvasModal({
                       <option value="invoice.overdue">
                         GST Tax Invoice Overdue
                       </option>
+                      <option value="whatsapp.inbound">
+                        Inbound Buyer Message on WhatsApp
+                      </option>
                     </select>
                   </div>
                 )}
 
                 {selectedNode.kind === 'delay' && (
-                  <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-violet-50 border border-violet-200">
+                  <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/30">
                     <div>
-                      <label className="block text-xs font-bold text-violet-900 mb-1">
+                      <label className="block text-xs font-bold text-violet-900 dark:text-violet-200 mb-1">
                         Wait Duration
                       </label>
                       <input
@@ -792,11 +795,11 @@ export default function VisualWorkflowCanvasModal({
                             title: `Wait ${v} ${u === 'minutes' ? 'Min(s)' : u === 'hours' ? 'Hour(s)' : 'Day(s)'}`,
                           });
                         }}
-                        className="w-full px-3 py-2 rounded-xl border border-violet-200 bg-white text-xs font-bold"
+                        className="w-full px-3 py-2 rounded-xl border border-violet-200 dark:border-violet-500/30 bg-white dark:bg-[#081020] text-xs font-bold text-brand-navy dark:text-white"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-violet-900 mb-1">
+                      <label className="block text-xs font-bold text-violet-900 dark:text-violet-200 mb-1">
                         Time Unit
                       </label>
                       <select
@@ -809,7 +812,7 @@ export default function VisualWorkflowCanvasModal({
                             title: `Wait ${v} ${u === 'minutes' ? 'Min(s)' : u === 'hours' ? 'Hour(s)' : 'Day(s)'}`,
                           });
                         }}
-                        className="w-full px-3 py-2 rounded-xl border border-violet-200 bg-white text-xs font-bold"
+                        className="w-full px-3 py-2 rounded-xl border border-violet-200 dark:border-violet-500/30 bg-white dark:bg-[#081020] text-xs font-bold text-brand-navy dark:text-white"
                       >
                         <option value="minutes">Minutes</option>
                         <option value="hours">Hours</option>
@@ -820,9 +823,9 @@ export default function VisualWorkflowCanvasModal({
                 )}
 
                 {selectedNode.kind === 'condition' && (
-                  <div className="space-y-3 p-3.5 rounded-2xl bg-sky-50 border border-sky-200">
+                  <div className="space-y-3 p-3.5 rounded-2xl bg-sky-50 dark:bg-sky-500/10 border border-sky-200 dark:border-sky-500/30">
                     <div>
-                      <label className="block text-xs font-bold text-sky-900 mb-1">
+                      <label className="block text-xs font-bold text-sky-900 dark:text-sky-200 mb-1">
                         Condition Rule
                       </label>
                       <select
@@ -832,7 +835,7 @@ export default function VisualWorkflowCanvasModal({
                             conditionGuard: e.target.value as WorkflowConditionGuard,
                           })
                         }
-                        className="w-full px-3 py-2 rounded-xl border border-sky-200 bg-white text-xs font-bold"
+                        className="w-full px-3 py-2 rounded-xl border border-sky-200 dark:border-sky-500/30 bg-white dark:bg-[#081020] text-xs font-bold text-brand-navy dark:text-white"
                       >
                         <option value="if_uncontacted">
                           If Lead Still Uncontacted (Status = New)
@@ -860,7 +863,7 @@ export default function VisualWorkflowCanvasModal({
                       selectedNode.conditionGuard === 'if_source_matches' ||
                       selectedNode.conditionGuard === 'if_city_matches') && (
                       <div>
-                        <label className="block text-xs font-bold text-sky-900 mb-1">
+                        <label className="block text-xs font-bold text-sky-900 dark:text-sky-200 mb-1">
                           Comparison Value
                         </label>
                         <input
@@ -870,7 +873,7 @@ export default function VisualWorkflowCanvasModal({
                             updateSelectedNode({ conditionValue: e.target.value })
                           }
                           placeholder="e.g. 80 or indiamart,meta_ads or Noida"
-                          className="w-full px-3 py-2 rounded-xl border border-sky-200 bg-white text-xs"
+                          className="w-full px-3 py-2 rounded-xl border border-sky-200 dark:border-sky-500/30 bg-white dark:bg-[#081020] text-xs text-brand-navy dark:text-white"
                         />
                       </div>
                     )}
@@ -878,9 +881,9 @@ export default function VisualWorkflowCanvasModal({
                 )}
 
                 {selectedNode.kind === 'action' && (
-                  <div className="space-y-3 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200">
+                  <div className="space-y-3 p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30">
                     <div>
-                      <label className="block text-xs font-bold text-emerald-900 mb-1">
+                      <label className="block text-xs font-bold text-emerald-900 dark:text-emerald-200 mb-1">
                         Action Type
                       </label>
                       <select
@@ -890,7 +893,7 @@ export default function VisualWorkflowCanvasModal({
                             actionKind: e.target.value as WorkflowNodeActionKind,
                           })
                         }
-                        className="w-full px-3 py-2 rounded-xl border border-emerald-200 bg-white text-xs font-bold"
+                        className="w-full px-3 py-2 rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-white dark:bg-[#081020] text-xs font-bold text-brand-navy dark:text-white"
                       >
                         <option value="send_whatsapp">
                           Send WhatsApp Follow-Up (Hinglish / EN)
@@ -914,7 +917,7 @@ export default function VisualWorkflowCanvasModal({
                       selectedNode.actionKind === 'send_payment_reminder') && (
                       <>
                         <div>
-                          <label className="block text-xs font-bold text-emerald-900 mb-1">
+                          <label className="block text-xs font-bold text-emerald-900 dark:text-emerald-200 mb-1">
                             Message Language
                           </label>
                           <select
@@ -927,7 +930,7 @@ export default function VisualWorkflowCanvasModal({
                                   | 'hindi',
                               })
                             }
-                            className="w-full px-3 py-2 rounded-xl border border-emerald-200 bg-white text-xs font-bold"
+                            className="w-full px-3 py-2 rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-white dark:bg-[#081020] text-xs font-bold text-brand-navy dark:text-white"
                           >
                             <option value="hinglish">Hinglish (Recommended)</option>
                             <option value="english">English</option>
@@ -936,7 +939,7 @@ export default function VisualWorkflowCanvasModal({
                         </div>
 
                         <div>
-                          <label className="block text-xs font-bold text-emerald-900 mb-1">
+                          <label className="block text-xs font-bold text-emerald-900 dark:text-emerald-200 mb-1">
                             WhatsApp Template Message
                           </label>
                           <textarea
@@ -947,9 +950,9 @@ export default function VisualWorkflowCanvasModal({
                                 whatsappTemplateBody: e.target.value,
                               })
                             }
-                            className="w-full px-3 py-2 rounded-xl border border-emerald-200 bg-white text-xs"
+                            className="w-full px-3 py-2 rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-white dark:bg-[#081020] text-xs text-brand-navy dark:text-white"
                           />
-                          <p className="text-[10px] text-emerald-800 mt-1">
+                          <p className="text-[10px] text-emerald-800 dark:text-emerald-300 mt-1">
                             Variables: <code>{'{{buyer_name}}'}</code>,{' '}
                             <code>{'{{company}}'}</code>, <code>{'{{city}}'}</code>
                           </p>
@@ -959,7 +962,7 @@ export default function VisualWorkflowCanvasModal({
 
                     {selectedNode.actionKind === 'reassign_rep' && (
                       <div>
-                        <label className="block text-xs font-bold text-emerald-900 mb-1">
+                        <label className="block text-xs font-bold text-emerald-900 dark:text-emerald-200 mb-1">
                           Backup Rep Strategy
                         </label>
                         <select
@@ -974,7 +977,7 @@ export default function VisualWorkflowCanvasModal({
                                 | 'territory_owner',
                             })
                           }
-                          className="w-full px-3 py-2 rounded-xl border border-emerald-200 bg-white text-xs font-bold"
+                          className="w-full px-3 py-2 rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-white dark:bg-[#081020] text-xs font-bold text-brand-navy dark:text-white"
                         >
                           <option value="round_robin_backup">
                             Next Active Rep (Round-Robin Backup)
@@ -992,7 +995,7 @@ export default function VisualWorkflowCanvasModal({
                     {(selectedNode.actionKind === 'create_sla_alert' ||
                       selectedNode.actionKind === 'create_task') && (
                       <div>
-                        <label className="block text-xs font-bold text-emerald-900 mb-1">
+                        <label className="block text-xs font-bold text-emerald-900 dark:text-emerald-200 mb-1">
                           SLA Alert / Task Subject
                         </label>
                         <input
@@ -1002,7 +1005,7 @@ export default function VisualWorkflowCanvasModal({
                             updateSelectedNode({ taskOrAlertTitle: e.target.value })
                           }
                           placeholder="SLA Breach: Lead uncontacted after 10 mins"
-                          className="w-full px-3 py-2 rounded-xl border border-emerald-200 bg-white text-xs"
+                          className="w-full px-3 py-2 rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-white dark:bg-[#081020] text-xs text-brand-navy dark:text-white"
                         />
                       </div>
                     )}
@@ -1012,10 +1015,10 @@ export default function VisualWorkflowCanvasModal({
             )}
 
             {/* Drip Stop Guardrail */}
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-start gap-3">
-              <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-              <label className="text-xs text-slate-700 cursor-pointer space-y-0.5">
-                <div className="flex items-center gap-2 font-bold text-brand-navy">
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#081020] border border-slate-200 dark:border-white/[0.08] flex items-start gap-3">
+              <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+              <label className="text-xs text-slate-700 dark:text-slate-300 cursor-pointer space-y-0.5">
+                <div className="flex items-center gap-2 font-bold text-brand-navy dark:text-white">
                   <input
                     type="checkbox"
                     checked={stopOnReply}
@@ -1024,7 +1027,7 @@ export default function VisualWorkflowCanvasModal({
                   />
                   <span>Auto-Stop Drip When Buyer Replies on WhatsApp</span>
                 </div>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Prevents awkward automated follow-ups once the buyer replies in your Inbox.
                 </p>
               </label>
@@ -1033,15 +1036,15 @@ export default function VisualWorkflowCanvasModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-3 shrink-0">
-          <span className="text-xs text-slate-500 font-medium">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 bg-slate-50 dark:bg-[#081020] border-t border-slate-200 dark:border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
             {nodes.length} visual steps configured · Ready for live lead events
           </span>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600"
+              className="px-4 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0D1628] text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-slate-300"
             >
               Cancel
             </button>

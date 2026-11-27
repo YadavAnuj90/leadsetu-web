@@ -116,27 +116,27 @@ export default function LoginPage() {
             <div className="lg:col-span-6 space-y-6">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-[#0057FF]/20 text-slate-900 dark:text-sky-300 shadow-sm">
                 <Sparkles className="w-3.5 h-3.5 text-[#0057FF] dark:text-sky-400" />
-                <span>Welcome Back · Leadsetu 360° CRM</span>
+                <span>LeadSetu OS · Live Revenue &amp; Support Sync</span>
               </div>
 
               <h1 className="text-4xl sm:text-5xl font-black tracking-[-0.03em] leading-[1.06] text-[#0057FF] dark:text-white">
-                Sign in to your
+                Step into your
                 <br />
                 AI Revenue
                 <br />
-                Command Center.
+                Command Desk.
               </h1>
 
               <p className="text-slate-700 dark:text-slate-300 text-base sm:text-lg leading-relaxed max-w-lg">
-                Your IndiaMART inquiries, Official WhatsApp Cloud inbox, 18% GST invoices, and SLA
-                field tickets are synced in real time.
+                Your IndiaMART inquiries, Hinglish WhatsApp Cloud chats, GSTIN credit checks, 18%
+                GST invoices, and Support Engineer tickets — synchronized in real time.
               </p>
 
               <div className="space-y-3 pt-1 max-w-lg">
                 {[
-                  'Real-time SetuAI scoring (1–100) in Hinglish & English',
-                  '1-Click GST Tax Invoices, CPQ quotes & Razorpay payment links',
-                  '5-Digit Workspace Account ID & Anti-Data-Leak Shield',
+                  'Hinglish Voice-Note → Quote AI & 1–100 SetuAI Lead Scoring',
+                  'Mod-36 GSTIN Credit Guard, 1-Click GST Invoices & UPI QR Links',
+                  'Role-Scoped Panels (Sales, Manager, Support Engineer) + DPDP Shield',
                 ].map((item) => (
                   <div
                     key={item}

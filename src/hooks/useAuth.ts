@@ -62,10 +62,18 @@ export function useAuth() {
               ? 'Workspace Owner'
               : res.user.role === 'admin'
                 ? 'Workspace Admin'
-                : 'CRM Member',
+                : res.user.role === 'support'
+                  ? 'Support Engineer'
+                  : 'CRM Member',
         ...(isNewWorkspace ? { isNewWorkspace: true } : {}),
       });
-      router.push(res.user.role === 'super_admin' ? '/super-admin' : '/dashboard');
+      router.push(
+        res.user.role === 'super_admin'
+          ? '/super-admin'
+          : res.user.role === 'support'
+            ? '/tickets'
+            : '/dashboard',
+      );
       return res;
     },
     [router, setAuth],

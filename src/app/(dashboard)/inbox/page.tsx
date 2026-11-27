@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Loader2, MessageSquare, Plus, Settings2 } from 'lucide-react';
 import { useInbox } from '@/hooks/useInbox';
+import { useWhatsappWebRtc } from '@/hooks/useWhatsappWebRtc';
 import { useAuthStore } from '@/store/auth.store';
 import { useWhatsAppUiStore } from '@/store/whatsapp-ui.store';
 import { isFeatureEnabled } from '@/lib/feature-access';
@@ -16,7 +17,11 @@ import WhatsAppTemplateManagerModal from '@/components/inbox/WhatsAppTemplateMan
 import VoiceCrmAuditModal from '@/components/ai/VoiceCrmAuditModal';
 import DealerRfqModal from '@/components/ai/DealerRfqModal';
 import { AiConciergeModal } from '@/components/inbox/AiConciergeModal';
-import WhatsAppCartBuilderModal from '@/components/inbox/WhatsAppCartBuilderModal';
+import WhatsAppCartBuilderModal, {
+  type PrefilledCartLineInput,
+} from '@/components/inbox/WhatsAppCartBuilderModal';
+import WhatsappCallDrawer from '@/components/inbox/WhatsappCallDrawer';
+import IncomingWhatsappCallModal from '@/components/inbox/IncomingWhatsappCallModal';
 
 function InboxPageContent() {
   const searchParams = useSearchParams();
@@ -38,10 +43,19 @@ function InboxPageContent() {
 
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [rfqModalOpen, setRfqModalOpen] = useState(false);
+  const [rfqPreset, setRfqPreset] = useState<{
+    audioUrl?: string;
+    message?: string;
+  } | null>(null);
   const [conciergeModalOpen, setConciergeModalOpen] = useState(false);
   const [cartModalOpen, setCartModalOpen] = useState(false);
+  const [prefilledCart, setPrefilledCart] = useState<{
+    lines: PrefilledCartLineInput[];
+    city?: string | null;
+  } | null>(null);
   const [startModalOpen, setStartModalOpen] = useState(false);
   const [linkModalOpen, setLinkModalOpen] = useState(false);
+  const [mobilePane, setMobilePane] = useState<'list' | 'thread'>('list');
   const [composerDraft, setComposerDraft] = useState<{
     text: string;
     seq: number;
@@ -74,6 +88,34 @@ function InboxPageContent() {
     linkEntity,
     upsertAndSelectConversation,
   } = useInbox(threadParam);
+
+  const activeLeadId =
+    activeConversation?.linkedEntityType === 'lead'
+      ? activeConversation.linkedEntityId
+      : undefined;
+
+  const {
+    permission: whatsappPermission,
+    permissionLoading: whatsappPermissionLoading,
+    requestingPermission: requestingWhatsappPermission,
+    wallet: whatsappWallet,
+    callLogs: whatsappCallLogs,
+    incomingCall,
+    activeCall,
+    callError: whatsappCallError,
+    setCallError: setWhatsappCallError,
+    remoteAudioRef,
+    requestPermission,
+    startOutboundCall,
+    acceptIncomingCall,
+    rejectIncomingCall,
+    toggleMute,
+    hangupCall,
+  } = useWhatsappWebRtc({
+    activeLeadId,
+    activeConversationId: activeConversation?.id,
+    isWhatsappChannel: activeConversation?.channel === 'whatsapp',
+  });
 
   if (isLoading) {
     return (
@@ -115,12 +157,19 @@ function InboxPageContent() {
           </div>
         </div>
       ) : (
-        <div className="h-[calc(100vh-7rem)] bg-white dark:bg-[#0D1628] rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-sm overflow-hidden grid grid-cols-1 lg:grid-cols-12">
-          <div className="lg:col-span-4 h-full overflow-hidden">
+        <div className="h-[calc(100dvh-5.25rem)] sm:h-[calc(100vh-7rem)] min-h-[480px] bg-white dark:bg-[#0D1628] rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-sm overflow-hidden grid grid-cols-1 lg:grid-cols-12">
+          <div
+            className={`${
+              mobilePane === 'thread' && activeConversation ? 'hidden lg:block' : 'block'
+            } lg:col-span-4 h-full min-h-0 overflow-hidden`}
+          >
             <ConversationList
               conversations={conversations}
               activeId={activeConversation?.id || activeId}
-              onSelect={setActiveId}
+              onSelect={(id) => {
+                setActiveId(id);
+                setMobilePane('thread');
+              }}
               search={search}
               onSearchChange={setSearch}
               statusFilter={statusFilter}
@@ -131,11 +180,16 @@ function InboxPageContent() {
             />
           </div>
 
-          <div className="lg:col-span-8 h-full flex flex-col overflow-hidden">
+          <div
+            className={`${
+              mobilePane === 'list' && activeConversation ? 'hidden lg:flex' : 'flex'
+            } lg:col-span-8 h-full min-h-0 flex-col overflow-hidden`}
+          >
             {activeConversation ? (
               <>
                 <MessageThread
                   conversation={activeConversation}
+                  onBackToList={() => setMobilePane('list')}
                   onToggleStatus={toggleStatus}
                   onOpenLinkModal={() => setLinkModalOpen(true)}
                   onRefreshAiSummary={() => {
@@ -152,8 +206,46 @@ function InboxPageContent() {
                     canUseVoiceCrm ? () => setVoiceModalOpen(true) : undefined
                   }
                   onOpenRfqParser={
-                    canUseDealerDesk ? () => setRfqModalOpen(true) : undefined
+                    canUseDealerDesk
+                      ? () => {
+                          setRfqPreset(null);
+                          setRfqModalOpen(true);
+                        }
+                      : undefined
                   }
+                  onOpenVoiceNoteQuote={
+                    canUseDealerDesk
+                      ? (audioUrl, fallbackText) => {
+                          setRfqPreset({ audioUrl, message: fallbackText });
+                          setRfqModalOpen(true);
+                        }
+                      : undefined
+                  }
+                  whatsappPermission={whatsappPermission}
+                  whatsappPermissionLoading={whatsappPermissionLoading}
+                  requestingWhatsappPermission={requestingWhatsappPermission}
+                  whatsappWallet={whatsappWallet}
+                  whatsappCallLogs={whatsappCallLogs}
+                  isWhatsappCallActive={Boolean(
+                    activeCall && activeCall.phase !== 'ended',
+                  )}
+                  whatsappCallError={whatsappCallError}
+                  onDismissWhatsappCallError={() => setWhatsappCallError(null)}
+                  onRequestWhatsappPermission={() => {
+                    void requestPermission();
+                  }}
+                  onStartWhatsappCall={() => {
+                    if (!activeConversation || !activeLeadId) return;
+                    void startOutboundCall({
+                      leadId: activeLeadId,
+                      conversationId: activeConversation.id,
+                      contactName: activeConversation.contactName,
+                      company: activeConversation.company,
+                      displayPhone:
+                        whatsappPermission?.displayPhone ||
+                        activeConversation.phone,
+                    });
+                  }}
                 />
                 <MessageComposer
                   conversation={activeConversation}
@@ -165,7 +257,18 @@ function InboxPageContent() {
                   waCloudConfig={waCloudConfig}
                   metaTemplates={metaTemplates}
                   onOpenTemplateManager={openTemplateManager}
-                  onOpenCartBuilder={() => setCartModalOpen(true)}
+                  onOpenVoiceToQuote={
+                    canUseDealerDesk
+                      ? () => {
+                          setRfqPreset(null);
+                          setRfqModalOpen(true);
+                        }
+                      : undefined
+                  }
+                  onOpenCartBuilder={() => {
+                    setPrefilledCart(null);
+                    setCartModalOpen(true);
+                  }}
                   onGenerateAiDraft={async ({ language, tone }) => {
                     const res = await generateAiAssist(activeConversation.id, {
                       mode: 'both',
@@ -249,7 +352,9 @@ function InboxPageContent() {
       <DealerRfqModal
         open={rfqModalOpen}
         onClose={() => setRfqModalOpen(false)}
+        initialAudioUrl={rfqPreset?.audioUrl || ''}
         initialMessage={
+          rfqPreset?.message ||
           [...(activeConversation?.messages || [])]
             .reverse()
             .find((m) => m.direction === 'inbound')?.content ||
@@ -261,6 +366,10 @@ function InboxPageContent() {
         dealerCity={activeConversation?.city}
         dealerPhone={activeConversation?.phone}
         onInsertReply={(text) => setComposerDraft({ text, seq: Date.now() })}
+        onBuildCartFromQuote={(lines, city) => {
+          setPrefilledCart({ lines, city });
+          setCartModalOpen(true);
+        }}
       />
 
       <AiConciergeModal
@@ -281,7 +390,32 @@ function InboxPageContent() {
       <WhatsAppCartBuilderModal
         open={cartModalOpen}
         conversation={activeConversation}
-        onClose={() => setCartModalOpen(false)}
+        prefilledLines={prefilledCart?.lines || null}
+        prefilledCity={prefilledCart?.city || undefined}
+        prefilledDocType={prefilledCart ? 'proforma_quote' : undefined}
+        onClose={() => {
+          setCartModalOpen(false);
+          setPrefilledCart(null);
+        }}
+      />
+
+      <IncomingWhatsappCallModal
+        incomingCall={incomingCall}
+        onAccept={() => {
+          void acceptIncomingCall();
+        }}
+        onReject={() => {
+          void rejectIncomingCall();
+        }}
+      />
+
+      <WhatsappCallDrawer
+        activeCall={activeCall}
+        remoteAudioRef={remoteAudioRef}
+        onToggleMute={toggleMute}
+        onHangup={() => {
+          void hangupCall();
+        }}
       />
     </>
   );

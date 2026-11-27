@@ -46,6 +46,32 @@ export interface MetaLeadData {
   rawFields?: Record<string, string>;
 }
 
+export interface LeadGstinProfile {
+  gstin: string;
+  validFormat: boolean;
+  checksumValid: boolean;
+  status: 'Active' | 'Cancelled' | 'Suspended' | 'Unverified' | 'Invalid';
+  legalName?: string;
+  tradeName?: string;
+  stateCode?: string;
+  stateName?: string;
+  panNumber?: string;
+  entityType?: string;
+  taxpayerType?: string;
+  cityMatchesState?: boolean;
+  overdueInvoicesCount?: number;
+  overdueAmountInr?: number;
+  trustScore: number;
+  recommendedTerms:
+    | 'safe_credit'
+    | 'partial_advance_50'
+    | 'advance_100'
+    | 'manual_review';
+  creditAdvice: string;
+  verifiedAt: string;
+  source: 'live_gstn' | 'checksum_guard';
+}
+
 export interface Lead {
   id: string;
   tenantId: string;
@@ -56,6 +82,8 @@ export interface Lead {
   phone?: string;
   email?: string;
   city?: string;
+  gstin?: string;
+  gstinProfile?: LeadGstinProfile;
   source: LeadSource;
   status: LeadStatus;
   estimatedValue: number;
@@ -108,6 +136,7 @@ export interface CreateLeadPayload {
   phone?: string;
   email?: string;
   city?: string;
+  gstin?: string;
   source?: LeadSource;
   status?: LeadStatus;
   estimatedValue?: number;
@@ -512,7 +541,7 @@ export interface InboxCrmEntitiesResponse {
 }
 
 export interface ChatAttachment {
-  type: 'document' | 'image';
+  type: 'document' | 'image' | 'audio';
   url: string;
   filename?: string;
   mimeType?: string;
@@ -592,6 +621,156 @@ export interface MetaApprovedTemplate {
   language: string;
   bodyText: string;
   parameterCount: number;
+}
+
+export interface WhatsappCallIstWindow {
+  isWithinHours: boolean;
+  istHour: number;
+  startHour: number;
+  endHour: number;
+  timezone: 'Asia/Kolkata';
+}
+
+export type WhatsappCallPermissionStatus =
+  | 'none'
+  | 'requested'
+  | 'granted'
+  | 'expired'
+  | 'revoked';
+
+export interface WhatsappCallPermissionState {
+  leadId: string;
+  leadName?: string;
+  company?: string;
+  displayPhone?: string;
+  conversationId?: string;
+  wabaPhoneNumberId: string;
+  status: WhatsappCallPermissionStatus;
+  isPermitted: boolean;
+  grantedAt: string | null;
+  expiresAt: string | null;
+  remainingSeconds: number;
+  remainingLabel: string;
+  connectedCallsUsed: number;
+  requestsLast24h: number;
+  requestsLast7d: number;
+  remainingQuota24h: number;
+  remainingQuota7d: number;
+  canRequestPermission: boolean;
+  nextRequestAllowedAt: string | null;
+  istWindow: WhatsappCallIstWindow;
+  outboundRateInrPerMin?: number;
+  iceServers?: RTCIceServer[];
+}
+
+export interface WhatsappCallingSettings {
+  wabaPhoneNumberId: string;
+  verifiedPhoneNumber: string;
+  businessDisplayName: string;
+  outboundRateInrPerMin: number;
+  pulseSeconds: number;
+  inboundRateInrPerMin: number;
+  istWindow: WhatsappCallIstWindow;
+  iceServers: RTCIceServer[];
+  enabled?: boolean;
+  simulated?: boolean;
+}
+
+export type WhatsappCallLogStatus =
+  | 'ringing'
+  | 'pre_accepted'
+  | 'in_progress'
+  | 'completed'
+  | 'missed'
+  | 'rejected'
+  | 'failed';
+
+export interface WhatsappCallBantUpdates {
+  budget?: string | null;
+  authority?: string | null;
+  need?: string | null;
+  timeline?: string | null;
+  nextFollowUpDate?: string | null;
+  sentiment?: 'positive' | 'neutral' | 'cautious' | 'negative' | string;
+  objections?: string[];
+  commitments?: string[];
+  summaryBullets?: string[];
+  languageDetected?: string;
+  sttProvider?: string;
+}
+
+export interface WhatsappCallLogItem {
+  id: string;
+  callId: string;
+  tenantId: string;
+  leadId: string;
+  leadName?: string;
+  conversationId: string;
+  wabaPhoneNumberId: string;
+  displayPhone: string;
+  metaCallId: string;
+  direction: 'inbound' | 'outbound';
+  status: WhatsappCallLogStatus;
+  durationSeconds: number;
+  billedPulses: number;
+  costInr: number;
+  recordingUrl: string;
+  transcript: string;
+  aiSummary: string;
+  bantUpdates: WhatsappCallBantUpdates;
+  agentUserId: string;
+  agentName: string;
+  startedAt: string | null;
+  connectedAt: string | null;
+  endedAt: string | null;
+  createdAt: string;
+}
+
+export interface IncomingWhatsappCallEvent {
+  callId: string;
+  metaCallId: string;
+  direction: 'inbound' | 'outbound';
+  status: WhatsappCallLogStatus;
+  leadId: string;
+  conversationId: string;
+  callerName: string;
+  company: string;
+  maskedPhone: string;
+  sdpOffer: string;
+  iceServers: RTCIceServer[];
+  startedAt: string;
+}
+
+export interface CallingWalletTransactionItem {
+  id: string;
+  type:
+    | 'starter_credit'
+    | 'razorpay_topup'
+    | 'admin_credit'
+    | 'call_deduction'
+    | 'refund';
+  amountInr: number;
+  balanceAfterInr: number;
+  referenceId: string;
+  description: string;
+  actorEmail: string;
+  createdAt: string;
+}
+
+export interface WhatsappCallingWalletSummary {
+  balanceInr: number;
+  displayBalanceInr: number;
+  totalTopupInr: number;
+  totalSpentInr: number;
+  starterGranted: boolean;
+  rateInrPerMin: number;
+  pulseSeconds: number;
+  minRequiredBalanceInr: number;
+  lowBalanceThresholdInr: number;
+  isLowBalance: boolean;
+  hasMinimumBalance: boolean;
+  estimatedMinutesRemaining: number;
+  transactions?: CallingWalletTransactionItem[];
 }
 
 export interface Message {
@@ -700,7 +879,7 @@ export interface AuthUser {
   name: string;
   email: string;
   phone?: string;
-  role: 'super_admin' | 'owner' | 'admin' | 'manager' | 'agent';
+  role: 'super_admin' | 'owner' | 'admin' | 'manager' | 'agent' | 'support';
   departmentPreset?: string;
   permissions?: string[];
   featureAccess?: Partial<Record<UserFeatureKey, boolean>>;
@@ -1534,7 +1713,7 @@ export interface InviteInfoResponse {
 }
 
 // ─── Team & Role-Based Access ─────────────────────────
-export type TeamRole = 'owner' | 'admin' | 'manager' | 'agent';
+export type TeamRole = 'owner' | 'admin' | 'manager' | 'agent' | 'support';
 export type AssignableTeamRole = Exclude<TeamRole, 'owner'>;
 
 export interface TeamMemberPerformance {
@@ -1609,6 +1788,7 @@ export interface TeamStats {
   admins: number;
   managers: number;
   agents: number;
+  supports?: number;
   totalMonthlyTarget: number;
   totalWonRevenue: number;
 }
@@ -1757,6 +1937,7 @@ export interface Ticket {
   linkedContactId?: string;
   linkedInvoiceNumber: string;
   productSerialOrSku?: string;
+  assignedToUserId?: string;
   assignedToName?: string;
   assignedToPhone?: string;
   slaDueAt: string;
@@ -1785,6 +1966,15 @@ export interface TicketsListResponse {
   };
 }
 
+export interface TicketAssignee {
+  id: string;
+  name: string;
+  phone: string;
+  role: TeamRole;
+  userCode: string;
+  territory?: string;
+}
+
 export interface CreateTicketPayload {
   subject: string;
   category?: TicketCategory;
@@ -1798,6 +1988,7 @@ export interface CreateTicketPayload {
   linkedContactId?: string;
   linkedInvoiceNumber?: string;
   productSerialOrSku?: string;
+  assignedToUserId?: string;
   assignedToName?: string;
   assignedToPhone?: string;
   slaDueAt?: string;
@@ -2076,7 +2267,9 @@ export type PlatformFeatureKey =
   | 'aiCreditRisk'
   | 'aiVoiceCrm'
   | 'aiDealerDesk'
-  | 'aiCopilot';
+  | 'aiCopilot'
+  | 'aiVoiceQuote'
+  | 'gstinTrustGuard';
 
 export interface PlatformFeatureSpec {
   key: PlatformFeatureKey;
@@ -2103,6 +2296,8 @@ export interface GlobalKillSwitches {
   webhooksEnabled: boolean;
   bulkExportsEnabled: boolean;
   impersonationEnabled: boolean;
+  voiceNoteQuoteEnabled?: boolean;
+  gstinGuardEnabled?: boolean;
 }
 
 export interface GlobalSecurityPolicies {
@@ -2256,7 +2451,7 @@ export interface SuperAdminTenantMember {
   name: string;
   email: string;
   phone: string;
-  role: 'owner' | 'admin' | 'manager' | 'agent';
+  role: 'owner' | 'admin' | 'manager' | 'agent' | 'support';
   departmentPreset: string;
   permissions: string[];
   isActive: boolean;

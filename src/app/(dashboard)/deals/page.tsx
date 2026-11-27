@@ -64,6 +64,7 @@ export default function DealsPage() {
   } = useDeals();
 
   const [showLostColumn, setShowLostColumn] = useState(false);
+  const [highIntentOnly, setHighIntentOnly] = useState(false);
   const [viewMode, setViewMode] = useState<'board' | 'table'>('board');
 
   useEffect(() => {
@@ -87,6 +88,37 @@ export default function DealsPage() {
         : FALLBACK_PIPELINE_STAGES,
     [activePipeline],
   );
+
+  const displayedDeals = useMemo(
+    () =>
+      highIntentOnly
+        ? deals.filter((d) => Number(d.aiScore ?? 0) >= 80)
+        : deals,
+    [deals, highIntentOnly],
+  );
+
+  const stageDistribution = useMemo(() => {
+    const visible = activeStages.filter((st) =>
+      showLostColumn ? true : st.category !== 'lost',
+    );
+    const total = displayedDeals.reduce((s, d) => s + (Number(d.value) || 0), 0);
+    return visible.map((st, idx) => {
+      const val = displayedDeals
+        .filter((d) => {
+          if (d.stage === st.id) return true;
+          const known = activeStages.some((s) => s.id === d.stage);
+          return !known && idx === 0;
+        })
+        .reduce((s, d) => s + (Number(d.value) || 0), 0);
+      return {
+        id: st.id,
+        name: st.name,
+        color: st.color || '#3978EA',
+        value: val,
+        pct: total > 0 ? Math.round((val / total) * 100) : 0,
+      };
+    });
+  }, [activeStages, displayedDeals, showLostColumn]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [title, setTitle] = useState('');
@@ -177,29 +209,29 @@ export default function DealsPage() {
   };
 
   return (
-    <div className="max-w-[1600px] mx-auto space-y-5">
+    <div className="max-w-[1640px] mx-auto space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-blue mb-1">
-            <Sparkles className="w-3.5 h-3.5" /> {modeMeta.shortBadge} · Visual Revenue Kanban
+          <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-brand-blue dark:text-sky-400 mb-0.5">
+            <Sparkles className="w-3.5 h-3.5" /> {modeMeta.shortBadge} · Revenue Pipeline
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-navy tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-extrabold text-brand-navy dark:text-white tracking-tight">
             {segCopy.dealsHeading}
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500">
-            Switch pipelines, drag {segCopy.dealsEntityNoun.toLowerCase()} cards across stages, or inspect in list view.
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Drag {segCopy.dealsEntityNoun.toLowerCase()} cards across stages, track AI win probability, or inspect in table view.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           {isAdmin && (
             <button
               type="button"
               disabled={pipelinesSaving}
               onClick={handleApplyModeStages}
               title={`Reset default pipeline columns to ${modeMeta.shortBadge} template (${segCopy.pipelineStageSummary})`}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold border border-brand-blue/30 bg-brand-light text-brand-blue hover:bg-brand-blue hover:text-white transition-colors disabled:opacity-60"
+              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-bold border border-brand-blue/30 bg-brand-light/70 dark:bg-brand-blue/15 text-brand-blue dark:text-sky-300 hover:bg-brand-blue hover:text-white transition-colors disabled:opacity-60 whitespace-nowrap"
             >
               {pipelinesSaving ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -212,16 +244,16 @@ export default function DealsPage() {
 
           <Link
             href="/settings/pipelines"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold border border-slate-200 bg-white text-brand-navy hover:border-brand-blue hover:text-brand-blue transition-colors"
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-white/15 bg-white dark:bg-[#0D1628] text-brand-navy dark:text-slate-200 hover:border-brand-blue hover:text-brand-blue transition-colors whitespace-nowrap"
           >
-            <SlidersHorizontal className="w-4 h-4" />
+            <SlidersHorizontal className="w-3.5 h-3.5" />
             <span>Manage Pipelines</span>
           </Link>
 
           <button
             type="button"
             onClick={() => openCreateModal()}
-            className="btn-primary-brand inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white"
+            className="btn-primary-brand inline-flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-bold text-white shadow-sm whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
             <span>New {segCopy.dealsEntityNoun}</span>
@@ -230,7 +262,7 @@ export default function DealsPage() {
       </div>
 
       {presetToast && (
-        <div className="px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800 flex items-center justify-between">
+        <div className="px-4 py-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-500/30 text-xs font-semibold text-emerald-800 dark:text-emerald-200 flex items-center justify-between gap-2">
           <span>{presetToast}</span>
           <button type="button" onClick={() => setPresetToast(null)}>
             <X className="w-4 h-4" />
@@ -238,29 +270,32 @@ export default function DealsPage() {
         </div>
       )}
 
-      {/* Pipeline KPI Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Compact Executive KPI Ribbon */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           {
             label: 'Open Pipeline Value',
             value: `₹${stats.openPipelineValue.toLocaleString('en-IN')}`,
             sub: `${stats.openCount} active deals`,
             icon: Kanban,
-            color: '#3978EA',
+            iconClass: 'bg-blue-500/15 text-brand-blue dark:text-sky-300',
+            accentClass: 'border-t-brand-blue',
           },
           {
             label: 'Weighted AI Forecast',
             value: `₹${stats.weightedForecast.toLocaleString('en-IN')}`,
             sub: 'Probability-adjusted INR',
             icon: TrendingUp,
-            color: '#8B5CF6',
+            iconClass: 'bg-violet-500/15 text-violet-600 dark:text-violet-300',
+            accentClass: 'border-t-violet-500',
           },
           {
             label: 'Closed Won Revenue',
             value: `₹${stats.wonRevenue.toLocaleString('en-IN')}`,
             sub: `${stats.wonCount} deals won`,
             icon: Trophy,
-            color: '#10B981',
+            iconClass: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300',
+            accentClass: 'border-t-emerald-500',
           },
           {
             label: 'Avg. Deal Size',
@@ -274,30 +309,30 @@ export default function DealsPage() {
             }`,
             sub: activePipeline ? activePipeline.name : 'Across all stages',
             icon: IndianRupee,
-            color: '#F59E0B',
+            iconClass: 'bg-amber-500/15 text-amber-600 dark:text-amber-300',
+            accentClass: 'border-t-amber-500',
           },
         ].map((kpi) => {
           const Icon = kpi.icon;
           return (
             <div
               key={kpi.label}
-              className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm"
+              className={`bg-white dark:bg-[#0D1628] rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 dark:border-white/[0.08] border-t-2 ${kpi.accentClass} shadow-xs`}
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-slate-500">
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">
                   {kpi.label}
                 </span>
                 <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center"
-                  style={{ background: `${kpi.color}15`, color: kpi.color }}
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${kpi.iconClass}`}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-3.5 h-3.5" />
                 </div>
               </div>
-              <div className="text-xl sm:text-2xl font-extrabold text-brand-navy">
+              <div className="text-lg sm:text-xl font-extrabold text-brand-navy dark:text-white tabular-nums tracking-tight">
                 {kpi.value}
               </div>
-              <div className="text-[11px] font-medium text-slate-400 mt-1 truncate">
+              <div className="text-[11px] font-medium text-slate-400 mt-0.5 truncate">
                 {kpi.sub}
               </div>
             </div>
@@ -305,9 +340,50 @@ export default function DealsPage() {
         })}
       </div>
 
-      {/* Unified Toolbar: Pipeline Switcher + Search + View Mode + Lost Toggle */}
-      <div className="bg-white rounded-2xl p-3 border border-slate-200/80 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
+      {/* Stage Revenue Distribution Bar */}
+      {stageDistribution.some((s) => s.value > 0) && (
+        <div className="bg-white dark:bg-[#0D1628] rounded-2xl px-4 py-2.5 border border-slate-200/80 dark:border-white/[0.08] flex flex-col sm:flex-row sm:items-center gap-2.5">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 shrink-0">
+            Stage Mix
+          </span>
+          <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-white/[0.05] overflow-hidden flex gap-0.5">
+            {stageDistribution
+              .filter((s) => s.pct > 0)
+              .map((s) => (
+                <div
+                  key={s.id}
+                  style={{
+                    width: `${Math.max(4, s.pct)}%`,
+                    backgroundColor: s.color,
+                  }}
+                  title={`${s.name}: ₹${s.value.toLocaleString('en-IN')} (${s.pct}%)`}
+                  className="h-full first:rounded-l-full last:rounded-r-full transition-all"
+                />
+              ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 dark:text-slate-300 shrink-0">
+            {stageDistribution
+              .filter((s) => s.pct > 0)
+              .slice(0, 4)
+              .map((s) => (
+                <span key={s.id} className="inline-flex items-center gap-1.5">
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: s.color }}
+                  />
+                  <span className="truncate max-w-[110px]">{s.name}</span>
+                  <strong className="font-bold text-brand-navy dark:text-white">
+                    {s.pct}%
+                  </strong>
+                </span>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {/* Unified Toolbar: Pipeline Switcher + Search + Quick Filters + View Mode */}
+      <div className="bg-white dark:bg-[#0D1628] rounded-2xl p-2.5 sm:p-3 border border-slate-200/80 dark:border-white/[0.08] shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {!pipelinesLoading &&
             pipelines.map((p) => {
               const isSelected = activePipeline?.id === p.id;
@@ -316,10 +392,10 @@ export default function DealsPage() {
                   key={p.id}
                   type="button"
                   onClick={() => setPipelineId(p.id)}
-                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                  className={`inline-flex items-center gap-2 h-8 px-3 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                     isSelected
                       ? 'bg-brand-blue text-white shadow-sm'
-                      : 'bg-slate-100/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-200/70'
+                      : 'bg-slate-100/80 dark:bg-white/[0.05] text-slate-600 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-white/10'
                   }`}
                 >
                   <Kanban className="w-3.5 h-3.5" />
@@ -328,7 +404,7 @@ export default function DealsPage() {
                     className={`px-1.5 py-0.5 rounded-full text-[10px] ${
                       isSelected
                         ? 'bg-white/20 text-white'
-                        : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                        : 'bg-white dark:bg-[#0D1628] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10'
                     }`}
                   >
                     {p.dealCount}
@@ -338,22 +414,35 @@ export default function DealsPage() {
             })}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 flex-1 lg:justify-end">
-          <div className="relative flex-1 min-w-[220px] max-w-sm">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        <div className="flex flex-wrap items-center gap-2 flex-1 lg:justify-end">
+          <div className="relative flex-1 min-w-[180px] max-w-sm">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search deal, company, or city..."
-              className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm text-brand-navy focus:outline-none focus:border-brand-blue"
+              className="w-full h-8 pl-9 pr-3 rounded-xl border border-slate-200 dark:border-white/15 bg-slate-50/70 dark:bg-white/[0.04] text-xs text-brand-navy dark:text-white focus:outline-none focus:border-brand-blue"
             />
           </div>
 
           <button
             type="button"
+            onClick={() => setHighIntentOnly((v) => !v)}
+            className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-xl text-xs font-bold border transition-colors whitespace-nowrap ${
+              highIntentOnly
+                ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                : 'border-slate-200 dark:border-white/15 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5'
+            }`}
+            title="Show only High-Intent deals (AI Score 80+)"
+          >
+            <Sparkles className="w-3.5 h-3.5" /> AI 80+
+          </button>
+
+          <button
+            type="button"
             onClick={() => setShowLostColumn((v) => !v)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 text-slate-600 hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-xl text-xs font-bold border border-slate-200 dark:border-white/15 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 whitespace-nowrap"
           >
             {showLostColumn ? (
               <>
@@ -366,14 +455,14 @@ export default function DealsPage() {
             )}
           </button>
 
-          <div className="inline-flex rounded-xl border border-slate-200 p-0.5 bg-slate-50 dark:bg-slate-900">
+          <div className="inline-flex h-8 rounded-xl border border-slate-200 dark:border-white/15 p-0.5 bg-slate-50 dark:bg-white/[0.04]">
             <button
               type="button"
               onClick={() => setViewMode('board')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`inline-flex items-center gap-1.5 px-2.5 rounded-lg text-xs font-bold transition-all ${
                 viewMode === 'board'
-                  ? 'bg-white dark:bg-slate-800 text-brand-navy dark:text-white shadow-sm'
-                  : 'text-slate-500 hover:text-brand-navy'
+                  ? 'bg-white dark:bg-[#1B2B4B] text-brand-navy dark:text-white shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-brand-navy dark:hover:text-white'
               }`}
             >
               <LayoutGrid className="w-3.5 h-3.5" /> Board
@@ -381,10 +470,10 @@ export default function DealsPage() {
             <button
               type="button"
               onClick={() => setViewMode('table')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`inline-flex items-center gap-1.5 px-2.5 rounded-lg text-xs font-bold transition-all ${
                 viewMode === 'table'
-                  ? 'bg-white dark:bg-slate-800 text-brand-navy dark:text-white shadow-sm'
-                  : 'text-slate-500 hover:text-brand-navy'
+                  ? 'bg-white dark:bg-[#1B2B4B] text-brand-navy dark:text-white shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-brand-navy dark:hover:text-white'
               }`}
             >
               <List className="w-3.5 h-3.5" /> Table
@@ -394,21 +483,21 @@ export default function DealsPage() {
       </div>
 
       {error && (
-        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-700">
+        <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-500/30 text-xs text-rose-700 dark:text-rose-200">
           {error}
         </div>
       )}
 
       {isLoading ? (
-        <div className="bg-white rounded-3xl p-16 border border-slate-200/80 flex flex-col items-center justify-center gap-3">
+        <div className="bg-white dark:bg-[#0D1628] rounded-3xl p-16 border border-slate-200/80 dark:border-white/10 flex flex-col items-center justify-center gap-3">
           <Loader2 className="w-7 h-7 animate-spin text-brand-blue" />
-          <span className="text-sm font-semibold text-slate-600">
+          <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">
             Loading Kanban pipeline from Leadsetu Cloud...
           </span>
         </div>
       ) : viewMode === 'board' ? (
         <KanbanBoard
-          deals={deals}
+          deals={displayedDeals}
           stages={activeStages}
           showLostColumn={showLostColumn}
           onMoveStage={moveStage}
@@ -416,11 +505,11 @@ export default function DealsPage() {
           onQuickAdd={(stageId) => openCreateModal(stageId)}
         />
       ) : (
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-[#0D1628] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-200/80 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-50/70">
+                <tr className="border-b border-slate-200/80 dark:border-white/10 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-slate-50/70 dark:bg-white/[0.03]">
                   <th className="py-3.5 px-5">Deal &amp; Company</th>
                   <th className="py-3.5 px-4">Value (INR)</th>
                   <th className="py-3.5 px-4">Stage</th>
@@ -429,33 +518,33 @@ export default function DealsPage() {
                   <th className="py-3.5 px-5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-xs sm:text-sm">
-                {deals.length === 0 ? (
+              <tbody className="divide-y divide-slate-100 dark:divide-white/[0.06] text-xs sm:text-sm">
+                {displayedDeals.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-12 text-center text-slate-400">
                       No deals match this filter. Click &ldquo;New Deal&rdquo; to add one.
                     </td>
                   </tr>
                 ) : (
-                  deals.map((deal) => (
+                  displayedDeals.map((deal) => (
                     <tr
                       key={deal.id}
-                      className="hover:bg-slate-50/80 transition-colors"
+                      className="hover:bg-slate-50/80 dark:hover:bg-white/[0.03] transition-colors"
                     >
                       <td className="py-3.5 px-5">
                         <Link
                           href={`/deals/${deal.id}`}
-                          className="font-bold text-brand-navy hover:text-brand-blue inline-flex items-center gap-1"
+                          className="font-bold text-brand-navy dark:text-white hover:text-brand-blue dark:hover:text-sky-300 inline-flex items-center gap-1"
                         >
                           <span>{deal.title}</span>
                           <ArrowUpRight className="w-3.5 h-3.5 opacity-60" />
                         </Link>
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
                           {deal.company || deal.contactName || 'B2B Client'} ·{' '}
                           {deal.city}
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 font-extrabold text-brand-navy">
+                      <td className="py-3.5 px-4 font-extrabold text-brand-navy dark:text-white tabular-nums">
                         ₹{(deal.value || 0).toLocaleString('en-IN')}
                       </td>
                       <td className="py-3.5 px-4">
@@ -464,7 +553,7 @@ export default function DealsPage() {
                           onChange={(e) =>
                             moveStage(deal.id, e.target.value as DealStage)
                           }
-                          className="text-xs font-bold px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-brand-navy"
+                          className="text-xs font-bold px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-white/15 bg-white dark:bg-[#111D33] text-brand-navy dark:text-white"
                         >
                           {activeStages.map((s) => (
                             <option key={s.id} value={s.id}>
@@ -474,11 +563,11 @@ export default function DealsPage() {
                         </select>
                       </td>
                       <td className="py-3.5 px-4">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-brand-light text-brand-blue text-xs font-bold">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-brand-light dark:bg-sky-500/15 text-brand-blue dark:text-sky-300 text-xs font-bold">
                           <Sparkles className="w-3 h-3" /> {deal.aiScore ?? 75}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-xs text-slate-500">
+                      <td className="py-3.5 px-4 text-xs text-slate-500 dark:text-slate-400">
                         {deal.expectedCloseDate || '—'}
                       </td>
                       <td className="py-3.5 px-5 text-right">
@@ -499,7 +588,7 @@ export default function DealsPage() {
                                     : deal.title
                                 }
                                 variant="icon"
-                                className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-600"
+                                className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-300"
                               />
                               <CallMobileButton
                                 phone={deal.contactPhone}
@@ -513,7 +602,7 @@ export default function DealsPage() {
                                     : deal.title
                                 }
                                 variant="icon"
-                                className="p-1.5 rounded-lg bg-brand-blue/10 text-brand-blue"
+                                className="p-1.5 rounded-lg bg-brand-blue/10 text-brand-blue dark:text-sky-300"
                               />
                             </>
                           )}
@@ -538,10 +627,10 @@ export default function DealsPage() {
 
       {/* New Deal Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-slate-200 overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/65 backdrop-blur-sm p-3 sm:p-4">
+          <div className="bg-white dark:bg-[#0D1628] rounded-3xl w-full max-w-lg max-h-[90dvh] flex flex-col shadow-2xl border border-slate-200 dark:border-white/15 overflow-hidden">
             <div
-              className="px-6 py-4 text-white flex items-center justify-between"
+              className="px-6 py-4 text-white flex items-center justify-between shrink-0"
               style={{
                 background: 'linear-gradient(135deg, #17243A 0%, #233B5E 100%)',
               }}
@@ -556,7 +645,7 @@ export default function DealsPage() {
               </button>
             </div>
 
-            <form onSubmit={handleCreate} className="p-6 space-y-4">
+            <form onSubmit={handleCreate} className="p-5 sm:p-6 space-y-4 overflow-y-auto">
               {pipelines.length > 0 && (
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
@@ -590,7 +679,7 @@ export default function DealsPage() {
                 />
               </div>
 
-              <div className={`grid ${segCopy.dealsHideCompany ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
+              <div className={`grid grid-cols-1 ${segCopy.dealsHideCompany ? '' : 'sm:grid-cols-2'} gap-3`}>
                 {!segCopy.dealsHideCompany && (
                   <div>
                     <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
@@ -620,7 +709,7 @@ export default function DealsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
                     Buyer Contact Name
@@ -647,7 +736,7 @@ export default function DealsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
                     Pipeline Stage

@@ -23,6 +23,8 @@ export const FEATURE_META: Record<
   aiVoiceCrm: { label: 'Pillar 2 · Voice-to-CRM & Call Audit', category: 'AI & Automation' },
   aiDealerDesk: { label: 'Pillar 3 · Dealer RFQ & Beat Planner', category: 'AI & Automation' },
   aiCopilot: { label: 'Ask AI · Tenant RAG Copilot', category: 'AI & Automation' },
+  aiVoiceQuote: { label: 'Phase 1 · Voice-Note-to-Quote AI', category: 'AI & Automation' },
+  gstinTrustGuard: { label: 'Phase 1 · GSTIN Trust & Credit Guard', category: 'Revenue & GST' },
 };
 
 export interface AssignableFeatureMeta {
@@ -175,9 +177,32 @@ export const DEFAULT_USER_FEATURE_MAP: Record<UserFeatureKey, boolean> = {
   aiCopilot: true,
 };
 
-export function getRoleDefaultFeatures(role: 'manager' | 'agent' | 'admin'): Record<UserFeatureKey, boolean> {
+export function getRoleDefaultFeatures(
+  role: 'manager' | 'agent' | 'admin' | 'support',
+): Record<UserFeatureKey, boolean> {
   if (role === 'manager' || role === 'admin') {
     return { ...DEFAULT_USER_FEATURE_MAP };
+  }
+  if (role === 'support') {
+    return {
+      leads: false,
+      aiScoring: false,
+      contacts: true,
+      deals: false,
+      whatsappCloud: true,
+      whatsappBroadcasts: false,
+      tasks: true,
+      slaTickets: true,
+      aiWorkflows: false,
+      analytics: false,
+      products: false,
+      gstBilling: false,
+      documentVault: true,
+      aiCreditRisk: false,
+      aiVoiceCrm: true,
+      aiDealerDesk: false,
+      aiCopilot: true,
+    };
   }
   return {
     leads: true,
@@ -198,6 +223,15 @@ export function getRoleDefaultFeatures(role: 'manager' | 'agent' | 'admin'): Rec
     aiDealerDesk: true,
     aiCopilot: true,
   };
+}
+
+export function isScopedMemberRole(user?: AuthUser | null): boolean {
+  return Boolean(
+    user &&
+      (user.role === 'manager' ||
+        user.role === 'agent' ||
+        user.role === 'support'),
+  );
 }
 
 export function isWorkspaceAdminRole(user?: AuthUser | null): boolean {
@@ -277,11 +311,11 @@ export function isFeatureEnabled(
     return false;
   }
 
-  if (user && (user.role === 'manager' || user.role === 'agent')) {
+  if (isScopedMemberRole(user)) {
     if (feature === 'apiWebhooks' || feature === 'customRbac' || feature === 'auditShield') {
       return false;
     }
-    if (user.featureAccess && typeof user.featureAccess[feature as UserFeatureKey] === 'boolean') {
+    if (user?.featureAccess && typeof user.featureAccess[feature as UserFeatureKey] === 'boolean') {
       return Boolean(user.featureAccess[feature as UserFeatureKey]);
     }
   }
@@ -308,7 +342,7 @@ export function getFeatureRestriction(
     USER_FEATURE_CATALOG.find((item) => item.key === feature)?.label ||
     feature;
 
-  if (isWorkspaceFeatureEnabled(tenant, feature) && user && (user.role === 'manager' || user.role === 'agent')) {
+  if (isWorkspaceFeatureEnabled(tenant, feature) && isScopedMemberRole(user)) {
     return {
       feature,
       label,
@@ -344,8 +378,7 @@ export function getRouteFeatureRestriction(
 
   if (
     (pathname === '/settings' || pathname.startsWith('/settings/')) &&
-    user &&
-    (user.role === 'manager' || user.role === 'agent')
+    isScopedMemberRole(user)
   ) {
     return {
       feature: 'admin_only',

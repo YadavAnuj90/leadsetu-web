@@ -164,11 +164,13 @@ export type TopupPackId =
   | 'ai_5000'
   | 'wa_2500'
   | 'wa_10000'
+  | 'wa_call_500'
+  | 'wa_call_2000'
   | 'storage_5gb';
 
 export interface TopupPackSpec {
   id: TopupPackId;
-  resource: 'ai' | 'whatsapp' | 'storage';
+  resource: 'ai' | 'whatsapp' | 'calling' | 'storage';
   name: string;
   description: string;
   quantity: number;
@@ -176,6 +178,7 @@ export interface TopupPackSpec {
   priceInr: number;
   addonAiCalls: number;
   addonWhatsapp: number;
+  addonCallingInr?: number;
   addonStorageMb: number;
   badge?: string;
 }

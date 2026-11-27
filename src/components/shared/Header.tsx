@@ -30,6 +30,7 @@ import {
   Plus,
   Upload,
   CreditCard,
+  Menu,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import ThemeToggle from '@/components/shared/ThemeToggle';
@@ -111,7 +112,11 @@ function timeAgo(iso: string) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-export default function Header() {
+export default function Header({
+  onOpenMobileMenu,
+}: {
+  onOpenMobileMenu?: () => void;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, tenant, requestLogout } = useAuth();
@@ -289,7 +294,9 @@ export default function Header() {
 
   const allQuickActions = useMemo<QuickActionItem[]>(() => {
     const isBreakEligibleRole =
-      user?.role === 'manager' || user?.role === 'agent';
+      user?.role === 'manager' ||
+      user?.role === 'agent' ||
+      user?.role === 'support';
     const isAway =
       user?.availabilityStatus === 'away' ||
       user?.availabilityStatus === 'on_leave';
@@ -458,17 +465,28 @@ export default function Header() {
 
   return (
     <>
-      <header className="h-16 bg-white dark:bg-[#0B1320] border-b border-slate-200/80 dark:border-slate-800 px-6 flex items-center justify-between gap-4 transition-colors relative z-30">
-        <div className="flex items-center gap-3 flex-1 max-w-xl">
+      <header className="h-14 sm:h-16 bg-white dark:bg-[#0B1320] border-b border-slate-200/80 dark:border-slate-800 px-2.5 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 transition-colors relative z-30">
+        <div className="flex items-center gap-1.5 sm:gap-3 flex-1 min-w-0 max-w-xl">
+          {onOpenMobileMenu && (
+            <button
+              type="button"
+              onClick={onOpenMobileMenu}
+              aria-label="Open Navigation Menu"
+              className="md:hidden inline-flex items-center justify-center p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-brand-navy dark:text-slate-200 hover:border-brand-blue hover:bg-slate-50 dark:hover:bg-slate-800 flex-shrink-0"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+          )}
+
           {showBackButton && (
             <button
               type="button"
               onClick={() => router.back()}
               title="Go Back to Previous Tab"
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-brand-navy dark:text-slate-200 hover:border-brand-blue hover:text-brand-blue hover:bg-brand-light/40 transition-all flex-shrink-0"
+              className="inline-flex items-center gap-1.5 p-2 sm:px-3 sm:py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-brand-navy dark:text-slate-200 hover:border-brand-blue hover:text-brand-blue hover:bg-brand-light/40 transition-all flex-shrink-0"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back</span>
+              <span className="hidden sm:inline">Back</span>
             </button>
           )}
 
@@ -479,11 +497,12 @@ export default function Header() {
               setNotifOpen(false);
               setPaletteOpen(true);
             }}
-            className="w-full flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 text-xs sm:text-sm text-slate-400 hover:border-brand-blue hover:bg-white dark:hover:bg-slate-800 transition-colors text-left"
+            title="Search leads, deals, invoices, or quick actions (Ctrl+K)"
+            className="sm:w-full min-w-0 flex items-center justify-between gap-2 sm:gap-3 p-2 sm:px-3.5 sm:py-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 text-xs sm:text-sm text-slate-400 hover:border-brand-blue hover:bg-white dark:hover:bg-slate-800 transition-colors text-left"
           >
-            <span className="flex items-center gap-2.5 truncate">
+            <span className="flex items-center gap-2 min-w-0">
               <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
-              <span className="truncate">
+              <span className="hidden sm:inline truncate">
                 Search leads, GSTINs, deals, invoices, or tickets...
               </span>
             </span>
@@ -494,7 +513,7 @@ export default function Header() {
         </div>
 
         {/* Right Status & Actions */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           {user?.maskPhones && (
             <span
               title="Anti-Data-Leak Shield active: client mobile numbers are masked"
@@ -523,7 +542,7 @@ export default function Header() {
               setNotifOpen(false);
               setDialerDrawerOpen(true);
             }}
-            className={`relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold border transition-all ${
+            className={`relative inline-flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl text-xs font-extrabold border transition-all ${
               callState !== 'idle'
                 ? 'border-emerald-400 bg-emerald-500 text-white shadow-sm'
                 : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-brand-navy dark:text-slate-100 hover:border-emerald-500 hover:text-emerald-600'
@@ -531,7 +550,7 @@ export default function Header() {
             title="Open CRM Voice Softphone"
           >
             <span className="relative flex items-center justify-center">
-              <Phone className="w-3.5 h-3.5" />
+              <Phone className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
               <span
                 className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ring-1 ring-white dark:ring-slate-900 ${
                   callPresence === 'online'
@@ -563,10 +582,10 @@ export default function Header() {
                   setNotifOpen(false);
                   setAiCopilotOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold border border-brand-blue/35 bg-brand-blue/10 text-brand-blue hover:bg-brand-blue hover:text-white transition-all"
+                className="inline-flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl text-xs font-extrabold border border-brand-blue/35 bg-brand-blue/10 text-brand-blue hover:bg-brand-blue hover:text-white transition-all"
                 title="Ask Leadsetu AI Copilot (Tenant-Scoped RAG)"
               >
-                <Sparkles className="w-3.5 h-3.5" />
+                <Sparkles className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                 <span className="hidden sm:inline">Ask AI</span>
               </button>
             )}
@@ -592,7 +611,7 @@ export default function Header() {
             </button>
 
             {notifOpen && (
-              <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white dark:bg-[#0F1829] border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden z-50">
+              <div className="fixed inset-x-3 top-16 sm:inset-x-auto sm:top-auto sm:absolute sm:right-0 sm:mt-2 w-auto sm:w-96 rounded-2xl bg-white dark:bg-[#0F1829] border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden z-50">
                 <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                   <div>
                     <div className="text-xs font-extrabold text-brand-navy dark:text-white flex items-center gap-1.5">
@@ -679,7 +698,7 @@ export default function Header() {
 
           <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block" />
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
             <Link
               href={isWorkspaceAdminRole(user) ? '/settings' : '/profile'}
               title={
@@ -687,37 +706,49 @@ export default function Header() {
                   ? 'Company & Workspace Settings'
                   : 'Open My Profile & Feature Access'
               }
-              className="text-right hidden sm:block hover:opacity-90 transition-opacity"
+              className="flex items-center gap-2 hover:opacity-90 transition-opacity"
             >
-              <div className="text-xs font-bold text-brand-navy dark:text-white flex items-center justify-end gap-1.5">
-                <span>{user?.name}</span>
-                {tenant?.accountId && (
-                  <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-brand-light dark:bg-brand-blue/20 text-brand-blue dark:text-sky-300 font-extrabold">
-                    Acct #{tenant.accountId}
-                  </span>
-                )}
+              <div
+                className="sm:hidden w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold text-white shrink-0 shadow-xs"
+                style={{ background: '#3978EA' }}
+              >
+                {user?.name?.[0]?.toUpperCase() || 'U'}
               </div>
-              <div className="text-[11px] text-slate-400">
-                {user?.role === 'manager'
-                  ? 'Sales Manager'
-                  : user?.role === 'agent'
-                    ? 'Sales User'
-                    : user?.role === 'owner'
-                      ? 'Company Owner'
-                      : 'Company Admin'}
-                {tenant?.companyName?.trim() ? ` · ${tenant.companyName.trim()}` : ''}
-                {(user?.role === 'manager' || user?.role === 'agent') && user?.userCode
-                  ? ` · UID #${user.userCode}`
-                  : ''}
+              <div className="text-right hidden sm:block">
+                <div className="text-xs font-bold text-brand-navy dark:text-white flex items-center justify-end gap-1.5">
+                  <span>{user?.name}</span>
+                  {tenant?.accountId && (
+                    <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-brand-light dark:bg-brand-blue/20 text-brand-blue dark:text-sky-300 font-extrabold">
+                      Acct #{tenant.accountId}
+                    </span>
+                  )}
+                </div>
+                <div className="text-[11px] text-slate-400">
+                  {user?.role === 'manager'
+                    ? 'Sales Manager'
+                    : user?.role === 'agent'
+                      ? 'Sales User'
+                      : user?.role === 'support'
+                        ? 'Support Engineer'
+                        : user?.role === 'owner'
+                          ? 'Company Owner'
+                          : 'Company Admin'}
+                  {tenant?.companyName?.trim() ? ` · ${tenant.companyName.trim()}` : ''}
+                  {(user?.role === 'manager' || user?.role === 'agent' || user?.role === 'support') && user?.userCode
+                    ? ` · UID #${user.userCode}`
+                    : ''}
+                </div>
               </div>
             </Link>
 
             <button
               type="button"
               onClick={requestLogout}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+              title="Sign Out"
+              aria-label="Sign Out"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold p-2 sm:px-3 sm:py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
               <span className="hidden sm:inline">Sign Out</span>
             </button>
           </div>
@@ -727,23 +758,23 @@ export default function Header() {
       {/* Global Ctrl+K Command Search Palette */}
       {paletteOpen && (
         <div
-          className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-start justify-center pt-20 px-4"
+          className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-start justify-center pt-4 sm:pt-20 px-2.5 sm:px-4"
           onClick={() => setPaletteOpen(false)}
         >
           <div
-            className="w-full max-w-2xl rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden"
+            className="w-full max-w-2xl rounded-2xl sm:rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-              <Search className="w-5 h-5 text-brand-blue flex-shrink-0" />
+            <div className="flex items-center gap-2.5 sm:gap-3 px-4 sm:px-5 py-3.5 sm:py-4 border-b border-slate-100 dark:border-slate-800">
+              <Search className="w-4 h-4 sm:w-5 sm:h-5 text-brand-blue flex-shrink-0" />
               <input
                 ref={paletteInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={onPaletteKeyDown}
-                placeholder="Search records or type a Quick Action (New Lead, Find Duplicates, Coffee Break)..."
-                className="flex-1 bg-transparent text-sm font-medium text-brand-navy dark:text-white placeholder-slate-400 focus:outline-none"
+                placeholder="Search or Quick Action..."
+                className="flex-1 min-w-0 bg-transparent text-xs sm:text-sm font-medium text-brand-navy dark:text-white placeholder-slate-400 focus:outline-none"
               />
               {isSearching && (
                 <Loader2 className="w-4 h-4 animate-spin text-brand-blue" />

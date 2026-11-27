@@ -72,7 +72,9 @@ function InviteAcceptanceContent() {
       ? 'Sales Manager'
       : inviteInfo?.role === 'agent'
         ? 'Sales User'
-        : inviteInfo?.role || 'Team Member';
+        : inviteInfo?.role === 'support'
+          ? 'Support Engineer'
+          : inviteInfo?.role || 'Team Member';
 
   const assignedFeatures = inviteInfo
     ? USER_FEATURE_CATALOG.filter((item) => inviteInfo.featureAccess?.[item.key] !== false)
@@ -109,7 +111,7 @@ function InviteAcceptanceContent() {
         accessToken: res.accessToken,
       });
 
-      router.replace('/dashboard');
+      router.replace(res.user.role === 'support' ? '/tickets' : '/dashboard');
     } catch (err) {
       setSubmitError(getErrorMessage(err));
     } finally {

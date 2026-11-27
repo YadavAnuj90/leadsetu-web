@@ -107,7 +107,7 @@ export async function updateTenantUserRbacApi(
   tenantId: string,
   userId: string,
   payload: {
-    role?: 'owner' | 'admin' | 'manager' | 'agent';
+    role?: 'owner' | 'admin' | 'manager' | 'agent' | 'support';
     departmentPreset?: string;
     permissions?: string[];
     isActive?: boolean;
@@ -948,6 +948,166 @@ export async function probeTenantIntegrationsApi(
   const { data } = await apiClient.post<TenantIntegrationProbeResponse>(
     `/super-admin/integrations/probe/${tenantId}`,
     payload || { connector: 'all' },
+  );
+  return data;
+}
+
+// ─── GSTIN Trust Verification Provider Vault + Telemetry ────────────────────
+
+export interface PlatformGstinProviderConfig {
+  enabled: boolean;
+  providerName: string;
+  apiUrlTemplate: string;
+  hasApiKey: boolean;
+  apiKeyMask: string;
+  source: 'super_admin' | 'env' | 'none';
+  isLiveConfigured: boolean;
+  lastTestedAt: string;
+  lastTestStatus: 'untested' | 'connected' | 'error';
+  lastError: string;
+  updatedAt: string;
+}
+
+export interface GstinCrossTenantTelemetry {
+  totalVerified: number;
+  avgTrustScore: number;
+  safeCreditCount: number;
+  advance50Count: number;
+  advance100Count: number;
+  invalidChecksumCount: number;
+  topStates: Array<{ stateName: string; count: number }>;
+  recentVerifications: Array<{
+    leadId: string;
+    leadName: string;
+    company: string;
+    tenantName: string;
+    tenantAccountId: string;
+    gstin: string;
+    stateName: string;
+    entityType: string;
+    trustScore: number;
+    recommendedTerms: string;
+    checksumValid: boolean;
+    source: string;
+    verifiedAt: string;
+  }>;
+}
+
+export interface PlatformGstinProviderResponse {
+  config: PlatformGstinProviderConfig;
+  telemetry: GstinCrossTenantTelemetry;
+}
+
+export interface PlatformGstinProviderTestResponse {
+  ok: boolean;
+  mode: 'live_gstn' | 'offline_checksum_guard';
+  checksumValid: boolean;
+  sampleGstin: string;
+  httpStatus?: number;
+  error: string;
+  note?: string;
+  config: PlatformGstinProviderConfig;
+}
+
+export async function fetchGstinProviderApi(): Promise<PlatformGstinProviderResponse> {
+  const { data } = await apiClient.get<PlatformGstinProviderResponse>(
+    '/super-admin/gstin-provider',
+  );
+  return data;
+}
+
+export async function updateGstinProviderApi(payload: {
+  enabled?: boolean;
+  providerName?: string;
+  apiUrlTemplate?: string;
+  apiKey?: string;
+  clearApiKey?: boolean;
+}): Promise<PlatformGstinProviderResponse> {
+  const { data } = await apiClient.patch<PlatformGstinProviderResponse>(
+    '/super-admin/gstin-provider',
+    payload,
+  );
+  return data;
+}
+
+export async function testGstinProviderApi(payload?: {
+  apiUrlTemplate?: string;
+  apiKey?: string;
+  sampleGstin?: string;
+}): Promise<PlatformGstinProviderTestResponse> {
+  const { data } = await apiClient.post<PlatformGstinProviderTestResponse>(
+    '/super-admin/gstin-provider/test',
+    payload || {},
+  );
+  return data;
+}
+
+// ─── Central OpenAI Whisper STT & AI Provider Vault ─────────────────────────
+
+export interface PlatformAiProviderConfig {
+  enabled: boolean;
+  hasOpenaiKey: boolean;
+  openaiKeyMask: string;
+  openaiSource: 'super_admin' | 'env' | 'none';
+  hasGeminiKey: boolean;
+  geminiKeyMask: string;
+  geminiSource: 'super_admin' | 'env' | 'none';
+  hasClaudeKey: boolean;
+  claudeKeyMask: string;
+  claudeSource: 'super_admin' | 'env' | 'none';
+  whisperReady: boolean;
+  anyLiveLlm: boolean;
+  source: 'super_admin' | 'env' | 'none';
+  aiServiceUrl: string;
+  aiServiceReachable: boolean;
+  lastTestedAt: string;
+  lastTestStatus: 'untested' | 'connected' | 'error';
+  lastError: string;
+  updatedAt: string;
+}
+
+export interface PlatformAiProviderTestResponse {
+  ok: boolean;
+  results: {
+    openai?: { ok: boolean; whisperAvailable?: boolean; detail: string };
+    gemini?: { ok: boolean; detail: string };
+    claude?: { ok: boolean; detail: string };
+  };
+  error: string;
+  config: PlatformAiProviderConfig;
+}
+
+export async function fetchAiProviderApi(): Promise<PlatformAiProviderConfig> {
+  const { data } = await apiClient.get<PlatformAiProviderConfig>(
+    '/super-admin/ai-provider',
+  );
+  return data;
+}
+
+export async function updateAiProviderApi(payload: {
+  enabled?: boolean;
+  openaiApiKey?: string;
+  geminiApiKey?: string;
+  claudeApiKey?: string;
+  clearOpenaiKey?: boolean;
+  clearGeminiKey?: boolean;
+  clearClaudeKey?: boolean;
+}): Promise<PlatformAiProviderConfig> {
+  const { data } = await apiClient.patch<PlatformAiProviderConfig>(
+    '/super-admin/ai-provider',
+    payload,
+  );
+  return data;
+}
+
+export async function testAiProviderApi(payload?: {
+  openaiApiKey?: string;
+  geminiApiKey?: string;
+  claudeApiKey?: string;
+}): Promise<PlatformAiProviderTestResponse> {
+  const { data } = await apiClient.post<PlatformAiProviderTestResponse>(
+    '/super-admin/ai-provider/test',
+    payload || {},
   );
   return data;
 }

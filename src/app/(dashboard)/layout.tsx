@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Sidebar from '@/components/shared/Sidebar';
@@ -19,6 +19,7 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { isAuthenticated, isHydrated, refreshProfile, user, tenant } = useAuth();
 
   useEffect(() => {
@@ -69,10 +70,13 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="dashboard-shell dashboard-shell-surface h-screen overflow-hidden flex dark:text-slate-100 transition-colors">
-      <Sidebar />
+    <div className="dashboard-shell dashboard-shell-surface h-[100dvh] md:h-screen overflow-hidden flex dark:text-slate-100 transition-colors">
+      <Sidebar
+        mobileOpen={mobileNavOpen}
+        onCloseMobile={() => setMobileNavOpen(false)}
+      />
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        <Header />
+        <Header onOpenMobileMenu={() => setMobileNavOpen(true)} />
         <SubscriptionDunningBanner
           enabled={user?.role !== 'super_admin'}
           isAdmin={isAdmin}
@@ -107,7 +111,7 @@ export default function DashboardLayout({
             )}
           </div>
         )}
-        <main className="flex-1 p-6 overflow-y-auto overscroll-contain">
+        <main className="flex-1 p-2.5 sm:p-4 lg:p-6 overflow-y-auto overscroll-contain">
           {tenant?.maintenanceMode && user?.role !== 'super_admin' ? (
             <div className="max-w-xl mx-auto mt-12 rounded-3xl border border-rose-500/30 bg-white dark:bg-[#0D1628] p-8 text-center shadow-xl space-y-4">
               <div className="mx-auto w-14 h-14 rounded-2xl bg-rose-500/15 text-rose-500 flex items-center justify-center">

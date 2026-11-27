@@ -97,26 +97,26 @@ export default function Hero() {
           <div className="lg:col-span-7 text-left space-y-6">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-[#0057FF]/20 text-slate-800 dark:text-sky-300 shadow-sm">
               <Sparkles className="w-3.5 h-3.5 text-[#0057FF] dark:text-sky-400" />
-              <span>All 14 Modules Live · Built for Indian B2B Teams</span>
+              <span>India-First B2B Revenue OS · Sales, GST &amp; Support</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl xl:text-[68px] font-black tracking-[-0.03em] leading-[1.03] text-[#0057FF] dark:text-white">
-              The easiest
+              India&apos;s smartest
               <br />
               AI CRM for
               <br />
               <span className="text-[#0057FF] dark:bg-gradient-to-r dark:from-sky-400 dark:to-blue-400 dark:bg-clip-text dark:text-transparent">
-                growth.
+                faster growth.
               </span>
             </h1>
 
             <p className="max-w-xl text-base sm:text-lg md:text-[19px] text-slate-700 dark:text-slate-300 leading-relaxed font-normal">
-              Intelligent automation meets intuitive design. Built with{' '}
+              Where Hinglish AI speed meets B2B execution. Powered by{' '}
               <span className="font-semibold text-slate-950 dark:text-white">
-                SetuAI &amp; Official WhatsApp Cloud
-              </span>{' '}
-              at its core, Leadsetu CRM supercharges your Indian B2B sales, 18% GST billing, and
-              SLA service teams to get ahead without the overhead.
+                SetuAI, Official WhatsApp Cloud &amp; GSTIN Guard
+              </span>
+              , LeadSetu unifies your sales team, 18% GST billing, and support engineers in one
+              effortless OS — zero tool chaos.
             </p>
 
             {/* Quick Navigation Pills */}

@@ -367,7 +367,7 @@ export default function TenantsGovernanceSection({
   const handleUserRbacUpdate = async (
     userId: string,
     payload: {
-      role?: 'owner' | 'admin' | 'manager' | 'agent';
+      role?: 'owner' | 'admin' | 'manager' | 'agent' | 'support';
       departmentPreset?: string;
       isActive?: boolean;
       maskPhones?: boolean;
@@ -2211,7 +2211,7 @@ export default function TenantsGovernanceSection({
                               disabled={saving}
                               onChange={(e) =>
                                 handleUserRbacUpdate(m.id, {
-                                  role: e.target.value as 'owner' | 'admin' | 'manager' | 'agent',
+                                  role: e.target.value as 'owner' | 'admin' | 'manager' | 'agent' | 'support',
                                   reason: `Role changed via Super Admin RBAC Inspector`,
                                 })
                               }
@@ -2221,6 +2221,7 @@ export default function TenantsGovernanceSection({
                               <option value="admin">Admin</option>
                               <option value="manager">Manager</option>
                               <option value="agent">Agent</option>
+                              <option value="support">Support Engineer</option>
                             </select>
 
                             <select

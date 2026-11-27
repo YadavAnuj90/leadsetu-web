@@ -287,7 +287,9 @@ export default function NavbarBreakToggle() {
 
   const storageKey = useMemo(() => getStorageKey(user?.id), [user?.id]);
   const isBreakEligibleRole =
-    user?.role === 'manager' || user?.role === 'agent';
+    user?.role === 'manager' ||
+    user?.role === 'agent' ||
+    user?.role === 'support';
 
   // Restore saved active timer from localStorage when mounted or user changes
   useEffect(() => {
@@ -545,7 +547,7 @@ export default function NavbarBreakToggle() {
         <div
           role="dialog"
           aria-label="Break Mode Controls"
-          className="absolute right-0 top-full mt-2 w-[332px] max-w-[92vw] rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/15 dark:border-slate-700/80 dark:bg-[#0F172A] dark:shadow-black/50 z-50"
+          className="fixed inset-x-3 top-16 sm:inset-x-auto sm:top-auto sm:absolute sm:right-0 sm:mt-2 w-auto sm:w-[332px] rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/15 dark:border-slate-700/80 dark:bg-[#0F172A] dark:shadow-black/50 z-50"
         >
           {/* Header */}
           <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">

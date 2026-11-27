@@ -8,6 +8,8 @@ import {
   Trash2,
   Edit3,
   Loader2,
+  ShieldCheck,
+  ShieldAlert,
 } from 'lucide-react';
 import CallMobileButton from '@/components/calling/CallMobileButton';
 import WhatsAppActionButton from '@/components/inbox/WhatsAppActionButton';
@@ -183,6 +185,36 @@ export default function LeadCard({
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold"
             >
               WhatsApp {typeof lead.speedToLeadSeconds === 'number' && lead.speedToLeadSeconds >= 0 ? `in ${lead.speedToLeadSeconds}s` : 'Auto'}
+            </span>
+          )}
+          {lead.gstin && (
+            <span
+              title={
+                lead.gstinProfile?.creditAdvice ||
+                `GSTIN: ${lead.gstin}`
+              }
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded font-extrabold border ${
+                lead.gstinProfile?.recommendedTerms === 'safe_credit'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30'
+                  : lead.gstinProfile?.recommendedTerms === 'advance_100' ||
+                      lead.gstinProfile?.checksumValid === false
+                    ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30'
+                    : 'bg-blue-50 text-brand-blue border-blue-200 dark:bg-brand-blue/15 dark:text-sky-300 dark:border-brand-blue/30'
+              }`}
+            >
+              {lead.gstinProfile?.recommendedTerms === 'advance_100' ||
+              lead.gstinProfile?.checksumValid === false ? (
+                <ShieldAlert className="w-3 h-3" />
+              ) : (
+                <ShieldCheck className="w-3 h-3" />
+              )}
+              <span>
+                {lead.gstinProfile?.checksumValid
+                  ? `GST ✓ ${lead.gstinProfile.stateName?.split(' ')[0] || 'Verified'} (${lead.gstinProfile.trustScore})`
+                  : lead.gstinProfile && !lead.gstinProfile.checksumValid
+                    ? 'GST Checksum Alert'
+                    : `GST: ${lead.gstin.slice(0, 6)}...`}
+              </span>
             </span>
           )}
           {lead.city && (

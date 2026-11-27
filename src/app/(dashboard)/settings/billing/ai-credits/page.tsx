@@ -15,9 +15,12 @@ import {
   HardDrive,
   Loader2,
   MessageSquare,
+  Phone,
+  Plus,
   RefreshCw,
   ShieldCheck,
   Sparkles,
+  Wallet,
   X,
   Zap,
 } from 'lucide-react';
@@ -34,11 +37,18 @@ import {
   type BillingUsageDashboardResponse,
   type TopupPackSpec,
 } from '@/lib/tenants-api';
+import {
+  fetchWhatsappCallingWalletApi,
+  topupWhatsappCallingWalletApi,
+} from '@/lib/whatsapp-calling-api';
 import { downloadSubscriptionInvoicePdf } from '@/lib/subscription-pdf';
 import { getErrorMessage } from '@/lib/api-client';
 import BillingNavTabs from '@/components/settings/BillingNavTabs';
 import SubscriptionInvoiceModal from '@/components/settings/SubscriptionInvoiceModal';
-import type { SubscriptionInvoice } from '@/types/contracts';
+import type {
+  SubscriptionInvoice,
+  WhatsappCallingWalletSummary,
+} from '@/types/contracts';
 
 function formatPaidAt(iso?: string): string {
   if (!iso) return '—';
@@ -56,6 +66,9 @@ export default function AiCreditsBillingPage() {
 
   const [billing, setBilling] = useState<BillingSummaryResponse | null>(null);
   const [usage, setUsage] = useState<BillingUsageDashboardResponse | null>(null);
+  const [callingWallet, setCallingWallet] =
+    useState<WhatsappCallingWalletSummary | null>(null);
+  const [manualTopupLoading, setManualTopupLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [buyingPackId, setBuyingPackId] = useState<string | null>(null);
   const [requestingPackId, setRequestingPackId] = useState<string | null>(null);
@@ -77,12 +90,14 @@ export default function AiCreditsBillingPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const [summaryRes, usageRes] = await Promise.all([
+      const [summaryRes, usageRes, walletRes] = await Promise.all([
         fetchBillingSummaryApi(),
         fetchBillingUsageApi(),
+        fetchWhatsappCallingWalletApi().catch(() => null),
       ]);
       setBilling(summaryRes);
       setUsage(usageRes);
+      if (walletRes) setCallingWallet(walletRes);
       const currentUser = useAuthStore.getState().user;
       if (currentUser) {
         updateProfile({ user: currentUser, tenant: summaryRes.tenant });
@@ -200,7 +215,7 @@ export default function AiCreditsBillingPage() {
   };
 
   const handleRequestTopupApproval = async (pack: TopupPackSpec) => {
-    if (pack.resource === 'storage') return;
+    if (pack.resource !== 'ai' && pack.resource !== 'whatsapp') return;
     setRequestingPackId(pack.id);
     setError(null);
     try {
@@ -219,6 +234,24 @@ export default function AiCreditsBillingPage() {
       setError(getErrorMessage(err));
     } finally {
       setRequestingPackId(null);
+    }
+  };
+
+  const handleInstantAdminCallingCredit = async (amountInr: number) => {
+    setManualTopupLoading(true);
+    setError(null);
+    try {
+      const updated = await topupWhatsappCallingWalletApi({
+        amountInr,
+        note: `Admin quick credit +₹${amountInr} from Billing`,
+      });
+      setCallingWallet(updated);
+      setToast(`Added ₹${amountInr} to WhatsApp Calling Wallet.`);
+      setTimeout(() => setToast(null), 4000);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setManualTopupLoading(false);
     }
   };
 
@@ -394,6 +427,112 @@ export default function AiCreditsBillingPage() {
           </div>
         )}
 
+        {/* Prepaid WhatsApp Business Calling INR Wallet Card */}
+        {callingWallet && (
+          <div className="p-5 rounded-2xl border border-emerald-200/80 dark:border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-950/20 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-extrabold text-brand-navy dark:text-white flex items-center gap-2">
+                  <Wallet className="w-4 h-4 text-emerald-600 dark:text-emerald-300" />
+                  <span>WhatsApp Business Calling Prepaid INR Wallet</span>
+                  {callingWallet.isLowBalance && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                      Low Balance
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Outbound calls billed at ₹{callingWallet.rateInrPerMin.toFixed(2)}/min in 6-second pulses (₹{(callingWallet.rateInrPerMin / 10).toFixed(3)}/pulse) · Inbound calls are ₹0.00.
+                </p>
+              </div>
+
+              {canManageBilling && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={manualTopupLoading}
+                    onClick={() => void handleInstantAdminCallingCredit(100)}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-emerald-300 dark:border-emerald-500/40 bg-white dark:bg-white/5 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 disabled:opacity-50"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> ₹100 Credit
+                  </button>
+                  <button
+                    type="button"
+                    disabled={manualTopupLoading}
+                    onClick={() => void handleInstantAdminCallingCredit(500)}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold disabled:opacity-50"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> ₹500 Credit
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div className="rounded-xl bg-white dark:bg-[#0D1628] border border-slate-200/70 dark:border-white/10 p-3">
+                <div className="text-[11px] text-slate-500">Available Balance</div>
+                <div className="text-lg font-extrabold text-emerald-600 dark:text-emerald-300">
+                  ₹{callingWallet.displayBalanceInr.toFixed(2)}
+                </div>
+              </div>
+              <div className="rounded-xl bg-white dark:bg-[#0D1628] border border-slate-200/70 dark:border-white/10 p-3">
+                <div className="text-[11px] text-slate-500">Est. Talktime</div>
+                <div className="text-lg font-extrabold text-brand-navy dark:text-white inline-flex items-center gap-1">
+                  <Phone className="w-4 h-4 text-brand-blue" /> ~
+                  {callingWallet.estimatedMinutesRemaining} mins
+                </div>
+              </div>
+              <div className="rounded-xl bg-white dark:bg-[#0D1628] border border-slate-200/70 dark:border-white/10 p-3">
+                <div className="text-[11px] text-slate-500">Total Recharged</div>
+                <div className="text-lg font-extrabold text-brand-navy dark:text-white">
+                  ₹{callingWallet.totalTopupInr.toFixed(2)}
+                </div>
+              </div>
+              <div className="rounded-xl bg-white dark:bg-[#0D1628] border border-slate-200/70 dark:border-white/10 p-3">
+                <div className="text-[11px] text-slate-500">Total Spent</div>
+                <div className="text-lg font-extrabold text-brand-navy dark:text-white">
+                  ₹{callingWallet.totalSpentInr.toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            {callingWallet.transactions && callingWallet.transactions.length > 0 && (
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
+                  Recent Calling Wallet Ledger
+                </div>
+                <div className="max-h-36 overflow-y-auto space-y-1 pr-1">
+                  {callingWallet.transactions.slice(0, 6).map((tx) => (
+                    <div
+                      key={tx.id}
+                      className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 text-[11px] px-3 py-1.5 rounded-lg bg-white/80 dark:bg-[#0D1628] border border-slate-200/60 dark:border-white/10"
+                    >
+                      <span className="text-slate-700 dark:text-slate-200 truncate min-w-0 flex-1">
+                        {tx.description}
+                      </span>
+                      <div className="flex items-center gap-3 shrink-0 font-mono">
+                        <span
+                          className={
+                            tx.amountInr >= 0
+                              ? 'font-bold text-emerald-600 dark:text-emerald-300'
+                              : 'font-bold text-rose-600 dark:text-rose-300'
+                          }
+                        >
+                          {tx.amountInr >= 0 ? '+' : '-'}₹
+                          {Math.abs(tx.amountInr).toFixed(2)}
+                        </span>
+                        <span className="text-slate-400">
+                          Bal ₹{tx.balanceAfterInr.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Top-Up Packs Grid */}
         <div className="space-y-3 pt-2">
           <h2 className="text-sm font-extrabold text-brand-navy dark:text-white flex items-center gap-1.5">
@@ -410,7 +549,9 @@ export default function AiCreditsBillingPage() {
                   className={`p-4 rounded-2xl border flex flex-col justify-between gap-3 transition-colors ${
                     pack.resource === 'ai'
                       ? 'border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/20 dark:bg-indigo-950/15'
-                      : 'border-slate-200/80 dark:border-white/10 bg-white dark:bg-white/[0.02]'
+                      : pack.resource === 'calling'
+                        ? 'border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/20 dark:bg-emerald-950/15'
+                        : 'border-slate-200/80 dark:border-white/10 bg-white dark:bg-white/[0.02]'
                   }`}
                 >
                   <div className="space-y-1.5">
@@ -450,7 +591,7 @@ export default function AiCreditsBillingPage() {
                       Top Up via Razorpay
                     </button>
 
-                    {pack.resource !== 'storage' && (
+                    {(pack.resource === 'ai' || pack.resource === 'whatsapp') && (
                       <button
                         type="button"
                         disabled={!canManageBilling || requestingPackId === pack.id}

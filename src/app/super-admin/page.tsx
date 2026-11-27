@@ -7,6 +7,7 @@ import {
   Activity,
   AlertTriangle,
   Building2,
+  Cpu,
   CreditCard,
   ExternalLink,
   FileClock,
@@ -35,6 +36,8 @@ import TerritoryAnalyticsSection from '@/components/super-admin/TerritoryAnalyti
 import CallingAnalyticsSection from '@/components/super-admin/CallingAnalyticsSection';
 import WhatsAppProviderSection from '@/components/super-admin/WhatsAppProviderSection';
 import RazorpayGatewaySection from '@/components/super-admin/RazorpayGatewaySection';
+import GstinProviderSection from '@/components/super-admin/GstinProviderSection';
+import AiProviderVaultSection from '@/components/super-admin/AiProviderVaultSection';
 import OnboardingFunnelSection from '@/components/super-admin/OnboardingFunnelSection';
 import IntegrationsWatchdogSection from '@/components/super-admin/IntegrationsWatchdogSection';
 import {
@@ -74,6 +77,8 @@ type SuperAdminTab =
   | 'calling'
   | 'whatsapp'
   | 'razorpay'
+  | 'gstin'
+  | 'ai_vault'
   | 'watchdog'
   | 'policies'
   | 'billing'
@@ -162,6 +167,20 @@ const NAV_ITEMS: Array<{
     label: 'Razorpay Gateway',
     subtitle: 'Encrypted Test/Live Key Vault (overriding .env), Payment Links & Webhooks',
     icon: CreditCard,
+  },
+  {
+    id: 'gstin',
+    group: 'Infrastructure & Trust',
+    label: 'GSTIN Trust Vault',
+    subtitle: 'Live GSTN lookup API vault & cross-tenant B2B underwriting telemetry',
+    icon: ShieldCheck,
+  },
+  {
+    id: 'ai_vault',
+    group: 'Infrastructure & Trust',
+    label: 'AI & Whisper Vault',
+    subtitle: 'Central OpenAI Whisper STT, Gemini & Claude API key vault (overrides .env)',
+    icon: Cpu,
   },
   {
     id: 'watchdog',
@@ -701,10 +720,34 @@ export default function SuperAdminDashboardPage() {
               </button>
             </div>
           </div>
+          {/* Desktop / Tablet Sidebar Footer Nav & Clean Canvas */}
+          <div className="lg:hidden mt-3 px-1 overflow-x-auto pb-1">
+            <div className="inline-flex items-center gap-1.5 min-w-max">
+              {NAV_ITEMS.map((item) => {
+                const Icon = item.icon;
+                const active = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setActiveTab(item.id)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition-colors ${
+                      active
+                        ? 'bg-[#0057FF] text-white shadow-xs'
+                        : 'bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </header>
 
         {/* Main Workspace Body */}
-        <main className="mx-auto w-full max-w-[1440px] flex-1 p-4 sm:p-6">
+        <main className="mx-auto w-full max-w-[1440px] flex-1 p-3 sm:p-6">
           {error && (
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-xs font-semibold text-rose-700 dark:text-rose-300">
               <div className="flex items-center gap-2">
@@ -795,6 +838,10 @@ export default function SuperAdminDashboardPage() {
               {activeTab === 'whatsapp' && <WhatsAppProviderSection />}
 
               {activeTab === 'razorpay' && <RazorpayGatewaySection />}
+
+              {activeTab === 'gstin' && <GstinProviderSection />}
+
+              {activeTab === 'ai_vault' && <AiProviderVaultSection />}
 
               {activeTab === 'watchdog' && (
                 <IntegrationsWatchdogSection

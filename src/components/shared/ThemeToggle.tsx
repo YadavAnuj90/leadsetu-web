@@ -213,7 +213,7 @@ export default function ThemeToggle({
 
       {/* Theme Picker Popover */}
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl bg-white dark:bg-[#0F1829] border border-slate-200 dark:border-slate-700 shadow-2xl p-3.5 space-y-3 z-50">
+        <div className="fixed inset-x-3 top-16 sm:inset-x-auto sm:top-auto sm:absolute sm:right-0 sm:mt-2 w-auto sm:w-72 rounded-2xl bg-white dark:bg-[#0F1829] border border-slate-200 dark:border-slate-700 shadow-2xl p-3.5 space-y-3 z-50">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
             <div className="flex items-center gap-1.5 text-xs font-extrabold text-brand-navy dark:text-white">
               <Palette className="w-3.5 h-3.5 text-brand-blue" />

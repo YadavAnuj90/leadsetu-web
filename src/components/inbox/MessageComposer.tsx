@@ -7,6 +7,7 @@ import {
   Image as ImageIcon,
   Link2,
   Loader2,
+  Mic,
   Paperclip,
   RefreshCw,
   Send,
@@ -41,6 +42,7 @@ interface MessageComposerProps {
   waCloudConfig?: WhatsAppCloudConfig | null;
   metaTemplates?: MetaApprovedTemplate[];
   onOpenTemplateManager: () => void;
+  onOpenVoiceToQuote?: () => void;
   onOpenCartBuilder?: () => void;
   onGenerateAiDraft?: (opts: {
     language: 'hinglish' | 'english' | 'hindi';
@@ -74,6 +76,7 @@ export default function MessageComposer({
   waCloudConfig,
   metaTemplates = [],
   onOpenTemplateManager,
+  onOpenVoiceToQuote,
   onOpenCartBuilder,
   onGenerateAiDraft,
   onSend,
@@ -138,9 +141,10 @@ export default function MessageComposer({
       return;
     }
     const isImage = file.type.startsWith('image/');
+    const isAudio = file.type.startsWith('audio/') || /\.(mp3|ogg|wav|m4a|webm)$/i.test(file.name);
     const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-    if (!isImage && !isPdf) {
-      setAttachError('Supported attachments: PDF documents and images.');
+    if (!isImage && !isPdf && !isAudio) {
+      setAttachError('Supported attachments: PDF documents, audio voice notes, and images.');
       return;
     }
 
@@ -148,10 +152,12 @@ export default function MessageComposer({
     reader.onload = () => {
       if (typeof reader.result === 'string') {
         setAttachment({
-          type: isImage ? 'image' : 'document',
+          type: isImage ? 'image' : isAudio ? 'audio' : 'document',
           url: reader.result,
           filename: file.name,
-          mimeType: file.type || (isPdf ? 'application/pdf' : 'image/png'),
+          mimeType:
+            file.type ||
+            (isPdf ? 'application/pdf' : isAudio ? 'audio/ogg' : 'image/png'),
         });
       }
     };
@@ -230,7 +236,7 @@ export default function MessageComposer({
   const metaLive = Boolean(waCloudConfig?.enabled && waCloudConfig?.configured);
 
   return (
-    <div className="p-4 bg-white dark:bg-[#0D1628] border-t border-slate-200/80 dark:border-white/10 space-y-3">
+    <div className="p-3 sm:p-4 bg-white dark:bg-[#0D1628] border-t border-slate-200/80 dark:border-white/10 space-y-2.5 sm:space-y-3">
       {/* SetuAI Suggested Reply Banner */}
       {aiSuggestedReply && (
         <div className="p-3 rounded-2xl bg-brand-light/80 dark:bg-indigo-950/60 border border-brand-blue/25 dark:border-indigo-400/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -243,7 +249,7 @@ export default function MessageComposer({
               <span>{aiSuggestedReply}</span>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
             {onGenerateAiDraft && (
               <button
                 type="button"
@@ -274,8 +280,8 @@ export default function MessageComposer({
       )}
 
       {/* Dynamic Workspace Templates + Meta Templates + Manage Link */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 flex-1 min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:flex-1 min-w-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {templatesLoading && activeTemplates.length === 0 ? (
             <span className="text-[11px] text-slate-400 inline-flex items-center gap-1">
               <Loader2 className="w-3 h-3 animate-spin" /> Loading templates...
@@ -299,7 +305,7 @@ export default function MessageComposer({
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex flex-wrap items-center gap-1.5 shrink-0">
           {metaTemplates.length > 0 && (
             <div className="relative">
               <button
@@ -364,6 +370,16 @@ export default function MessageComposer({
                 Draft with AI
               </button>
             </div>
+          )}
+          {onOpenVoiceToQuote && (
+            <button
+              type="button"
+              onClick={onOpenVoiceToQuote}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-indigo-300 dark:border-indigo-500/35 bg-indigo-50 dark:bg-indigo-500/15 text-[11px] font-bold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 whitespace-nowrap"
+              title="Record/Transcribe Hinglish Voice Note & Match SKUs to Quote"
+            >
+              <Mic className="w-3.5 h-3.5" /> Voice-to-Quote
+            </button>
           )}
           {onOpenCartBuilder && (
             <button
@@ -450,11 +466,11 @@ export default function MessageComposer({
       )}
 
       {/* Input Row */}
-      <form onSubmit={handleSubmit} className="flex items-center gap-2">
+      <form onSubmit={handleSubmit} className="flex items-center gap-1.5 sm:gap-2">
         <input
           ref={fileInputRef}
           type="file"
-          accept=".pdf,image/*"
+          accept=".pdf,image/*,audio/*,.ogg,.mp3,.wav,.m4a,.webm"
           onChange={handleFileChange}
           className="hidden"
         />
@@ -462,7 +478,7 @@ export default function MessageComposer({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           title="Attach PDF or Image"
-          className="p-3 rounded-xl border border-slate-200 dark:border-white/15 bg-slate-50 dark:bg-[#111D33] text-slate-600 dark:text-slate-300 hover:text-brand-blue hover:border-brand-blue transition-colors"
+          className="p-2.5 sm:p-3 rounded-xl border border-slate-200 dark:border-white/15 bg-slate-50 dark:bg-[#111D33] text-slate-600 dark:text-slate-300 hover:text-brand-blue hover:border-brand-blue transition-colors shrink-0"
         >
           <Paperclip className="w-4 h-4" />
         </button>
@@ -480,19 +496,21 @@ export default function MessageComposer({
               ? 'Add optional caption for PDF / image...'
               : 'Type a WhatsApp reply or pick a template above...'
           }
-          className="flex-1 px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-brand-navy dark:bg-[#111D33] dark:border-white/15 dark:text-white focus:outline-none focus:bg-white dark:focus:bg-[#152440] focus:border-brand-blue"
+          className="min-w-0 flex-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm text-brand-navy dark:bg-[#111D33] dark:border-white/15 dark:text-white focus:outline-none focus:bg-white dark:focus:bg-[#152440] focus:border-brand-blue"
         />
         <button
           type="submit"
           disabled={isSending || (!text.trim() && !attachment && !selectedMetaTpl)}
-          className="btn-primary-brand px-6 py-3 rounded-xl text-xs sm:text-sm font-semibold text-white inline-flex items-center gap-2 disabled:opacity-50"
+          className="btn-primary-brand px-3.5 sm:px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-semibold text-white inline-flex items-center gap-1.5 sm:gap-2 disabled:opacity-50 shrink-0 whitespace-nowrap"
         >
           {isSending ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             <Send className="w-4 h-4" />
           )}
-          <span>{selectedMetaTpl ? 'Send Meta Template' : 'Send'}</span>
+          <span className="hidden sm:inline">
+            {selectedMetaTpl ? 'Send Template' : 'Send'}
+          </span>
         </button>
       </form>
 

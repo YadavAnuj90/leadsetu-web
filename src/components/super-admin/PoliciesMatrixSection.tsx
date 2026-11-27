@@ -54,6 +54,16 @@ const KILL_SWITCH_META: Array<{
     label: 'Support Impersonation Authority',
     desc: 'Allows logged, time-boxed Super Admin workspace support sessions',
   },
+  {
+    key: 'voiceNoteQuoteEnabled',
+    label: 'Phase 1 · Voice-Note-to-Quote AI',
+    desc: 'Master switch for Hinglish Whisper STT & 1-click SKU quote matching in Inbox',
+  },
+  {
+    key: 'gstinGuardEnabled',
+    label: 'Phase 1 · GSTIN Trust & Credit Guard',
+    desc: 'Master switch for live/checksum GSTIN verification & credit guard on Leads',
+  },
 ];
 
 export default function PoliciesMatrixSection({
@@ -206,7 +216,7 @@ export default function PoliciesMatrixSection({
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {KILL_SWITCH_META.map((item) => {
-            const active = config.globalKillSwitches[item.key];
+            const active = config.globalKillSwitches[item.key] !== false;
             return (
               <button
                 key={item.key}

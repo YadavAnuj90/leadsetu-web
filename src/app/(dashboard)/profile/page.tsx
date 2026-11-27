@@ -91,6 +91,12 @@ const ROLE_DISPLAY: Record<string, { label: string; desc: string; badge: string 
     badge:
       'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/20 dark:text-amber-200 dark:border-amber-400/30',
   },
+  support: {
+    label: 'Support Engineer',
+    desc: 'Customer SLA tickets, support inbox help desk & field resolution tools',
+    badge:
+      'bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-500/20 dark:text-teal-200 dark:border-teal-400/30',
+  },
 };
 
 const COLOR_PRESETS: {

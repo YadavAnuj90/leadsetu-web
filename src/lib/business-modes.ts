@@ -231,6 +231,31 @@ export const TEAM_DEPARTMENT_PRESETS: TeamDepartmentPreset[] = [
       aiCopilot: true,
     },
   },
+  {
+    id: 'support_engineer',
+    label: 'Support Engineer',
+    departmentName: 'Customer Support & Field Service',
+    description: 'SLA tickets, customer WhatsApp help desk, site visits & product docs—zero sales or GST billing.',
+    featureAccess: {
+      leads: false,
+      aiScoring: false,
+      contacts: true,
+      deals: false,
+      whatsappCloud: true,
+      whatsappBroadcasts: false,
+      tasks: true,
+      slaTickets: true,
+      aiWorkflows: false,
+      analytics: false,
+      products: false,
+      gstBilling: false,
+      documentVault: true,
+      aiCreditRisk: false,
+      aiVoiceCrm: true,
+      aiDealerDesk: false,
+      aiCopilot: true,
+    },
+  },
 ];
 
 export function normalizeWorkspaceBusinessMode(

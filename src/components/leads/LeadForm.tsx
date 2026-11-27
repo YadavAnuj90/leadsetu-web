@@ -12,8 +12,11 @@ import {
   Sparkles,
   Loader2,
   Tag,
+  ShieldCheck,
+  ShieldAlert,
 } from 'lucide-react';
 import { useCustomFields } from '@/hooks/useCustomFields';
+import { verifyGstinPreviewApi } from '@/hooks/useLeads';
 import CustomFieldsInputs from '@/components/custom-fields/CustomFieldsInputs';
 import { useAuthStore } from '@/store/auth.store';
 import { getSegmentCopy } from '@/lib/business-modes';
@@ -21,6 +24,7 @@ import type {
   ContactAccountKind,
   CreateLeadPayload,
   Lead,
+  LeadGstinProfile,
   LeadSource,
   LeadStatus,
 } from '@/types/contracts';
@@ -50,6 +54,12 @@ export default function LeadForm({
   const [phone, setPhone] = useState(initialData?.phone || '');
   const [email, setEmail] = useState(initialData?.email || '');
   const [city, setCity] = useState(initialData?.city || 'New Delhi');
+  const [gstin, setGstin] = useState(initialData?.gstin || '');
+  const [gstinPreview, setGstinPreview] = useState<LeadGstinProfile | null>(
+    initialData?.gstinProfile || null,
+  );
+  const [verifyingGstin, setVerifyingGstin] = useState(false);
+  const [gstinError, setGstinError] = useState<string | null>(null);
   const [source, setSource] = useState<LeadSource>(
     initialData?.source || 'whatsapp'
   );
@@ -68,6 +78,30 @@ export default function LeadForm({
     initialData?.customFields || {}
   );
 
+  const handleVerifyGstin = async () => {
+    const cleaned = gstin.trim().toUpperCase();
+    if (!cleaned) {
+      setGstinError('Enter a 15-character GSTIN first.');
+      return;
+    }
+    setVerifyingGstin(true);
+    setGstinError(null);
+    try {
+      const profile = await verifyGstinPreviewApi({
+        gstin: cleaned,
+        company,
+        city,
+        phone,
+      });
+      setGstin(profile.gstin);
+      setGstinPreview(profile);
+    } catch {
+      setGstinError('Could not verify GSTIN right now.');
+    } finally {
+      setVerifyingGstin(false);
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const tags = tagsText
@@ -82,6 +116,9 @@ export default function LeadForm({
       phone,
       email,
       city,
+      ...(accountKind !== 'consumer' && gstin.trim()
+        ? { gstin: gstin.trim().toUpperCase() }
+        : { gstin: '' }),
       source,
       status,
       estimatedValue: Number(estimatedValue) || 0,
@@ -313,6 +350,79 @@ export default function LeadForm({
               </div>
             </div>
           </div>
+
+          {accountKind !== 'consumer' && (
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 space-y-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-end gap-2.5">
+                <div className="flex-1">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                    Buyer GSTIN (15-Char Trust &amp; Credit Check)
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={15}
+                    value={gstin}
+                    onChange={(e) => {
+                      setGstin(e.target.value.toUpperCase());
+                      setGstinError(null);
+                    }}
+                    placeholder="e.g. 09AABCR1234F1Z5"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-mono uppercase text-brand-navy bg-white focus:outline-none focus:border-brand-blue"
+                  />
+                </div>
+                <button
+                  type="button"
+                  disabled={verifyingGstin || !gstin.trim()}
+                  onClick={() => void handleVerifyGstin()}
+                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-brand-navy hover:bg-brand-blue text-white text-xs font-bold disabled:opacity-50 shrink-0"
+                >
+                  {verifyingGstin ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                  )}
+                  <span>Verify GSTIN</span>
+                </button>
+              </div>
+
+              {gstinError && (
+                <p className="text-[11px] font-semibold text-rose-600">
+                  {gstinError}
+                </p>
+              )}
+
+              {gstinPreview && (
+                <div
+                  className={`p-3 rounded-xl border text-xs space-y-1 ${
+                    gstinPreview.recommendedTerms === 'safe_credit'
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                      : gstinPreview.recommendedTerms === 'advance_100' ||
+                          !gstinPreview.checksumValid
+                        ? 'bg-rose-50 border-rose-200 text-rose-900'
+                        : 'bg-blue-50 border-blue-200 text-brand-navy'
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 font-extrabold">
+                    <span className="inline-flex items-center gap-1.5">
+                      {gstinPreview.checksumValid ? (
+                        <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                      ) : (
+                        <ShieldAlert className="w-4 h-4 text-rose-600" />
+                      )}
+                      <span>
+                        {gstinPreview.status} · Score {gstinPreview.trustScore}/100
+                      </span>
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/80 border border-black/10">
+                      {gstinPreview.stateName || 'India'} ·{' '}
+                      {gstinPreview.entityType || 'Business'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] opacity-90">{gstinPreview.creditAdvice}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">

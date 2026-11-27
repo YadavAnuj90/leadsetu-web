@@ -77,12 +77,22 @@ const ROLE_STYLE: Record<TeamRole, string> = {
   admin: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
   manager: 'bg-blue-50 text-brand-blue border border-blue-200',
   agent: 'bg-slate-100 text-slate-700 border border-slate-200',
+  support: 'bg-teal-50 text-teal-700 border border-teal-200',
 };
 
 const ROLE_HELP: Record<AssignableTeamRole, string> = {
   admin: 'Full access incl. team management (owner only can grant)',
   manager: 'Manages pipeline, reports & assigned reps',
   agent: 'Works own leads, deals, tasks & inbox',
+  support: 'Handles customer SLA tickets, queries & help desk',
+};
+
+const ROLE_DISPLAY_LABEL: Record<string, string> = {
+  owner: 'Owner',
+  admin: 'Workspace Admin',
+  manager: 'Sales Manager',
+  agent: 'Sales User (Rep)',
+  support: 'Support Engineer',
 };
 
 const INDIAN_MOBILE = /^(?:\+?91[\s-]?|0)?[6-9]\d{4}[\s-]?\d{5}$/;
@@ -451,8 +461,8 @@ export default function TeamSettingsPage() {
     : '';
 
   const assignableRoles: AssignableTeamRole[] = viewer?.canManageAdmins
-    ? ['agent', 'manager', 'admin']
-    : ['agent', 'manager'];
+    ? ['agent', 'support', 'manager', 'admin']
+    : ['agent', 'support', 'manager'];
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -682,7 +692,7 @@ export default function TeamSettingsPage() {
                         </span>
                       </div>
                       <div className="text-[11px] text-slate-500 capitalize mt-0.5">
-                        {rep.role === 'agent' ? 'Sales User' : rep.role} ·{' '}
+                        {ROLE_DISPLAY_LABEL[rep.role] || rep.role} ·{' '}
                         {rep.territory || 'All NCR'}
                       </div>
                     </div>
@@ -743,7 +753,7 @@ export default function TeamSettingsPage() {
                       {ca.name}
                     </div>
                     <div className="text-[11px] text-slate-500 capitalize truncate">
-                      {ca.role === 'agent' ? 'Sales User' : ca.role} · UID #{ca.userCode}
+                      {ROLE_DISPLAY_LABEL[ca.role] || ca.role} · UID #{ca.userCode}
                     </div>
                   </div>
                   <div className="text-right shrink-0">
@@ -805,6 +815,7 @@ export default function TeamSettingsPage() {
           <option value="admin">Admin</option>
           <option value="manager">Manager</option>
           <option value="agent">Agent</option>
+          <option value="support">Support Engineer</option>
         </select>
         <select
           value={statusFilter}
@@ -893,7 +904,7 @@ export default function TeamSettingsPage() {
                       </td>
                       <td className="py-4 px-4">
                         <span className={`inline-flex text-[11px] font-bold px-2.5 py-1 rounded-full capitalize ${ROLE_STYLE[m.role]}`}>
-                          {m.role === 'manager' ? 'Sales Manager' : m.role === 'agent' ? 'Sales User' : m.role}
+                          {ROLE_DISPLAY_LABEL[m.role] || m.role}
                         </span>
                       </td>
                       <td className="py-4 px-4">
@@ -926,7 +937,7 @@ export default function TeamSettingsPage() {
                             );
                           })()
                         )}
-                        {(m.role === 'manager' || m.role === 'agent') && (
+                        {(m.role === 'manager' || m.role === 'agent' || m.role === 'support') && (
                           <div className="text-[10px] font-semibold text-slate-400 mt-1 flex items-center gap-1">
                             <Sparkles className="w-2.5 h-2.5 text-brand-blue" />
                             <span>
@@ -1027,7 +1038,7 @@ export default function TeamSettingsPage() {
                                   <BarChart3 className="w-3.5 h-3.5" />
                                 </button>
                               )}
-                              {manageable && (m.role === 'manager' || m.role === 'agent') && (
+                              {manageable && (m.role === 'manager' || m.role === 'agent' || m.role === 'support') && (
                                 <button
                                   type="button"
                                   onClick={() => openFeatureModal(m)}
@@ -1119,7 +1130,7 @@ export default function TeamSettingsPage() {
               <div className="flex items-center gap-2.5">
                 <UserPlus className="w-5 h-5 text-brand-blue" />
                 <div>
-                  <h2 className="text-base font-extrabold">Invite Sales Manager / User</h2>
+                  <h2 className="text-base font-extrabold">Invite Team Member</h2>
                   <p className="text-[11px] text-slate-300">
                     Generates User ID, assigns CRM features, and sends an email invite link under Account ID{' '}
                     <span className="font-mono font-bold">{account?.accountId}</span>
@@ -1172,14 +1183,14 @@ export default function TeamSettingsPage() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">Role *</label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {assignableRoles.map((r) => (
                     <button
                       key={r}
                       type="button"
                       onClick={() => {
                         setFRole(r);
-                        if (r === 'manager' || r === 'agent') {
+                        if (r === 'manager' || r === 'agent' || r === 'support') {
                           setFFeatures(getRoleDefaultFeatures(r));
                         }
                       }}
@@ -1188,7 +1199,7 @@ export default function TeamSettingsPage() {
                       }`}
                     >
                       <div className="text-xs font-extrabold capitalize text-brand-navy">
-                        {r === 'manager' ? 'Sales Manager' : r === 'agent' ? 'Sales User (Rep)' : 'Workspace Admin'}
+                        {ROLE_DISPLAY_LABEL[r] || r}
                       </div>
                       <div className="text-[10px] text-slate-500 leading-snug mt-0.5">{ROLE_HELP[r]}</div>
                     </button>
@@ -1196,7 +1207,7 @@ export default function TeamSettingsPage() {
                 </div>
               </div>
 
-              {(fRole === 'manager' || fRole === 'agent') && (
+              {(fRole === 'manager' || fRole === 'agent' || fRole === 'support') && (
                 <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 space-y-3">
                   <div>
                     <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 mb-1.5">
@@ -1412,7 +1423,7 @@ export default function TeamSettingsPage() {
                   >
                     {assignableRoles.map((r) => (
                       <option key={r} value={r}>
-                        {r}
+                        {ROLE_DISPLAY_LABEL[r] || r}
                       </option>
                     ))}
                   </select>

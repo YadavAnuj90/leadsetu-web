@@ -112,35 +112,35 @@ export default function RegisterPage() {
             <div className="lg:col-span-5 space-y-6">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 shadow-sm">
                 <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
-                <span>14-Day Free Growth Plan Trial</span>
+                <span>14-Day Free Growth Trial · Zero Lock-In</span>
               </div>
 
               <h1 className="text-4xl sm:text-5xl font-black tracking-[-0.03em] leading-[1.06] text-[#0057FF] dark:text-white">
-                Launch your
+                Go live in
                 <br />
-                360° AI workspace
+                60 seconds.
                 <br />
-                in 60 seconds.
+                Close deals faster.
               </h1>
 
               <p className="text-slate-700 dark:text-slate-300 text-base sm:text-lg leading-relaxed">
-                Join 500+ Delhi-NCR and Pan-India B2B businesses closing 3.2x faster across WhatsApp
-                Cloud, IndiaMART, Meta Ads, and 18% GST billing.
+                Built for Indian B2B teams, dealers, and service desks — unify IndiaMART leads,
+                WhatsApp Voice-to-Quote AI, GSTIN Trust Guard, and 18% GST billing in one OS.
               </p>
 
               <div className="space-y-3 pt-1">
                 {[
                   {
-                    title: 'All 14 Growth Modules Unlocked for 14 Days',
-                    desc: 'Includes SetuAI lead scoring, CPQ quotes, SLA desk & Subscription GST PDF.',
+                    title: 'Full Growth Suite Unlocked for 14 Days',
+                    desc: 'Includes Hinglish Voice-to-Quote AI, GSTIN Credit Guard, Power Dialer & SLA Desk.',
                   },
                   {
-                    title: '5-Digit Account ID & Role Permissions',
-                    desc: 'Onboard managers and sales agents with instant WhatsApp credential links.',
+                    title: '5-Digit Account ID & Multi-Role Workspaces',
+                    desc: 'Onboard Sales Managers, Reps & Support Engineers via instant email & WhatsApp links.',
                   },
                   {
-                    title: 'No Credit Card or Auto-Debit Mandate Required',
-                    desc: 'Try completely risk-free — keep your CRM data forever.',
+                    title: 'Zero Credit Card or Auto-Debit Mandate',
+                    desc: 'Launch completely risk-free — keep full ownership of your CRM data forever.',
                   },
                 ].map((item) => (
                   <div

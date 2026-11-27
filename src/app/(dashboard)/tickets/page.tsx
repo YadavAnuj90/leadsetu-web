@@ -32,6 +32,7 @@ import {
 import {
   fetchTicketsApi,
   fetchTicketByIdApi,
+  fetchTicketAssigneesApi,
   createTicketApi,
   updateTicketApi,
   addTicketCommentApi,
@@ -43,6 +44,7 @@ import { apiClient, getErrorMessage } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth.store';
 import type {
   Ticket,
+  TicketAssignee,
   TicketCategory,
   TicketPriority,
   TicketStatus,
@@ -105,6 +107,7 @@ export default function TicketsPage() {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [slaBreachedOnly, setSlaBreachedOnly] = useState(false);
+  const [assignedOnly, setAssignedOnly] = useState(false);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -114,6 +117,7 @@ export default function TicketsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [invoicesList, setInvoicesList] = useState<Invoice[]>([]);
   const [productsList, setProductsList] = useState<Product[]>([]);
+  const [assignees, setAssignees] = useState<TicketAssignee[]>([]);
 
   // Create Ticket Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -129,6 +133,7 @@ export default function TicketsPage() {
   const [linkedContactId, setLinkedContactId] = useState('');
   const [linkedInvoiceNumber, setLinkedInvoiceNumber] = useState('');
   const [productSerialOrSku, setProductSerialOrSku] = useState('');
+  const [assignedToUserId, setAssignedToUserId] = useState('');
   const [assignedToName, setAssignedToName] = useState('');
   const [assignedToPhone, setAssignedToPhone] = useState('');
   const [slaDueAt, setSlaDueAt] = useState(
@@ -140,8 +145,11 @@ export default function TicketsPage() {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [commentText, setCommentText] = useState('');
   const [commentInternal, setCommentInternal] = useState(false);
-  const [commentRole, setCommentRole] = useState<'agent' | 'engineer' | 'customer'>('agent');
+  const [commentRole, setCommentRole] = useState<'agent' | 'engineer' | 'customer'>(
+    user?.role === 'support' ? 'engineer' : 'agent',
+  );
   const [resolutionDraft, setResolutionDraft] = useState('');
+  const [assigneeUserIdDraft, setAssigneeUserIdDraft] = useState('');
   const [assigneeDraft, setAssigneeDraft] = useState('');
   const [assigneePhoneDraft, setAssigneePhoneDraft] = useState('');
   const [isPostingComment, setIsPostingComment] = useState(false);
@@ -155,6 +163,7 @@ export default function TicketsPage() {
         priority: priorityFilter,
         category: categoryFilter,
         slaBreached: slaBreachedOnly ? 'true' : undefined,
+        assignedOnly: assignedOnly ? 'true' : undefined,
         search: search.trim() || undefined,
       });
       setTickets(res.data || []);
@@ -173,13 +182,13 @@ export default function TicketsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [statusFilter, priorityFilter, categoryFilter, slaBreachedOnly, search]);
+  }, [statusFilter, priorityFilter, categoryFilter, slaBreachedOnly, assignedOnly, search]);
 
   useEffect(() => {
     loadTickets();
   }, [loadTickets]);
 
-  // Load contacts, invoices, products for smart pickers
+  // Load contacts, invoices, products & team assignees for smart pickers
   useEffect(() => {
     apiClient
       .get<{ data: Contact[] }>('/contacts')
@@ -190,6 +199,9 @@ export default function TicketsPage() {
       .catch(() => {});
     fetchProductsApi()
       .then((res) => setProductsList(res.data || []))
+      .catch(() => {});
+    fetchTicketAssigneesApi()
+      .then((rows) => setAssignees(rows))
       .catch(() => {});
   }, []);
 
@@ -206,8 +218,10 @@ export default function TicketsPage() {
   const openTicketDetail = (tk: Ticket) => {
     setSelectedTicket(tk);
     setResolutionDraft(tk.resolutionSummary || '');
+    setAssigneeUserIdDraft(tk.assignedToUserId || '');
     setAssigneeDraft(tk.assignedToName || '');
     setAssigneePhoneDraft(tk.assignedToPhone || '');
+    setCommentRole(user?.role === 'support' ? 'engineer' : 'agent');
     setCommentText('');
     setCommentInternal(false);
   };
@@ -256,6 +270,7 @@ export default function TicketsPage() {
         linkedContactId: linkedContactId || undefined,
         linkedInvoiceNumber: linkedInvoiceNumber.trim(),
         productSerialOrSku: productSerialOrSku.trim(),
+        assignedToUserId: assignedToUserId || undefined,
         assignedToName: assignedToName.trim(),
         assignedToPhone: assignedToPhone.trim(),
         slaDueAt,
@@ -271,6 +286,7 @@ export default function TicketsPage() {
       setLinkedContactId('');
       setLinkedInvoiceNumber('');
       setProductSerialOrSku('');
+      setAssignedToUserId('');
       setNotes('');
       await loadTickets();
       openTicketDetail(created);
@@ -302,6 +318,7 @@ export default function TicketsPage() {
     setIsSaving(true);
     try {
       const updated = await updateTicketApi(selectedTicket.id, {
+        assignedToUserId: assigneeUserIdDraft || '',
         assignedToName: assigneeDraft.trim(),
         assignedToPhone: assigneePhoneDraft.trim(),
         resolutionSummary: resolutionDraft.trim(),
@@ -652,6 +669,18 @@ export default function TicketsPage() {
               <option value="medium">Medium</option>
               <option value="low">Low</option>
             </select>
+
+            <button
+              type="button"
+              onClick={() => setAssignedOnly((v) => !v)}
+              className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all ${
+                assignedOnly
+                  ? 'bg-teal-600 text-white border-teal-600 shadow-xs'
+                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-teal-400'
+              }`}
+            >
+              Assigned to Me
+            </button>
           </div>
         </div>
       </div>
@@ -1105,12 +1134,36 @@ export default function TicketsPage() {
               </div>
 
               {/* Assign Field Engineer / Support Desk */}
-              <div className="bg-indigo-50/60 p-3.5 rounded-2xl border border-indigo-200/80 space-y-2">
+              <div className="bg-indigo-50/60 p-3.5 rounded-2xl border border-indigo-200/80 space-y-2.5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <label className="text-xs font-extrabold text-indigo-950">
-                    Assign Field Engineer / Support Owner
+                    Assign Support Engineer / Service Owner
                   </label>
                 </div>
+                {assignees.length > 0 && (
+                  <select
+                    value={assignedToUserId}
+                    onChange={(e) => {
+                      const uid = e.target.value;
+                      setAssignedToUserId(uid);
+                      const picked = assignees.find((a) => a.id === uid);
+                      if (picked) {
+                        setAssignedToName(picked.name);
+                        setAssignedToPhone(picked.phone || '');
+                      }
+                    }}
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-indigo-200 text-xs font-bold text-brand-navy"
+                  >
+                    <option value="">-- Open Support Queue (Unassigned) or Pick Team Member --</option>
+                    {assignees.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.role === 'support' ? '🔧 [Support Engineer] ' : `[${a.role.toUpperCase()}] `}
+                        {a.name}
+                        {a.territory ? ` · ${a.territory}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <input
                     type="text"
@@ -1264,6 +1317,7 @@ export default function TicketsPage() {
                   <div className="text-[11px] font-extrabold uppercase tracking-wider text-brand-blue">
                     Buyer, Asset &amp; Site Information
                   </div>
+
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <span className="text-slate-400 block">Company:</span>
@@ -1315,6 +1369,31 @@ export default function TicketsPage() {
                       SLA Due: {selectedTicket.slaDueAt}
                     </span>
                   </div>
+
+                  {assignees.length > 0 && (
+                    <select
+                      value={assigneeUserIdDraft}
+                      onChange={(e) => {
+                        const uid = e.target.value;
+                        setAssigneeUserIdDraft(uid);
+                        const picked = assignees.find((a) => a.id === uid);
+                        if (picked) {
+                          setAssigneeDraft(picked.name);
+                          setAssigneePhoneDraft(picked.phone || '');
+                        }
+                      }}
+                      className="w-full px-3 py-1.5 rounded-xl border border-indigo-200 bg-indigo-50/50 text-xs font-bold text-brand-navy"
+                    >
+                      <option value="">-- Unassigned / External Field Engineer --</option>
+                      {assignees.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.role === 'support' ? '🔧 [Support Engineer] ' : `[${a.role.toUpperCase()}] `}
+                          {a.name}
+                          {a.territory ? ` · ${a.territory}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  )}
 
                   <div className="grid grid-cols-2 gap-2">
                     <input

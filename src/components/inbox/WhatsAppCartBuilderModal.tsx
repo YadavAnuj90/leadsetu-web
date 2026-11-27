@@ -32,14 +32,29 @@ interface CartLine {
   unitPrice: number;
 }
 
+export interface PrefilledCartLineInput {
+  productId?: string;
+  sku?: string;
+  description: string;
+  hsnSac?: string;
+  quantity: number;
+  unitPrice: number;
+}
+
 export default function WhatsAppCartBuilderModal({
   open,
   conversation,
+  prefilledLines,
+  prefilledCity,
+  prefilledDocType,
   onClose,
   onSent,
 }: {
   open: boolean;
   conversation: Conversation | null;
+  prefilledLines?: PrefilledCartLineInput[] | null;
+  prefilledCity?: string;
+  prefilledDocType?: 'tax_invoice' | 'proforma_quote';
   onClose: () => void;
   onSent?: (summaryText: string) => void;
 }) {
@@ -70,12 +85,33 @@ export default function WhatsAppCartBuilderModal({
     if (!open) return;
     setReceipt(null);
     setError(null);
+    if (prefilledLines && prefilledLines.length > 0) {
+      setCart(
+        prefilledLines.map((l, idx) => ({
+          key: l.productId || `rfq-${idx}-${Date.now()}`,
+          productId: l.productId,
+          sku: l.sku,
+          description: l.description,
+          hsnSac: l.hsnSac || '850440',
+          quantity: Math.max(1, Number(l.quantity || 1)),
+          unitPrice: Math.max(0, Number(l.unitPrice || 0)),
+        })),
+      );
+    } else {
+      setCart([]);
+    }
+    if (prefilledDocType) {
+      setDocType(prefilledDocType);
+    }
+    if (prefilledCity?.trim()) {
+      setPlaceOfSupply(prefilledCity.trim());
+    }
     setLoadingProducts(true);
     fetchProductsApi()
       .then((res) => setProducts(res.data || []))
       .catch(() => {})
       .finally(() => setLoadingProducts(false));
-  }, [open]);
+  }, [open, prefilledLines, prefilledCity, prefilledDocType]);
 
   const filteredProducts = useMemo(() => {
     const q = search.trim().toLowerCase();

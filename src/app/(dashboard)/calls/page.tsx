@@ -32,6 +32,7 @@ import {
   ExternalLink,
   CalendarCheck,
   Tag,
+  Zap,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { playDtmfTone } from '@/lib/call-sound';
@@ -180,6 +181,9 @@ export default function CrmPhonePage() {
   const [creatingTaskCallId, setCreatingTaskCallId] = useState<string | null>(null);
   const [expandedTranscripts, setExpandedTranscripts] = useState<Record<string, boolean>>({});
   const [aiError, setAiError] = useState<string | null>(null);
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<
+    'dialer' | 'softphone' | 'floor' | 'telemetry'
+  >('dialer');
 
   const isAdminViewer = ['owner', 'admin', 'manager', 'super_admin'].includes(
     user?.role || '',
@@ -446,151 +450,134 @@ export default function CrmPhonePage() {
   const totalTalkSec = myAnalytics?.totalDurationSeconds ?? 0;
 
   return (
-    <div className="max-w-[1400px] mx-auto space-y-6 pb-10">
-      {/* ─── SECTION A: TOP VOICE COMMAND HERO ─────────────────────────────────── */}
-      <div
-        className="relative overflow-hidden rounded-3xl p-6 sm:p-7 text-white shadow-xl border border-white/10"
-        style={{
-          background:
-            'linear-gradient(135deg, #091224 0%, #15284E 50%, #1E4EAD 100%)',
-        }}
-      >
-        <div className="pointer-events-none absolute -top-20 -right-16 w-72 h-72 rounded-full bg-emerald-400/15 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 left-1/3 w-72 h-72 rounded-full bg-sky-400/15 blur-3xl" />
-
-        <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-6">
-          <div className="flex items-start sm:items-center gap-4">
-            <div className="relative shrink-0">
-              <div
-                className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center font-black text-2xl text-white shadow-lg ring-2 ring-white/25"
-                style={{
-                  background:
-                    'linear-gradient(135deg, #3978EA 0%, #10B981 100%)',
-                }}
-              >
-                <PhoneCall className="w-7 h-7" />
-              </div>
-              <span
-                className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-[#0F1E3B] ${PRESENCE_STYLES[myStatus].dot}`}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-[10px] font-extrabold uppercase tracking-widest text-sky-200">
-                  <Sparkles className="w-3 h-3 text-emerald-300" />
-                  {socketConnected
-                    ? 'Live Signaling Connected'
-                    : 'Connecting Voice Signaling...'}
-                </span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-400/15 border border-sky-300/25 text-[10px] font-extrabold uppercase tracking-wider text-sky-100">
-                  {isAdminViewer ? 'Admin Workspace Desk' : 'Personal Agent Desk'}
-                </span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-                Internal Agent Voice Desk
-              </h1>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-200">
-                <span>
-                  Agent: <strong className="text-white">{user?.name || 'User'}</strong>
-                </span>
-                <button
-                  type="button"
-                  onClick={handleCopyOwnUid}
-                  className="inline-flex items-center gap-1.5 font-mono text-sky-200 hover:text-white bg-white/10 hover:bg-white/15 px-2.5 py-0.5 rounded-lg border border-white/15 transition-colors"
-                  title="Copy your 10-digit Extension UID"
-                >
-                  <span>Ext #{user?.userCode || '—'}</span>
-                  {copiedUid ? (
-                    <Check className="w-3 h-3 text-emerald-300" />
-                  ) : (
-                    <Copy className="w-3 h-3 opacity-80" />
-                  )}
-                </button>
-                <span className="inline-flex items-center gap-1 text-emerald-300 font-semibold">
-                  <ShieldCheck className="w-3.5 h-3.5" /> {companyDisplay}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2.5">
-            <div className="inline-flex items-center rounded-2xl p-1 bg-white/10 border border-white/15 backdrop-blur-sm">
-              {(['online', 'busy', 'offline'] as AgentPresenceStatus[]).map(
-                (st) => (
-                  <button
-                    key={st}
-                    type="button"
-                    disabled={callState !== 'idle'}
-                    onClick={() => handlers?.setPresence(st)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all disabled:opacity-60 ${
-                      myStatus === st
-                        ? 'bg-white text-slate-900 shadow-md'
-                        : 'text-slate-200 hover:bg-white/10'
-                    }`}
-                  >
-                    <span
-                      className={`w-2 h-2 rounded-full ${PRESENCE_STYLES[st].dot}`}
-                    />
-                    {st === 'online'
-                      ? 'Online'
-                      : st === 'busy'
-                        ? 'Busy'
-                        : 'Offline'}
-                  </button>
-                ),
-              )}
-            </div>
-
-            <button
-              type="button"
-              onClick={handleVerifyMic}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold border inline-flex items-center gap-1.5 transition-all ${
-                micState === 'granted'
-                  ? 'bg-emerald-500/20 border-emerald-400/40 text-emerald-200'
-                  : micState === 'denied'
-                    ? 'bg-rose-500/20 border-rose-400/40 text-rose-200'
-                    : 'bg-white/10 border-white/20 text-white hover:bg-white/20'
-              }`}
+    <div className="max-w-[1440px] mx-auto space-y-4 sm:space-y-5 pb-10">
+      {/* ─── SECTION A: COMPACT EXECUTIVE VOICE DESK HEADER ────────────────────── */}
+      <div className="rounded-2xl sm:rounded-3xl p-4 sm:p-5 bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-white/[0.08] shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+        <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+          <div className="relative shrink-0">
+            <div
+              className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center text-white shadow-md"
+              style={{
+                background: 'linear-gradient(135deg, #3978EA 0%, #10B981 100%)',
+              }}
             >
-              {micState === 'denied' ? (
-                <MicOff className="w-3.5 h-3.5" />
-              ) : (
-                <Mic className="w-3.5 h-3.5" />
-              )}
-              <span>
-                {micState === 'granted'
-                  ? 'Mic Ready'
-                  : micState === 'denied'
-                    ? 'Mic Blocked'
-                    : 'Test Mic'}
-              </span>
-            </button>
+              <PhoneCall className="w-5 h-5 sm:w-6 sm:h-6" />
+            </div>
+            <span
+              className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-[#0D1628] ${PRESENCE_STYLES[myStatus].dot}`}
+            />
           </div>
+
+          <div className="min-w-0 space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/25 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    socketConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+                  }`}
+                />
+                {socketConnected ? 'Live Signaling' : 'Connecting...'}
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                {isAdminViewer ? 'Admin Voice Console' : 'Agent Voice Desk'}
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight text-brand-navy dark:text-white">
+                CRM Voice &amp; Power Dialer
+              </h1>
+              <button
+                type="button"
+                onClick={handleCopyOwnUid}
+                className="inline-flex items-center gap-1.5 font-mono text-[11px] font-bold text-brand-blue dark:text-sky-300 bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/10 px-2.5 py-0.5 rounded-lg border border-slate-200/80 dark:border-white/10 transition-colors"
+                title="Copy your 10-digit Extension UID"
+              >
+                <span>Ext #{user?.userCode || '—'}</span>
+                {copiedUid ? (
+                  <Check className="w-3 h-3 text-emerald-500" />
+                ) : (
+                  <Copy className="w-3 h-3 opacity-75" />
+                )}
+              </button>
+              <span className="hidden sm:inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> {companyDisplay}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <div className="inline-flex items-center rounded-xl p-1 bg-slate-100 dark:bg-white/[0.05] border border-slate-200/80 dark:border-white/10">
+            {(['online', 'busy', 'offline'] as AgentPresenceStatus[]).map(
+              (st) => (
+                <button
+                  key={st}
+                  type="button"
+                  disabled={callState !== 'idle'}
+                  onClick={() => handlers?.setPresence(st)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all disabled:opacity-60 ${
+                    myStatus === st
+                      ? 'bg-white dark:bg-[#1B2B4B] text-brand-navy dark:text-white shadow-xs'
+                      : 'text-slate-500 dark:text-slate-300 hover:text-brand-navy dark:hover:text-white'
+                  }`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full ${PRESENCE_STYLES[st].dot}`}
+                  />
+                  {st === 'online'
+                    ? 'Online'
+                    : st === 'busy'
+                      ? 'Busy'
+                      : 'Offline'}
+                </button>
+              ),
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleVerifyMic}
+            className={`h-9 px-3.5 rounded-xl text-xs font-bold border inline-flex items-center gap-1.5 transition-all ${
+              micState === 'granted'
+                ? 'bg-emerald-500/15 border-emerald-500/35 text-emerald-700 dark:text-emerald-300'
+                : micState === 'denied'
+                  ? 'bg-rose-500/15 border-rose-500/35 text-rose-700 dark:text-rose-300'
+                  : 'bg-slate-50 dark:bg-white/[0.04] border-slate-200 dark:border-white/15 text-brand-navy dark:text-slate-200 hover:border-brand-blue'
+            }`}
+          >
+            {micState === 'denied' ? (
+              <MicOff className="w-3.5 h-3.5" />
+            ) : (
+              <Mic className="w-3.5 h-3.5" />
+            )}
+            <span>
+              {micState === 'granted'
+                ? 'Mic Ready'
+                : micState === 'denied'
+                  ? 'Mic Blocked'
+                  : 'Test Mic'}
+            </span>
+          </button>
         </div>
       </div>
 
-      {/* ─── SECTION B: TOP SUMMARY & CIRCULAR RING ANALYTICS STRIP ───────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+      {/* ─── SECTION B: COMPACT PERFORMANCE & LIVE PRESENCE STRIP ──────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
         {/* Left Card: Personal Call Performance */}
-        <div className="lg:col-span-7 xl:col-span-8 rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-slate-800 shadow-sm p-5 sm:p-6 flex flex-col justify-between gap-4">
+        <div className="lg:col-span-7 xl:col-span-8 rounded-2xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-white/[0.08] shadow-xs p-4 sm:p-5 flex flex-col justify-between gap-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h2 className="text-sm font-extrabold text-brand-navy dark:text-white flex items-center gap-2">
-                <Activity className="w-4 h-4 text-brand-blue" />
-                My Call Summary
-              </h2>
-              <p className="text-[11px] text-slate-400">
-                Your personal answered, missed &amp; talk time metrics
-              </p>
-            </div>
-            <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-              Live Personal Telemetry
+            <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-300 flex items-center gap-2">
+              <Activity className="w-3.5 h-3.5 text-brand-blue" />
+              My Call Summary
+            </h2>
+            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-white/[0.06] text-slate-500 dark:text-slate-300">
+              Live Telemetry
             </span>
           </div>
 
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-            <div className="grid grid-cols-4 gap-3 sm:gap-5 flex-1">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1">
               <RoundCallMetricRing
                 label="Total"
                 value={totalMetric}
@@ -620,30 +607,29 @@ export default function CrmPhonePage() {
               />
             </div>
 
-            <div className="grid grid-cols-3 md:grid-cols-1 gap-2.5 md:w-52 shrink-0">
-              <div className="rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/70 dark:border-slate-800 px-3.5 py-2 flex items-center justify-between gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <div className="grid grid-cols-3 md:grid-cols-1 gap-2 md:w-48 shrink-0">
+              <div className="rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/[0.07] px-3 py-1.5 flex items-center justify-between gap-2">
+                <span className="text-[10px] font-bold uppercase text-slate-400">
                   Answer Rate
                 </span>
                 <span className="text-xs font-mono font-black text-emerald-600 dark:text-emerald-400">
                   {answerRatePct}%
                 </span>
               </div>
-              <div className="rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/70 dark:border-slate-800 px-3.5 py-2 flex items-center justify-between gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/[0.07] px-3 py-1.5 flex items-center justify-between gap-2">
+                <span className="text-[10px] font-bold uppercase text-slate-400">
                   Talk Time
                 </span>
                 <span className="text-xs font-mono font-black text-brand-navy dark:text-white">
                   {formatCallDuration(totalTalkSec)}
                 </span>
               </div>
-              <div className="rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/70 dark:border-slate-800 px-3.5 py-2 flex items-center justify-between gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/[0.07] px-3 py-1.5 flex items-center justify-between gap-2">
+                <span className="text-[10px] font-bold uppercase text-slate-400">
                   Out / In
                 </span>
-                <span className="text-xs font-mono font-bold text-slate-600 dark:text-slate-300">
-                  {myAnalytics?.outgoingCalls ?? 0} Out ·{' '}
-                  {myAnalytics?.incomingCalls ?? 0} In
+                <span className="text-[11px] font-mono font-bold text-slate-600 dark:text-slate-300">
+                  {myAnalytics?.outgoingCalls ?? 0} / {myAnalytics?.incomingCalls ?? 0}
                 </span>
               </div>
             </div>
@@ -652,61 +638,62 @@ export default function CrmPhonePage() {
 
         {/* Right Card: Role-Adaptive Workspace / Extension Card */}
         {isAdminViewer ? (
-          <div className="lg:col-span-5 xl:col-span-4 rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-slate-800 shadow-sm p-5 sm:p-6 flex flex-col justify-between gap-4">
-            <div>
-              <h2 className="text-sm font-extrabold text-brand-navy dark:text-white flex items-center gap-2">
-                <Users className="w-4 h-4 text-brand-blue" />
-                Workspace Live Presence
+          <div className="lg:col-span-5 xl:col-span-4 rounded-2xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-white/[0.08] shadow-xs p-4 sm:p-5 flex flex-col justify-between gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-300 flex items-center gap-2">
+                <Users className="w-3.5 h-3.5 text-brand-blue" />
+                Floor Presence
               </h2>
-              <p className="text-[11px] text-slate-400">
-                Real-time availability across workspace teammates
-              </p>
+              <span className="text-[11px] font-semibold text-slate-400">
+                {teammates.length} Teammates
+              </span>
             </div>
 
             <div className="grid grid-cols-3 gap-2.5">
-              <div className="rounded-2xl p-3 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-800/60 text-center">
-                <div className="text-xl font-mono font-black text-emerald-600 dark:text-emerald-400">
+              <div className="rounded-xl p-2.5 bg-emerald-50/70 dark:bg-emerald-500/10 border border-emerald-200/70 dark:border-emerald-500/25 text-center">
+                <div className="text-lg font-mono font-black text-emerald-600 dark:text-emerald-400">
                   {onlineCount}
                 </div>
-                <div className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700/80 dark:text-emerald-300/80 mt-0.5">
+                <div className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700/80 dark:text-emerald-300/80">
                   Online
                 </div>
               </div>
-              <div className="rounded-2xl p-3 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/60 text-center">
-                <div className="text-xl font-mono font-black text-amber-600 dark:text-amber-400">
+              <div className="rounded-xl p-2.5 bg-amber-50/70 dark:bg-amber-500/10 border border-amber-200/70 dark:border-amber-500/25 text-center">
+                <div className="text-lg font-mono font-black text-amber-600 dark:text-amber-400">
                   {busyCount}
                 </div>
-                <div className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700/80 dark:text-amber-300/80 mt-0.5">
+                <div className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700/80 dark:text-amber-300/80">
                   Busy
                 </div>
               </div>
-              <div className="rounded-2xl p-3 bg-slate-100/80 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-center">
-                <div className="text-xl font-mono font-black text-slate-600 dark:text-slate-300">
+              <div className="rounded-xl p-2.5 bg-slate-100/80 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 text-center">
+                <div className="text-lg font-mono font-black text-slate-600 dark:text-slate-300">
                   {offlineCount}
                 </div>
-                <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-0.5">
+                <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   Offline
                 </div>
               </div>
             </div>
 
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-              Monitor live agent Online, Busy, and Offline availability across
-              your workspace in real time.
-            </p>
+            <div className="flex items-center justify-between text-[11px] text-slate-400">
+              <span>Live floor availability</span>
+              <button
+                type="button"
+                onClick={() => setActiveWorkspaceTab('floor')}
+                className="font-bold text-brand-blue dark:text-sky-300 hover:underline"
+              >
+                Open Team Roster →
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="lg:col-span-5 xl:col-span-4 rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-slate-800 shadow-sm p-5 sm:p-6 flex flex-col justify-between gap-4">
+          <div className="lg:col-span-5 xl:col-span-4 rounded-2xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-white/[0.08] shadow-xs p-4 sm:p-5 flex flex-col justify-between gap-3">
             <div className="flex items-start justify-between gap-2">
-              <div>
-                <h2 className="text-sm font-extrabold text-brand-navy dark:text-white flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                  My Voice Extension
-                </h2>
-                <p className="text-[11px] text-slate-400">
-                  Direct UID routing &amp; status privacy
-                </p>
-              </div>
+              <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-300 flex items-center gap-2">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                My Voice Extension
+              </h2>
               <span
                 className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${PRESENCE_STYLES[myStatus].badge}`}
               >
@@ -717,19 +704,19 @@ export default function CrmPhonePage() {
               </span>
             </div>
 
-            <div className="rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between gap-3">
+            <div className="rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 px-3.5 py-2.5 flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Your 10-Digit UID #
                 </div>
-                <div className="text-lg font-mono font-black text-brand-navy dark:text-white tracking-wider truncate">
+                <div className="text-base font-mono font-black text-brand-navy dark:text-white tracking-wider truncate">
                   #{user?.userCode || '—'}
                 </div>
               </div>
               <button
                 type="button"
                 onClick={handleCopyOwnUid}
-                className="px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-brand-blue text-xs font-bold text-brand-navy dark:text-white inline-flex items-center gap-1.5 shrink-0 transition-colors"
+                className="px-3 py-1.5 rounded-lg bg-white dark:bg-white/10 border border-slate-200 dark:border-white/15 hover:border-brand-blue text-xs font-bold text-brand-navy dark:text-white inline-flex items-center gap-1.5 shrink-0 transition-colors"
               >
                 {copiedUid ? (
                   <>
@@ -745,26 +732,277 @@ export default function CrmPhonePage() {
               </button>
             </div>
 
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-              Only your own status is visible to you. Share your 10-digit UID #
-              with teammates or enter theirs on the dialpad to connect.
+            <p className="text-[11px] text-slate-400">
+              Share your 10-digit UID # with teammates for direct browser audio calls.
             </p>
           </div>
         )}
       </div>
 
-      {/* ─── BPO POWER DIALER QUEUE + RNR AUTO-RETRY ──────────────────────────── */}
-      <PowerDialerDeck
-        onOutcomeLogged={async () => {
-          await handlers?.refreshHistory(historyFilter);
-          loadAnalyticsBoard();
-        }}
-      />
+      {/* ─── WORKSPACE SECTION TABS (Eliminates Endless Scrolling) ─────────────── */}
+      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-white/[0.08] overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <button
+          type="button"
+          onClick={() => setActiveWorkspaceTab('dialer')}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            activeWorkspaceTab === 'dialer'
+              ? 'bg-brand-blue text-white shadow-sm'
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5'
+          }`}
+        >
+          <Zap className="w-3.5 h-3.5" />
+          <span>Power Dialer &amp; Call Links</span>
+        </button>
 
-      {/* ─── SECTION C: MAIN PHONE WORKSPACE (3-COL ADMIN / 2-COL PRIVATE USER) ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        {/* COLUMN 1: Outgoing Softphone */}
-        <div className="lg:col-span-4 rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full">
+        <button
+          type="button"
+          onClick={() => setActiveWorkspaceTab('softphone')}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            activeWorkspaceTab === 'softphone'
+              ? 'bg-brand-blue text-white shadow-sm'
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5'
+          }`}
+        >
+          <Phone className="w-3.5 h-3.5" />
+          <span>Softphone &amp; Call History</span>
+          {(historyStats.pendingCallbacks || 0) > 0 && (
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                activeWorkspaceTab === 'softphone'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-rose-500 text-white'
+              }`}
+            >
+              {historyStats.pendingCallbacks}
+            </span>
+          )}
+        </button>
+
+        {isAdminViewer && (
+          <button
+            type="button"
+            onClick={() => setActiveWorkspaceTab('floor')}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              activeWorkspaceTab === 'floor'
+                ? 'bg-brand-blue text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>Team Floor &amp; Manager Board</span>
+            {activeMonitorCalls.length > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-black">
+                {activeMonitorCalls.length} Live
+              </span>
+            )}
+          </button>
+        )}
+
+        {isAdminViewer && (
+          <button
+            type="button"
+            onClick={() => setActiveWorkspaceTab('telemetry')}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              activeWorkspaceTab === 'telemetry'
+                ? 'bg-brand-blue text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5'
+            }`}
+          >
+            <Activity className="w-3.5 h-3.5" />
+            <span>WebRTC Telemetry</span>
+          </button>
+        )}
+      </div>
+
+      {/* ─── TAB 1: BPO POWER DIALER QUEUE + CLICK-TO-CALL SHARE DESK ─────────── */}
+      {activeWorkspaceTab === 'dialer' && (
+        <div className="space-y-5">
+          <PowerDialerDeck
+            onOutcomeLogged={async () => {
+              await handlers?.refreshHistory(historyFilter);
+              loadAnalyticsBoard();
+            }}
+          />
+
+          {/* Customer Click-to-Call Share Desk */}
+          <div className="rounded-2xl sm:rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-white/[0.08] shadow-xs overflow-hidden">
+            <div className="px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-white/[0.07] flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 className="text-sm font-extrabold text-brand-navy dark:text-white flex items-center gap-2">
+                  <Link2 className="w-4 h-4 text-emerald-500" />
+                  Customer Click-to-Call Share Desk
+                </h2>
+                <p className="text-[11px] text-slate-400">
+                  Generate a secure browser voice link routed to the assigned agent — share via WhatsApp or Email
+                </p>
+              </div>
+              <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-500/30 text-[10px] font-extrabold">
+                ₹0 WebRTC Link
+              </span>
+            </div>
+
+            <div className="p-5 sm:p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                <div className="md:col-span-3 space-y-1">
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                    Link Context Type
+                  </label>
+                  <select
+                    value={shareEntityType}
+                    onChange={(e) => {
+                      setShareEntityType(
+                        e.target.value as '' | 'lead' | 'deal' | 'ticket',
+                      );
+                      setShareEntityId('');
+                    }}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/15 text-xs font-bold text-brand-navy dark:text-white"
+                  >
+                    <option value="">General Agent Call Link (Me)</option>
+                    <option value="lead">Link to Lead</option>
+                    <option value="deal">Link to Deal</option>
+                    <option value="ticket">Link to Ticket</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-6 space-y-1">
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                    {shareEntityType
+                      ? `Select ${shareEntityType} (routes to assigned owner)`
+                      : 'Assigned Agent'}
+                  </label>
+                  {shareEntityType ? (
+                    <select
+                      value={shareEntityId}
+                      onChange={(e) => setShareEntityId(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/15 text-xs font-semibold text-brand-navy dark:text-white"
+                    >
+                      <option value="">-- Choose a {shareEntityType} --</option>
+                      {shareEntityOptions.map((opt) => (
+                        <option key={opt.id} value={opt.id}>
+                          {opt.label}
+                          {opt.phone ? ` · ${opt.phone}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                      Routes incoming web calls directly to{' '}
+                      <strong>{user?.name || 'You'}</strong> (UID #
+                      {user?.userCode || '—'})
+                    </div>
+                  )}
+                </div>
+
+                <div className="md:col-span-3">
+                  <button
+                    type="button"
+                    disabled={
+                      generatingShareLink ||
+                      (Boolean(shareEntityType) && !shareEntityId)
+                    }
+                    onClick={() => void handleGenerateShareLink()}
+                    className="w-full py-2.5 px-4 rounded-xl bg-brand-navy hover:bg-brand-blue disabled:opacity-45 text-white text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors shadow-sm"
+                  >
+                    {generatingShareLink ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Link2 className="w-3.5 h-3.5" />
+                    )}
+                    <span>Generate Call Link</span>
+                  </button>
+                </div>
+              </div>
+
+              {shareError && (
+                <div className="px-3.5 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-xs font-semibold text-rose-700 dark:text-rose-200">
+                  {shareError}
+                </div>
+              )}
+
+              {shareResult && (
+                <div className="rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/10 p-4 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-xs font-bold text-brand-navy dark:text-white flex items-center gap-2 flex-wrap">
+                      <span>Assigned Agent: {shareResult.agent.name}</span>
+                      {shareResult.entityLabel && (
+                        <span className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/50 text-brand-blue dark:text-sky-300 text-[10px] font-bold">
+                          {shareResult.entityType.toUpperCase()}:{' '}
+                          {shareResult.entityLabel}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] font-semibold text-slate-400">
+                      Valid for {shareResult.expiresInDays} days
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+                    <input
+                      type="text"
+                      readOnly
+                      value={shareFullUrl}
+                      className="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/15 text-xs font-mono text-slate-700 dark:text-slate-200"
+                    />
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleCopyShareUrl}
+                        className="px-3 py-2 rounded-xl bg-white dark:bg-white/10 border border-slate-200 dark:border-white/15 hover:border-brand-blue text-xs font-bold text-brand-navy dark:text-white inline-flex items-center gap-1.5"
+                      >
+                        {copiedShareUrl ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-500" />
+                            <span>Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5 text-brand-blue" />
+                            <span>Copy Link</span>
+                          </>
+                        )}
+                      </button>
+
+                      <a
+                        href={`https://wa.me/${(shareResult.customerPhone || '').replace(/\D/g, '')}?text=${encodeURIComponent(`Hi${shareResult.customerName ? ` ${shareResult.customerName}` : ''}, tap this secure link to speak directly with ${shareResult.agent.name} at ${shareResult.companyName} (free browser voice call): ${shareFullUrl}`)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1.5"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span>WhatsApp</span>
+                      </a>
+
+                      <a
+                        href={`mailto:?subject=${encodeURIComponent(`Direct Voice Support Link — ${shareResult.companyName}`)}&body=${encodeURIComponent(`Hi${shareResult.customerName ? ` ${shareResult.customerName}` : ''},\n\nClick the link below to talk directly with ${shareResult.agent.name} from your browser (no app needed):\n${shareFullUrl}\n\nRegards,\n${shareResult.companyName}`)}`}
+                        className="px-3 py-2 rounded-xl bg-brand-blue hover:bg-blue-700 text-white text-xs font-bold inline-flex items-center gap-1.5"
+                      >
+                        <Mail className="w-3.5 h-3.5" />
+                        <span>Email</span>
+                      </a>
+
+                      <a
+                        href={shareResult.urlPath}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-2 rounded-xl bg-white dark:bg-white/10 border border-slate-200 dark:border-white/15 text-slate-600 dark:text-slate-300 hover:text-brand-blue"
+                        title="Open Customer Call Page"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: SOFTPHONE DIALPAD + SPACIOUS CALL HISTORY & AI AUDIT ──────── */}
+      {activeWorkspaceTab === 'softphone' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          {/* COLUMN 1: Outgoing Softphone (4 cols) */}
+          <div className="lg:col-span-4 rounded-2xl sm:rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-white/[0.08] shadow-xs overflow-hidden flex flex-col">
           <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-extrabold text-brand-navy dark:text-white flex items-center gap-2">
@@ -958,134 +1196,16 @@ export default function CrmPhonePage() {
           </div>
         </div>
 
-        {/* COLUMN 2: Live Workspace Agents Directory (Owner / Admin only) */}
-        {isAdminViewer && (
-          <div className="lg:col-span-4 rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full">
-            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-              <div>
-                <h2 className="text-sm font-extrabold text-brand-navy dark:text-white flex items-center gap-2">
-                  <Users className="w-4 h-4 text-brand-blue" />
-                  Team Roster ({teammates.length})
-                </h2>
-                <p className="text-[11px] text-slate-400">
-                  Real-time workspace online / busy / offline status
-                </p>
-              </div>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-800 shrink-0">
-                {onlineCount} Online
-              </span>
-            </div>
-
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800 space-y-2.5">
-              <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search agent name, UID #, or territory..."
-                  className="w-full pl-10 pr-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-brand-navy dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-blue"
-                />
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {(['all', 'online', 'busy', 'offline'] as const).map((st) => (
-                  <button
-                    key={st}
-                    type="button"
-                    onClick={() => setRosterStatusFilter(st)}
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold capitalize transition-colors ${
-                      rosterStatusFilter === st
-                        ? 'bg-brand-navy text-white dark:bg-brand-blue'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    {st}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="p-4 space-y-2.5 flex-1 max-h-[440px] overflow-y-auto">
-              {teammates.length === 0 ? (
-                <div className="min-h-[300px] py-10 px-4 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-center space-y-2">
-                  <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
-                    <Users className="w-5 h-5" />
-                  </div>
-                  <div className="text-xs font-bold text-brand-navy dark:text-white">
-                    No matching teammates found
-                  </div>
-                  <p className="text-[11px] text-slate-400 max-w-xs">
-                    Invite workspace members in Settings → Team or adjust your
-                    search and status filters.
-                  </p>
-                </div>
-              ) : (
-                teammates.map((m) => (
-                  <div
-                    key={m.userId}
-                    className="p-3.5 rounded-2xl bg-slate-50/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 space-y-2.5 hover:border-brand-blue/40 transition-colors"
-                  >
-                    <div className="flex items-center justify-between gap-2.5">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="relative shrink-0">
-                          <div className="w-10 h-10 rounded-xl bg-brand-navy dark:bg-slate-800 text-white font-extrabold text-sm flex items-center justify-center">
-                            {m.name?.[0]?.toUpperCase() || 'A'}
-                          </div>
-                          <span
-                            className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 ${PRESENCE_STYLES[m.status].dot}`}
-                          />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-xs font-extrabold text-brand-navy dark:text-white truncate">
-                            {m.name}
-                          </div>
-                          <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                            {formatRoleLabel(m.role)}
-                            {m.territory ? ` · ${m.territory}` : ''}
-                          </div>
-                          <div className="text-[10px] font-mono text-slate-400">
-                            UID #{m.userCode}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-end gap-1 shrink-0">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${PRESENCE_STYLES[m.status].badge}`}
-                        >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${PRESENCE_STYLES[m.status].dot}`}
-                          />
-                          {PRESENCE_STYLES[m.status].label}
-                        </span>
-                        {m.inCall && (
-                          <span className="text-[10px] font-bold text-amber-600 dark:text-amber-300">
-                            On active call
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* COLUMN 3: Persistent MongoDB Call History */}
-        <div
-          className={`${
-            isAdminViewer ? 'lg:col-span-4' : 'lg:col-span-8'
-          } rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full`}
-        >
+        {/* COLUMN 2: Spacious Persistent Call History & AI Audit (8 cols) */}
+        <div className="lg:col-span-8 rounded-2xl sm:rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-white/[0.08] shadow-xs overflow-hidden flex flex-col">
           <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-extrabold text-brand-navy dark:text-white flex items-center gap-2">
                 <Clock className="w-4 h-4 text-brand-blue" />
-                Call History
+                Call History &amp; AI Audit
               </h2>
               <p className="text-[11px] text-slate-400">
-                Saved incoming, outgoing &amp; missed call logs
+                Saved incoming, outgoing &amp; missed call logs with transcripts
               </p>
             </div>
             <button
@@ -1140,7 +1260,7 @@ export default function CrmPhonePage() {
             </div>
           )}
 
-          <div className="p-4 space-y-2.5 flex-1 max-h-[440px] overflow-y-auto">
+          <div className="p-4 space-y-2.5 flex-1 max-h-[540px] overflow-y-auto">
             {loadingHistory && history.length === 0 ? (
               <div className="min-h-[320px] flex items-center justify-center gap-2 text-xs text-slate-400">
                 <Loader2 className="w-4 h-4 animate-spin text-brand-blue" />
@@ -1200,8 +1320,8 @@ export default function CrmPhonePage() {
                     key={item.id}
                     className="p-3.5 rounded-2xl bg-slate-50/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 space-y-2 hover:border-brand-blue/35 transition-colors"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
                         <div
                           className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
                             isMissed
@@ -1225,7 +1345,7 @@ export default function CrmPhonePage() {
                               {item.peerName}
                             </span>
                             {item.callChannel === 'sim_mobile' && (
-                              <span className="px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950/60 text-brand-blue dark:text-sky-300 text-[10px] font-extrabold">
+                              <span className="px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950/60 text-brand-blue dark:text-sky-300 text-[10px] font-extrabold whitespace-nowrap">
                                 SIM Mobile
                                 {item.customerPhone
                                   ? ` · ${item.customerPhone}`
@@ -1233,7 +1353,7 @@ export default function CrmPhonePage() {
                               </span>
                             )}
                             {isCustomerCall && (
-                              <span className="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold">
+                              <span className="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold whitespace-nowrap">
                                 Customer Call
                                 {item.customerPhone
                                   ? ` · ${item.customerPhone}`
@@ -1241,7 +1361,7 @@ export default function CrmPhonePage() {
                               </span>
                             )}
                             {item.peerUserCode && (
-                              <span className="px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-[10px] font-mono text-slate-500 dark:text-slate-300">
+                              <span className="px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-[10px] font-mono text-slate-500 dark:text-slate-300 whitespace-nowrap">
                                 UID #{item.peerUserCode}
                               </span>
                             )}
@@ -1569,183 +1689,129 @@ export default function CrmPhonePage() {
           </div>
         </div>
       </div>
+      )}
 
-      {/* ─── PHASE 2: CUSTOMER CLICK-TO-CALL SHARE DESK ────────────────────────── */}
-      <div className="rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-sm font-extrabold text-brand-navy dark:text-white flex items-center gap-2">
-              <Link2 className="w-4 h-4 text-emerald-500" />
-              Customer Click-to-Call Share Desk (Free Browser Audio)
-            </h2>
-            <p className="text-[11px] text-slate-400">
-              Generate a secure customer voice link routed directly to the
-              assigned agent — share via WhatsApp or Email
-            </p>
-          </div>
-          <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-800 text-[10px] font-extrabold">
-            ₹0 WebRTC Link
-          </span>
-        </div>
-
-        <div className="p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-            <div className="md:col-span-3 space-y-1">
-              <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                Link Context Type
-              </label>
-              <select
-                value={shareEntityType}
-                onChange={(e) => {
-                  setShareEntityType(
-                    e.target.value as '' | 'lead' | 'deal' | 'ticket',
-                  );
-                  setShareEntityId('');
-                }}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-brand-navy dark:text-white"
-              >
-                <option value="">General Agent Call Link (Me)</option>
-                <option value="lead">Link to Lead</option>
-                <option value="deal">Link to Deal</option>
-                <option value="ticket">Link to Ticket</option>
-              </select>
+      {/* ─── TAB 3: TEAM FLOOR ROSTER, LIVE MONITOR & CALL BOARD (ADMIN / MANAGER) ─ */}
+      {activeWorkspaceTab === 'floor' && isAdminViewer && (
+        <div className="space-y-5">
+          {/* Team Roster */}
+          <div className="rounded-2xl sm:rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-white/[0.08] shadow-xs overflow-hidden">
+            <div className="px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-extrabold text-brand-navy dark:text-white flex items-center gap-2">
+                  <Users className="w-4 h-4 text-brand-blue" />
+                  Team Roster ({teammates.length})
+                </h2>
+                <p className="text-[11px] text-slate-400">
+                  Real-time workspace online / busy / offline status
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap gap-1.5">
+                  {(['all', 'online', 'busy', 'offline'] as const).map((st) => (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() => setRosterStatusFilter(st)}
+                      className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold capitalize transition-colors ${
+                        rosterStatusFilter === st
+                          ? 'bg-brand-navy text-white dark:bg-brand-blue'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      {st}
+                    </button>
+                  ))}
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-800 shrink-0">
+                  {onlineCount} Online
+                </span>
+              </div>
             </div>
 
-            <div className="md:col-span-6 space-y-1">
-              <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                {shareEntityType
-                  ? `Select ${shareEntityType} (routes to assigned owner)`
-                  : 'Assigned Agent'}
-              </label>
-              {shareEntityType ? (
-                <select
-                  value={shareEntityId}
-                  onChange={(e) => setShareEntityId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-brand-navy dark:text-white"
-                >
-                  <option value="">-- Choose a {shareEntityType} --</option>
-                  {shareEntityOptions.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.label}
-                      {opt.phone ? ` · ${opt.phone}` : ''}
-                    </option>
-                  ))}
-                </select>
+            <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800">
+              <div className="relative max-w-md">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search agent name, UID #, or territory..."
+                  className="w-full pl-10 pr-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-brand-navy dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-blue"
+                />
+              </div>
+            </div>
+
+            <div className="p-4 sm:p-5">
+              {teammates.length === 0 ? (
+                <div className="py-10 px-4 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-center space-y-2">
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div className="text-xs font-bold text-brand-navy dark:text-white">
+                    No matching teammates found
+                  </div>
+                  <p className="text-[11px] text-slate-400 max-w-xs">
+                    Invite workspace members in Settings → Team or adjust your
+                    search and status filters.
+                  </p>
+                </div>
               ) : (
-                <div className="px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  Routes incoming web calls directly to{' '}
-                  <strong>{user?.name || 'You'}</strong> (UID #
-                  {user?.userCode || '—'})
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {teammates.map((m) => (
+                    <div
+                      key={m.userId}
+                      className="p-3.5 rounded-2xl bg-slate-50/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 hover:border-brand-blue/40 transition-colors"
+                    >
+                      <div className="flex items-center justify-between gap-2.5">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="relative shrink-0">
+                            <div className="w-10 h-10 rounded-xl bg-brand-navy dark:bg-slate-800 text-white font-extrabold text-sm flex items-center justify-center">
+                              {m.name?.[0]?.toUpperCase() || 'A'}
+                            </div>
+                            <span
+                              className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 ${PRESENCE_STYLES[m.status].dot}`}
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-extrabold text-brand-navy dark:text-white truncate">
+                              {m.name}
+                            </div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                              {formatRoleLabel(m.role)}
+                              {m.territory ? ` · ${m.territory}` : ''}
+                            </div>
+                            <div className="text-[10px] font-mono text-slate-400">
+                              UID #{m.userCode}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${PRESENCE_STYLES[m.status].badge}`}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${PRESENCE_STYLES[m.status].dot}`}
+                            />
+                            {PRESENCE_STYLES[m.status].label}
+                          </span>
+                          {m.inCall && (
+                            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-300">
+                              On active call
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
-
-            <div className="md:col-span-3">
-              <button
-                type="button"
-                disabled={
-                  generatingShareLink ||
-                  (Boolean(shareEntityType) && !shareEntityId)
-                }
-                onClick={() => void handleGenerateShareLink()}
-                className="w-full py-2.5 px-4 rounded-xl bg-brand-navy hover:bg-brand-blue disabled:opacity-45 text-white text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors shadow-sm"
-              >
-                {generatingShareLink ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Link2 className="w-3.5 h-3.5" />
-                )}
-                <span>Generate Call Link</span>
-              </button>
-            </div>
           </div>
 
-          {shareError && (
-            <div className="px-3.5 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-xs font-semibold text-rose-700 dark:text-rose-200">
-              {shareError}
-            </div>
-          )}
-
-          {shareResult && (
-            <div className="rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 p-4 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="text-xs font-bold text-brand-navy dark:text-white flex items-center gap-2 flex-wrap">
-                  <span>Assigned Agent: {shareResult.agent.name}</span>
-                  {shareResult.entityLabel && (
-                    <span className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/50 text-brand-blue dark:text-sky-300 text-[10px] font-bold">
-                      {shareResult.entityType.toUpperCase()}:{' '}
-                      {shareResult.entityLabel}
-                    </span>
-                  )}
-                </div>
-                <span className="text-[10px] font-semibold text-slate-400">
-                  Valid for {shareResult.expiresInDays} days
-                </span>
-              </div>
-
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
-                <input
-                  type="text"
-                  readOnly
-                  value={shareFullUrl}
-                  className="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-700 dark:text-slate-200"
-                />
-                <div className="flex flex-wrap items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={handleCopyShareUrl}
-                    className="px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-brand-blue text-xs font-bold text-brand-navy dark:text-white inline-flex items-center gap-1.5"
-                  >
-                    {copiedShareUrl ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>Copied</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5 text-brand-blue" />
-                        <span>Copy Link</span>
-                      </>
-                    )}
-                  </button>
-
-                  <a
-                    href={`https://wa.me/${(shareResult.customerPhone || '').replace(/\D/g, '')}?text=${encodeURIComponent(`Hi${shareResult.customerName ? ` ${shareResult.customerName}` : ''}, tap this secure link to speak directly with ${shareResult.agent.name} at ${shareResult.companyName} (free browser voice call): ${shareFullUrl}`)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1.5"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span>WhatsApp</span>
-                  </a>
-
-                  <a
-                    href={`mailto:?subject=${encodeURIComponent(`Direct Voice Support Link — ${shareResult.companyName}`)}&body=${encodeURIComponent(`Hi${shareResult.customerName ? ` ${shareResult.customerName}` : ''},\n\nClick the link below to talk directly with ${shareResult.agent.name} from your browser (no app needed):\n${shareFullUrl}\n\nRegards,\n${shareResult.companyName}`)}`}
-                    className="px-3 py-2 rounded-xl bg-brand-blue hover:bg-blue-700 text-white text-xs font-bold inline-flex items-center gap-1.5"
-                  >
-                    <Mail className="w-3.5 h-3.5" />
-                    <span>Email</span>
-                  </a>
-
-                  <a
-                    href={shareResult.urlPath}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-brand-blue"
-                    title="Open Customer Call Page"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ─── MANAGER LIVE ACTIVE CALLS MONITOR ───────────────────────────────── */}
-      {isAdminViewer && (
-        <div className="rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+          {/* ─── MANAGER LIVE ACTIVE CALLS MONITOR ───────────────────────────────── */}
+          <div className="rounded-2xl sm:rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-white/[0.08] shadow-xs overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-extrabold text-brand-navy dark:text-white flex items-center gap-2">
@@ -1807,12 +1873,11 @@ export default function CrmPhonePage() {
               ))}
             </div>
           )}
-        </div>
-      )}
+          </div>
 
-      {/* ─── SECTION D: LIVE MANAGER CALL BOARD (TODAY + DISPOSITION BREAKDOWN) ───── */}
-      {isAdminViewer && isAdminAnalytics && (
-        <div className="rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+          {/* ─── SECTION D: LIVE MANAGER CALL BOARD (TODAY + DISPOSITION BREAKDOWN) ───── */}
+          {isAdminAnalytics && (
+            <div className="rounded-2xl sm:rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-white/[0.08] shadow-xs overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-extrabold text-brand-navy dark:text-white flex items-center gap-2">
@@ -1938,11 +2003,15 @@ export default function CrmPhonePage() {
               })}
             </div>
           )}
+            </div>
+          )}
         </div>
       )}
 
-      {/* ─── SECTION E: WORKSPACE CALL LOGS & WEBRTC TELEMETRY (ADMIN / MANAGER) ─── */}
-      {isAdminViewer && <WorkspaceCallTelemetryCard />}
+      {/* ─── TAB 4: WORKSPACE CALL LOGS & WEBRTC TELEMETRY (ADMIN / MANAGER) ─── */}
+      {activeWorkspaceTab === 'telemetry' && isAdminViewer && (
+        <WorkspaceCallTelemetryCard />
+      )}
     </div>
   );
 }

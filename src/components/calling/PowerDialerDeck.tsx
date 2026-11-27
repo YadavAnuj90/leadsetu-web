@@ -44,48 +44,55 @@ const DISPOSITION_BUTTONS: Array<{
   label: string;
   hint: string;
   tone: string;
+  iconClass: string;
   icon: typeof Phone;
 }> = [
   {
     id: 'interested',
     label: 'Interested',
     hint: 'Qualify + AI 85',
-    tone: 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600',
+    tone: 'bg-emerald-50/80 hover:bg-emerald-100/80 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 border-emerald-200 dark:border-emerald-500/30',
+    iconClass: 'text-emerald-600 dark:text-emerald-300',
     icon: CheckCircle2,
   },
   {
     id: 'rnr',
     label: 'RNR (No Answer)',
     hint: '#1 +2h · #2 WA',
-    tone: 'bg-amber-500 hover:bg-amber-600 text-white border-amber-500',
+    tone: 'bg-amber-50/80 hover:bg-amber-100/80 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-500/30',
+    iconClass: 'text-amber-600 dark:text-amber-300',
     icon: PhoneMissed,
   },
   {
     id: 'busy',
     label: 'Busy',
     hint: 'Auto-Retry',
-    tone: 'bg-orange-500 hover:bg-orange-600 text-white border-orange-500',
+    tone: 'bg-orange-50/80 hover:bg-orange-100/80 dark:bg-orange-500/10 dark:hover:bg-orange-500/20 text-orange-800 dark:text-orange-200 border-orange-200 dark:border-orange-500/30',
+    iconClass: 'text-orange-600 dark:text-orange-300',
     icon: PhoneOff,
   },
   {
     id: 'callback',
     label: 'Callback',
     hint: 'Schedule Time',
-    tone: 'bg-brand-blue hover:bg-blue-700 text-white border-brand-blue',
+    tone: 'bg-blue-50/80 hover:bg-blue-100/80 dark:bg-brand-blue/15 dark:hover:bg-brand-blue/25 text-brand-blue dark:text-sky-200 border-blue-200 dark:border-sky-500/30',
+    iconClass: 'text-brand-blue dark:text-sky-300',
     icon: CalendarClock,
   },
   {
     id: 'not_interested',
     label: 'Not Interested',
     hint: 'Close Lost',
-    tone: 'bg-slate-600 hover:bg-slate-700 text-white border-slate-600',
+    tone: 'bg-slate-100/90 hover:bg-slate-200/80 dark:bg-white/[0.05] dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-white/15',
+    iconClass: 'text-slate-500 dark:text-slate-400',
     icon: XCircle,
   },
   {
     id: 'dnd',
     label: 'DND',
     hint: 'Block Calls & WA',
-    tone: 'bg-rose-600 hover:bg-rose-700 text-white border-rose-600',
+    tone: 'bg-rose-50/80 hover:bg-rose-100/80 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-800 dark:text-rose-200 border-rose-200 dark:border-rose-500/30',
+    iconClass: 'text-rose-600 dark:text-rose-300',
     icon: Ban,
   },
 ];
@@ -236,9 +243,9 @@ export default function PowerDialerDeck({ onOutcomeLogged }: PowerDialerDeckProp
   };
 
   return (
-    <section className="rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+    <section className="rounded-2xl sm:rounded-3xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-white/[0.08] shadow-xs overflow-hidden">
       {/* Header Strip */}
-      <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-brand-blue/5 via-transparent to-emerald-500/5">
+      <div className="px-4 sm:px-6 py-3.5 border-b border-slate-100 dark:border-white/[0.07] flex flex-wrap items-center justify-between gap-3 bg-slate-50/70 dark:bg-white/[0.02]">
         <div className="space-y-0.5">
           <div className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-brand-blue">
             <Zap className="w-3.5 h-3.5" /> BPO &amp; Inside Sales Auto-Dialer
@@ -510,16 +517,16 @@ export default function PowerDialerDeck({ onOutcomeLogged }: PowerDialerDeckProp
                         type="button"
                         disabled={Boolean(submitting)}
                         onClick={() => handleDispositionClick(btn.id)}
-                        className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between gap-1 shadow-xs disabled:opacity-60 ${btn.tone}`}
+                        className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between gap-1.5 disabled:opacity-60 ${btn.tone}`}
                       >
-                        <div className="flex items-center justify-between">
-                          <Icon className="w-4 h-4" />
-                          {busy && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-extrabold leading-tight">
+                            <Icon className={`w-3.5 h-3.5 shrink-0 ${btn.iconClass}`} />
+                            <span>{btn.label}</span>
+                          </span>
+                          {busy && <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />}
                         </div>
-                        <div className="text-xs font-extrabold leading-tight">
-                          {btn.label}
-                        </div>
-                        <div className="text-[10px] opacity-85">
+                        <div className="text-[10.5px] opacity-80 pl-5">
                           {btn.id === 'rnr'
                             ? activeLead.rnrRetryCount >= 1
                               ? 'Attempt #2+: Next Day + Auto WA'

@@ -36,6 +36,8 @@ export type OverviewNavTarget =
   | 'territories'
   | 'calling'
   | 'whatsapp'
+  | 'gstin'
+  | 'ai_vault'
   | 'policies'
   | 'billing'
   | 'audit'

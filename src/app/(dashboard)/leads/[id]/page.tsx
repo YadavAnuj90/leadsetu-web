@@ -18,11 +18,14 @@ import {
   FileText,
   Mic,
   RefreshCw,
+  ShieldCheck,
+  ShieldAlert,
 } from 'lucide-react';
 import {
   fetchSingleLead,
   addLeadActivityApi,
   analyzeLeadAiApi,
+  verifyLeadGstinApi,
 } from '@/hooks/useLeads';
 import { apiClient, getErrorMessage } from '@/lib/api-client';
 import { autoAssignLeadApi } from '@/lib/lead-routing-api';
@@ -62,6 +65,8 @@ export default function LeadDetailPage() {
   const [isConvertingDeal, setIsConvertingDeal] = useState(false);
   const [isAnalyzingAi, setIsAnalyzingAi] = useState(false);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
+  const [gstinInput, setGstinInput] = useState('');
+  const [verifyingGstin, setVerifyingGstin] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadLead = useCallback(async () => {
@@ -71,6 +76,7 @@ export default function LeadDetailPage() {
     try {
       const data = await fetchSingleLead(leadId);
       setLead(data);
+      setGstinInput(data.gstin || '');
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -131,6 +137,25 @@ export default function LeadDetailPage() {
       setError(getErrorMessage(err));
     } finally {
       setIsAnalyzingAi(false);
+    }
+  };
+
+  const handleVerifyLeadGstin = async () => {
+    if (!lead || verifyingGstin) return;
+    const cleaned = (gstinInput || lead.gstin || '').trim().toUpperCase();
+    if (!cleaned) return;
+    setVerifyingGstin(true);
+    setError(null);
+    try {
+      const res = await verifyLeadGstinApi(lead.id, cleaned);
+      if (res?.lead) {
+        setLead(res.lead);
+        setGstinInput(res.lead.gstin || cleaned);
+      }
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setVerifyingGstin(false);
     }
   };
 
@@ -426,6 +451,119 @@ export default function LeadDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Phase 1 Moat: B2B GSTIN Trust & Credit-Risk Guard */}
+          {lead.accountKind !== 'consumer' && (
+            <div className="bg-white dark:bg-[#0D1628] rounded-3xl p-6 border border-slate-200/80 dark:border-white/[0.08] shadow-sm space-y-4">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-brand-blue dark:text-sky-400">
+                    B2B Underwriting &amp; Credit Guard
+                  </div>
+                  <h3 className="text-sm font-extrabold text-brand-navy dark:text-white">
+                    GSTIN Trust Verification
+                  </h3>
+                </div>
+                {lead.gstinProfile && (
+                  <span
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold border ${
+                      lead.gstinProfile.recommendedTerms === 'safe_credit'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30'
+                        : lead.gstinProfile.recommendedTerms === 'advance_100' ||
+                            !lead.gstinProfile.checksumValid
+                          ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30'
+                          : 'bg-blue-50 text-brand-blue border-blue-200 dark:bg-brand-blue/15 dark:text-sky-300 dark:border-brand-blue/30'
+                    }`}
+                  >
+                    Trust {lead.gstinProfile.trustScore}/100
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  maxLength={15}
+                  value={gstinInput}
+                  onChange={(e) => setGstinInput(e.target.value.toUpperCase())}
+                  placeholder="Enter 15-digit Buyer GSTIN"
+                  className="flex-1 px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-[#081020] border border-slate-200 dark:border-white/15 text-xs font-mono uppercase text-brand-navy dark:text-white focus:outline-none focus:border-brand-blue"
+                />
+                <button
+                  type="button"
+                  disabled={verifyingGstin || !gstinInput.trim()}
+                  onClick={() => void handleVerifyLeadGstin()}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-navy hover:bg-brand-blue text-white text-xs font-bold disabled:opacity-50 shrink-0"
+                >
+                  {verifyingGstin ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                  )}
+                  <span>Verify</span>
+                </button>
+              </div>
+
+              {lead.gstinProfile ? (
+                <div className="space-y-2.5 text-xs">
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-100 dark:border-white/[0.06]">
+                      <span className="text-slate-400 block text-[10px] font-bold uppercase">
+                        State Jurisdiction
+                      </span>
+                      <span className="font-bold text-brand-navy dark:text-white">
+                        {lead.gstinProfile.stateName || '—'} ({lead.gstinProfile.stateCode || '—'})
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-100 dark:border-white/[0.06]">
+                      <span className="text-slate-400 block text-[10px] font-bold uppercase">
+                        Entity Constitution
+                      </span>
+                      <span className="font-bold text-brand-navy dark:text-white truncate block">
+                        {lead.gstinProfile.entityType || 'Business'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div
+                    className={`p-3 rounded-2xl border flex items-start gap-2.5 ${
+                      lead.gstinProfile.recommendedTerms === 'safe_credit'
+                        ? 'bg-emerald-50/80 border-emerald-200 text-emerald-800 dark:bg-emerald-500/10 dark:border-emerald-500/30 dark:text-emerald-200'
+                        : lead.gstinProfile.recommendedTerms === 'advance_100' ||
+                            !lead.gstinProfile.checksumValid
+                          ? 'bg-rose-50/80 border-rose-200 text-rose-800 dark:bg-rose-500/10 dark:border-rose-500/30 dark:text-rose-200'
+                          : 'bg-blue-50/80 border-blue-200 text-brand-navy dark:bg-brand-blue/10 dark:border-brand-blue/30 dark:text-sky-200'
+                    }`}
+                  >
+                    {lead.gstinProfile.recommendedTerms === 'advance_100' ||
+                    !lead.gstinProfile.checksumValid ? (
+                      <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
+                    ) : (
+                      <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
+                    )}
+                    <div className="space-y-0.5">
+                      <div className="text-[11px] font-extrabold uppercase tracking-wider">
+                        {lead.gstinProfile.recommendedTerms === 'safe_credit'
+                          ? 'Recommended: Safe for B2B Credit'
+                          : lead.gstinProfile.recommendedTerms === 'advance_100'
+                            ? 'Recommended: 100% Advance Required'
+                            : lead.gstinProfile.recommendedTerms === 'manual_review'
+                              ? 'Action Needed: Verify GSTIN Check Digit'
+                              : 'Recommended: 50% Advance + Balance on LR'}
+                      </div>
+                      <p className="text-[11px] opacity-90 leading-relaxed">
+                        {lead.gstinProfile.creditAdvice}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-[11px] text-slate-400">
+                  Enter buyer&apos;s 15-character GSTIN to validate Mod-36 checksum, State Code, Entity Type, and Workspace Overdue Ledger before quoting credit terms.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Meta Form Answers Section */}
           {(lead.metaLeadData || lead.source === 'meta_lead_ads') && (

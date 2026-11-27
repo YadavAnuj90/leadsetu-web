@@ -92,20 +92,20 @@ export default function Footer() {
         <div className="rounded-3xl p-6 sm:p-8 lg:p-10 bg-white/[0.03] border border-white/[0.09] backdrop-blur-xl shadow-2xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-7">
           <div className="max-w-xl">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-[#0057FF]/15 text-sky-300 border border-[#0057FF]/30 mb-3">
-              <Sparkles className="w-3.5 h-3.5" /> Weekly Indian B2B Growth Playbook
+              <Sparkles className="w-3.5 h-3.5" /> The Monday Revenue Dispatch
             </div>
             <h3 className="text-xl sm:text-2xl lg:text-[26px] font-black text-white tracking-tight leading-snug">
-              High-converting WhatsApp templates &amp; GST sales checklists, delivered every Monday.
+              Steal-worthy WhatsApp templates, Hinglish AI prompts &amp; GST closing playbooks — every Monday.
             </h3>
             <p className="text-slate-400 text-xs sm:text-sm mt-2">
-              Read by 4,500+ founders, sales heads, and finance teams across Noida, New Delhi &amp; Gurugram.
+              Trusted by 4,500+ founders, revenue heads, and finance teams scaling B2B sales across Delhi-NCR &amp; Pan-India.
             </p>
           </div>
 
           {subscribed ? (
             <div className="inline-flex items-center gap-2.5 px-5 py-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs sm:text-sm font-bold">
               <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>Subscribed! Check your inbox for this week&apos;s WhatsApp templates.</span>
+              <span>Subscribed! Check your inbox for this week&apos;s WhatsApp &amp; GST playbook.</span>
             </div>
           ) : (
             <form

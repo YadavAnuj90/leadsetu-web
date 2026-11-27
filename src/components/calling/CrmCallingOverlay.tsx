@@ -72,6 +72,7 @@ const STATUS_META: Record<
 function formatRoleBadge(role?: string) {
   if (role === 'manager') return 'Sales Manager';
   if (role === 'agent') return 'Sales Agent';
+  if (role === 'support') return 'Support Engineer';
   if (role === 'owner') return 'Workspace Owner';
   if (role === 'admin') return 'Workspace Admin';
   return role || 'Agent';
