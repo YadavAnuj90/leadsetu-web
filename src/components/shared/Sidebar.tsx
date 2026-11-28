@@ -16,6 +16,7 @@ import {
   ScrollText,
   FolderOpen,
   Package,
+  ClipboardList,
   Settings,
   LogOut,
   Sparkles,
@@ -52,6 +53,7 @@ const navItems: Array<{
 }> = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Leads', href: '/leads', icon: Users, badge: 'AI', feature: 'leads' },
+  { label: 'Instant Forms', href: '/lead-forms', icon: ClipboardList, badge: 'New', feature: 'leads' },
   { label: 'Contacts (B2B)', href: '/contacts', icon: Building2, feature: 'contacts' },
   { label: 'Deals Pipeline', href: '/deals', icon: Kanban, feature: 'deals' },
   { label: 'WhatsApp Inbox', href: '/inbox', icon: MessageSquare, badge: 'Live', feature: 'whatsappCloud' },
@@ -250,23 +252,39 @@ export default function Sidebar({
           </Link>
         )}
 
-        <div className="flex items-center justify-between gap-2 pt-1">
+        <div className="flex items-center justify-between gap-2 p-2 rounded-2xl bg-white/[0.06] border border-white/10 shadow-inner">
           <Link
             href={isAdmin ? '/settings' : '/profile'}
             onClick={() => isDrawer && onCloseMobile?.()}
-            className="flex items-center gap-2.5 min-w-0 flex-1 hover:opacity-90"
+            className="flex items-center gap-2.5 min-w-0 flex-1 group"
           >
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-              style={{ background: '#3978EA' }}
-            >
-              {user?.name?.[0]?.toUpperCase() || 'U'}
-            </div>
-            <div className="truncate">
-              <div className="text-xs font-bold text-white truncate">
-                {user?.name || 'Leadsetu User'}
+            <div className="relative flex-shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0057FF] via-[#2563EB] to-[#38BDF8] flex items-center justify-center text-xs font-black text-white shadow-md ring-1 ring-white/25 group-hover:scale-105 transition-transform">
+                {user?.name?.[0]?.toUpperCase() || 'U'}
               </div>
-              <div className="text-[10px] text-slate-400 truncate">
+              <span
+                className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-[#0D1628]"
+                title="Online"
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-extrabold text-white capitalize truncate">
+                  {user?.name || 'Leadsetu User'}
+                </span>
+                <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-400/25 shrink-0">
+                  {user?.role === 'owner'
+                    ? 'Owner'
+                    : user?.role === 'admin'
+                      ? 'Admin'
+                      : user?.role === 'manager'
+                        ? 'Mgr'
+                        : user?.role === 'support'
+                          ? 'Support'
+                          : 'Rep'}
+                </span>
+              </div>
+              <div className="text-[10.5px] text-slate-300/80 truncate mt-0.5">
                 {user?.email || ''}
               </div>
             </div>
@@ -279,7 +297,8 @@ export default function Sidebar({
               requestLogout();
             }}
             title="Sign Out"
-            className="p-2 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-white/5 transition-colors shrink-0"
+            aria-label="Sign Out"
+            className="p-2 rounded-xl bg-white/[0.07] border border-white/10 text-slate-300 hover:text-rose-300 hover:bg-rose-500/20 hover:border-rose-400/40 transition-all shrink-0"
           >
             <LogOut className="w-4 h-4" />
           </button>

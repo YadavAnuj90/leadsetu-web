@@ -515,10 +515,10 @@ export default function NavbarBreakToggle() {
         }
         aria-expanded={open}
         aria-label="Toggle Break Mode"
-        className={`group flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold transition-all duration-200 ${
+        className={`group h-9 flex items-center gap-2 rounded-xl border px-2.5 text-xs font-semibold transition-all duration-200 ${
           isOnBreakVisual
-            ? 'border-amber-300 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-100/90 text-amber-900 shadow-sm shadow-amber-500/20 hover:border-amber-400 dark:border-amber-500/45 dark:from-amber-500/20 dark:via-orange-500/15 dark:to-amber-500/20 dark:text-amber-200 dark:shadow-amber-900/20'
-            : 'border-slate-200 bg-slate-50/90 text-slate-700 hover:border-amber-300 hover:bg-amber-50/60 hover:text-amber-900 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:border-amber-500/40 dark:hover:bg-amber-500/10 dark:hover:text-amber-200'
+            ? 'border-amber-300 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-100/90 text-amber-900 shadow-xs shadow-amber-500/20 hover:border-amber-400 dark:border-amber-500/45 dark:from-amber-500/20 dark:via-orange-500/15 dark:to-amber-500/20 dark:text-amber-200 dark:shadow-amber-900/20'
+            : 'border-slate-200/85 bg-slate-100/85 text-slate-700 hover:border-amber-300 hover:bg-amber-50/70 hover:text-amber-900 dark:border-white/[0.09] dark:bg-white/[0.04] dark:text-slate-200 dark:hover:border-amber-500/40 dark:hover:bg-amber-500/10 dark:hover:text-amber-200'
         }`}
       >
         <RoundCoffeeCupIcon active={isOnBreakVisual} size={24} />
@@ -547,7 +547,7 @@ export default function NavbarBreakToggle() {
         <div
           role="dialog"
           aria-label="Break Mode Controls"
-          className="fixed inset-x-3 top-16 sm:inset-x-auto sm:top-auto sm:absolute sm:right-0 sm:mt-2 w-auto sm:w-[332px] rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/15 dark:border-slate-700/80 dark:bg-[#0F172A] dark:shadow-black/50 z-50"
+          className="fixed inset-x-3 top-[4.25rem] sm:inset-x-auto sm:absolute sm:top-full sm:right-0 lg:left-0 lg:right-auto sm:mt-2.5 w-auto sm:w-[336px] max-h-[calc(100dvh-5.5rem)] overflow-y-auto rounded-2xl border border-slate-200/95 bg-white p-4 shadow-[0_24px_60px_-14px_rgba(2,6,23,0.45)] dark:border-white/[0.12] dark:bg-[#0D1628] z-[90]"
         >
           {/* Header */}
           <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">

@@ -9,6 +9,11 @@ export interface IndiaMartPullConfigDto {
   autoWhatsAppSpeedToLead: boolean;
   greetingTemplate: string;
   slaThresholdMinutes: number;
+  autoAttachProductBrochure?: boolean;
+  autoQuickReplyButtons?: string[];
+  brokerFilterEnabled?: boolean;
+  skipWhatsAppOnJunk?: boolean;
+  junkKeywords?: string;
   lastSyncedAt: string;
   lastSyncStatus: string;
   lastSyncSummary: string;
@@ -58,17 +63,28 @@ export interface MarketplaceSyncLogDto {
   syncedAt: string;
 }
 
+export interface MarketplaceCategoryRoiRow {
+  category: string;
+  inquiries: number;
+  qualifiedOrWon: number;
+  junkFlagged: number;
+  totalValueInr: number;
+  conversionRatePct: number;
+}
+
 export interface MarketplaceSyncOverviewResponse {
   config: IndiaMartPullConfigDto;
   slaMetrics: {
     totalMarketplaceLeads: number;
     autoWelcomedCount: number;
+    junkFlaggedCount?: number;
     contactedUnder10sCount: number;
     under10sPct: number;
     avgSpeedToLeadSeconds: number;
     slaBreachedCount: number;
     slaBreachedLeads: MarketplaceSlaBreachedLead[];
   };
+  categoryRoiBreakdown?: MarketplaceCategoryRoiRow[];
   recentLogs: MarketplaceSyncLogDto[];
 }
 
@@ -87,6 +103,11 @@ export async function updateIndiaMartConfigApi(payload: {
   autoWhatsAppSpeedToLead?: boolean;
   greetingTemplate?: string;
   slaThresholdMinutes?: number;
+  autoAttachProductBrochure?: boolean;
+  autoQuickReplyButtons?: string[];
+  brokerFilterEnabled?: boolean;
+  skipWhatsAppOnJunk?: boolean;
+  junkKeywords?: string;
 }): Promise<MarketplaceSyncOverviewResponse> {
   const { data } = await apiClient.patch<MarketplaceSyncOverviewResponse>(
     '/marketplace-sync/config',
@@ -123,6 +144,17 @@ export async function rescueSlaLeadApi(leadId: string): Promise<{
   speedToLeadSeconds: number;
 }> {
   const { data } = await apiClient.post(`/marketplace-sync/nudge/${leadId}`);
+  return data;
+}
+
+export async function sendJustdialReviewNudgeApi(leadId: string): Promise<{
+  ok: boolean;
+  leadId: string;
+  reviewLink: string;
+}> {
+  const { data } = await apiClient.post(
+    `/marketplace-sync/justdial/review-nudge/${leadId}`,
+  );
   return data;
 }
 
@@ -175,6 +207,11 @@ export interface LeadConnectorsOverviewResponse {
     secretToken: string;
     categoryFilter: string;
     autoWhatsAppWelcome: boolean;
+    pincodeZoneRules?: string;
+    autoCreateTicketForService?: boolean;
+    serviceCategoryKeywords?: string;
+    reviewBoosterEnabled?: boolean;
+    reviewLink?: string;
     lastReceivedAt: string;
     lastLeadSummary: string;
   };
@@ -232,6 +269,11 @@ export async function updateLeadConnectorsApi(payload: {
     secretToken: string;
     categoryFilter: string;
     autoWhatsAppWelcome: boolean;
+    pincodeZoneRules: string;
+    autoCreateTicketForService: boolean;
+    serviceCategoryKeywords: string;
+    reviewBoosterEnabled: boolean;
+    reviewLink: string;
   }>;
   tradeindiaWebhook?: Partial<{
     enabled: boolean;

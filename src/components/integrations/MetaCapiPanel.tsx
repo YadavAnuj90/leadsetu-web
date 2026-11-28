@@ -47,6 +47,7 @@ export default function MetaCapiPanel() {
   const [autoFireOnLeadQualified, setAutoFireOnLeadQualified] = useState(true);
   const [autoFireOnDealWon, setAutoFireOnDealWon] = useState(true);
   const [autoFireOnInvoicePaid, setAutoFireOnInvoicePaid] = useState(true);
+  const [monthlyAdSpendInr, setMonthlyAdSpendInr] = useState('0');
 
   // CTWA Ad Click Simulator fields
   const [simName, setSimName] = useState('Vikramaditya Rao');
@@ -73,6 +74,7 @@ export default function MetaCapiPanel() {
       setAutoFireOnLeadQualified(res.config.autoFireOnLeadQualified);
       setAutoFireOnDealWon(res.config.autoFireOnDealWon);
       setAutoFireOnInvoicePaid(res.config.autoFireOnInvoicePaid);
+      setMonthlyAdSpendInr(String(res.config.monthlyAdSpendInr ?? 0));
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -99,6 +101,7 @@ export default function MetaCapiPanel() {
         autoFireOnLeadQualified,
         autoFireOnDealWon,
         autoFireOnInvoicePaid,
+        monthlyAdSpendInr: Math.max(0, Number(monthlyAdSpendInr) || 0),
       });
       setData(res);
       setAccessToken('');
@@ -267,6 +270,57 @@ export default function MetaCapiPanel() {
         </div>
       </div>
 
+      {/* Live Meta Ad ROAS & Cost-Per-Lead Funnel Strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/35 border border-indigo-200/80 dark:border-indigo-500/25">
+          <div className="text-[10.5px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
+            ROAS Multiple
+          </div>
+          <div className="text-lg font-black text-indigo-900 dark:text-white mt-0.5">
+            {stats?.roasMultiplier ? `${stats.roasMultiplier}x` : '—'}
+          </div>
+          <div className="text-[10.5px] text-indigo-600/80 dark:text-indigo-300/80">
+            Spend ₹{(stats?.monthlyAdSpendInr ?? 0).toLocaleString('en-IN')}
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#111D33] border border-slate-200/80 dark:border-white/10">
+          <div className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Cost Per Lead (CPL)
+          </div>
+          <div className="text-lg font-black text-brand-navy dark:text-white mt-0.5">
+            {stats?.cplInr ? `₹${stats.cplInr.toLocaleString('en-IN')}` : '—'}
+          </div>
+          <div className="text-[10.5px] text-slate-500 dark:text-slate-400">
+            CPQL: {stats?.cpqlInr ? `₹${stats.cpqlInr.toLocaleString('en-IN')}` : 'Set Ad Spend'}
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#111D33] border border-slate-200/80 dark:border-white/10">
+          <div className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Qualified → Won Funnel
+          </div>
+          <div className="text-lg font-black text-brand-blue dark:text-sky-400 mt-0.5">
+            {stats?.qualifiedLeadsCount ?? 0} → {stats?.wonDealsCount ?? 0} Won
+          </div>
+          <div className="text-[10.5px] text-slate-500 dark:text-slate-400">
+            Win conversion: {stats?.leadToWonPct ?? 0}%
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-500/25">
+          <div className="text-[10.5px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+            Open Meta Pipeline
+          </div>
+          <div className="text-lg font-black text-emerald-700 dark:text-emerald-300 mt-0.5">
+            ₹{(stats?.pipelineValueInr ?? 0).toLocaleString('en-IN')}
+          </div>
+          <div className="text-[10.5px] text-emerald-600/80 dark:text-emerald-300/80">
+            Won Revenue: ₹{(stats?.wonRevenueInr ?? 0).toLocaleString('en-IN')}
+          </div>
+        </div>
+      </div>
+
       {/* Main Grid: Credentials + CTWA Simulator */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         {/* Left: Meta Dataset / Pixel Credentials & Triggers */}
@@ -340,6 +394,20 @@ export default function MetaCapiPanel() {
                   ? 'Leave blank to keep existing encrypted token, or paste new EAAG... token'
                   : 'Paste Meta Business System User CAPI Access Token (EAAG...)'
               }
+              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-white/15 bg-white dark:bg-[#0D1628] text-xs font-mono text-brand-navy dark:text-white focus:outline-none focus:border-brand-blue"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+              Monthly Meta Ad Spend (₹ INR) — For Live ROAS &amp; CPL Tracking
+            </label>
+            <input
+              type="number"
+              min={0}
+              value={monthlyAdSpendInr}
+              onChange={(e) => setMonthlyAdSpendInr(e.target.value)}
+              placeholder="e.g. 50000"
               className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-white/15 bg-white dark:bg-[#0D1628] text-xs font-mono text-brand-navy dark:text-white focus:outline-none focus:border-brand-blue"
             />
           </div>

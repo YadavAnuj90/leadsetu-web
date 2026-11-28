@@ -44,6 +44,15 @@ export default function IndiaMartPullPanel() {
   const [autoWhatsAppSpeedToLead, setAutoWhatsAppSpeedToLead] = useState(true);
   const [greetingTemplate, setGreetingTemplate] = useState('');
   const [slaThresholdMinutes, setSlaThresholdMinutes] = useState(10);
+  const [autoAttachProductBrochure, setAutoAttachProductBrochure] = useState(true);
+  const [quickReplyButtonsCsv, setQuickReplyButtonsCsv] = useState(
+    'Share GST Quote, Download Catalog, Book Callback',
+  );
+  const [brokerFilterEnabled, setBrokerFilterEnabled] = useState(true);
+  const [skipWhatsAppOnJunk, setSkipWhatsAppOnJunk] = useState(false);
+  const [junkKeywords, setJunkKeywords] = useState(
+    'test, fake, sample free, job, vacancy, resume, student',
+  );
 
   const loadOverview = useCallback(async () => {
     setLoading(true);
@@ -57,6 +66,18 @@ export default function IndiaMartPullPanel() {
       setAutoWhatsAppSpeedToLead(res.config.autoWhatsAppSpeedToLead);
       setGreetingTemplate(res.config.greetingTemplate);
       setSlaThresholdMinutes(res.config.slaThresholdMinutes);
+      setAutoAttachProductBrochure(res.config.autoAttachProductBrochure !== false);
+      setQuickReplyButtonsCsv(
+        Array.isArray(res.config.autoQuickReplyButtons)
+          ? res.config.autoQuickReplyButtons.join(', ')
+          : 'Share GST Quote, Download Catalog, Book Callback',
+      );
+      setBrokerFilterEnabled(res.config.brokerFilterEnabled !== false);
+      setSkipWhatsAppOnJunk(Boolean(res.config.skipWhatsAppOnJunk));
+      setJunkKeywords(
+        res.config.junkKeywords ||
+          'test, fake, sample free, job, vacancy, resume, student',
+      );
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -82,6 +103,15 @@ export default function IndiaMartPullPanel() {
         autoWhatsAppSpeedToLead,
         greetingTemplate: greetingTemplate.trim(),
         slaThresholdMinutes: Number(slaThresholdMinutes) || 10,
+        autoAttachProductBrochure,
+        autoQuickReplyButtons: quickReplyButtonsCsv
+          .split(',')
+          .map((b) => b.trim())
+          .filter(Boolean)
+          .slice(0, 3),
+        brokerFilterEnabled,
+        skipWhatsAppOnJunk,
+        junkKeywords: junkKeywords.trim(),
       });
       setData(res);
       setCrmKey('');
@@ -370,6 +400,69 @@ export default function IndiaMartPullPanel() {
             />
           </div>
 
+          {/* Product SKU Auto-Matcher, Interactive Reply Pills & Broker/Junk Shield */}
+          <div className="p-3.5 rounded-xl bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-white/10 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+              <label className="inline-flex items-center gap-2 font-bold text-brand-navy dark:text-slate-200 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={autoAttachProductBrochure}
+                  onChange={(e) => setAutoAttachProductBrochure(e.target.checked)}
+                  className="rounded border-slate-300 text-brand-blue"
+                />
+                <span>Auto-Match Catalog SKU, Rate &amp; Brochure</span>
+              </label>
+
+              <label className="inline-flex items-center gap-2 font-bold text-brand-navy dark:text-slate-200 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={brokerFilterEnabled}
+                  onChange={(e) => setBrokerFilterEnabled(e.target.checked)}
+                  className="rounded border-slate-300 text-amber-600"
+                />
+                <span>Enable Broker / Junk Inquiry Shield</span>
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10.5px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                  WhatsApp Interactive Reply Buttons (max 3, comma-separated)
+                </label>
+                <input
+                  type="text"
+                  value={quickReplyButtonsCsv}
+                  onChange={(e) => setQuickReplyButtonsCsv(e.target.value)}
+                  placeholder="Share GST Quote, Download Catalog, Book Callback"
+                  className="w-full px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/15 bg-slate-50 dark:bg-[#111D33] text-xs text-brand-navy dark:text-white"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Junk / Low-Intent Keywords
+                  </label>
+                  <label className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={skipWhatsAppOnJunk}
+                      onChange={(e) => setSkipWhatsAppOnJunk(e.target.checked)}
+                    />
+                    <span>Skip WA if flagged</span>
+                  </label>
+                </div>
+                <input
+                  type="text"
+                  value={junkKeywords}
+                  onChange={(e) => setJunkKeywords(e.target.value)}
+                  placeholder="test, fake, sample free, job, vacancy"
+                  className="w-full px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/15 bg-slate-50 dark:bg-[#111D33] text-xs text-brand-navy dark:text-white"
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="flex items-center justify-between pt-1">
             <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-[340px]">
               {cfg?.lastSyncSummary || 'Works via live IndiaMART v2 key or 1-click sandbox simulation.'}
@@ -442,6 +535,60 @@ export default function IndiaMartPullPanel() {
           )}
         </div>
       </div>
+
+      {/* Category ROI & Broker/Junk Breakdown */}
+      {(data?.categoryRoiBreakdown || []).length > 0 && (
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-extrabold text-brand-navy dark:text-white flex items-center gap-2">
+              <Store className="w-4 h-4 text-emerald-500" />
+              <span>Category ROI, Qualified Funnel &amp; Junk Shield</span>
+            </h3>
+            <span className="text-[11px] text-slate-500">
+              {sla?.junkFlaggedCount ?? 0} low-intent flagged across marketplace feeds
+            </span>
+          </div>
+
+          <div className="overflow-x-auto rounded-2xl border border-slate-200/80 dark:border-white/10">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 dark:bg-[#111D33] text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-white/10">
+                <tr>
+                  <th className="py-2.5 px-4">Product / Category</th>
+                  <th className="py-2.5 px-4">Inquiries</th>
+                  <th className="py-2.5 px-4">Qualified / Won</th>
+                  <th className="py-2.5 px-4">Junk Flagged</th>
+                  <th className="py-2.5 px-4 text-right">Est. Pipeline Value</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-white/10 bg-white dark:bg-[#0D1628]">
+                {(data?.categoryRoiBreakdown || []).map((row) => (
+                  <tr key={row.category} className="hover:bg-slate-50/70 dark:hover:bg-[#111D33]/50">
+                    <td className="py-2.5 px-4 font-bold text-brand-navy dark:text-white">
+                      {row.category}
+                    </td>
+                    <td className="py-2.5 px-4">{row.inquiries}</td>
+                    <td className="py-2.5 px-4 font-bold text-emerald-600">
+                      {row.qualifiedOrWon} ({row.conversionRatePct}%)
+                    </td>
+                    <td className="py-2.5 px-4">
+                      {row.junkFlagged > 0 ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                          {row.junkFlagged} flagged
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">0</span>
+                      )}
+                    </td>
+                    <td className="py-2.5 px-4 text-right font-mono font-bold text-brand-blue">
+                      ₹{row.totalValueInr.toLocaleString('en-IN')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Sync Run Audit Logs */}
       {(data?.recentLogs || []).length > 0 && (

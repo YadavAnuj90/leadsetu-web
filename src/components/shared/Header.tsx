@@ -465,14 +465,14 @@ export default function Header({
 
   return (
     <>
-      <header className="h-14 sm:h-16 bg-white dark:bg-[#0B1320] border-b border-slate-200/80 dark:border-slate-800 px-2.5 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 transition-colors relative z-30">
-        <div className="flex items-center gap-1.5 sm:gap-3 flex-1 min-w-0 max-w-xl">
+      <header className="h-14 sm:h-16 bg-white/90 dark:bg-[#09111F]/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/[0.08] shadow-[0_1px_16px_-6px_rgba(15,23,42,0.08)] dark:shadow-[0_4px_24px_-8px_rgba(0,0,0,0.55)] px-3 sm:px-5 lg:px-6 flex items-center justify-between gap-2 sm:gap-4 transition-colors relative z-40 overflow-visible">
+        <div className="flex items-center gap-2 sm:gap-2.5 flex-1 min-w-0 max-w-md lg:max-w-lg">
           {onOpenMobileMenu && (
             <button
               type="button"
               onClick={onOpenMobileMenu}
               aria-label="Open Navigation Menu"
-              className="md:hidden inline-flex items-center justify-center p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-brand-navy dark:text-slate-200 hover:border-brand-blue hover:bg-slate-50 dark:hover:bg-slate-800 flex-shrink-0"
+              className="md:hidden h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-200/85 dark:border-white/[0.09] bg-slate-100/80 dark:bg-white/[0.04] text-brand-navy dark:text-slate-200 hover:border-brand-blue hover:bg-white dark:hover:bg-white/[0.08] transition-all shrink-0"
             >
               <Menu className="w-4 h-4" />
             </button>
@@ -483,7 +483,7 @@ export default function Header({
               type="button"
               onClick={() => router.back()}
               title="Go Back to Previous Tab"
-              className="inline-flex items-center gap-1.5 p-2 sm:px-3 sm:py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-brand-navy dark:text-slate-200 hover:border-brand-blue hover:text-brand-blue hover:bg-brand-light/40 transition-all flex-shrink-0"
+              className="h-9 inline-flex items-center gap-1.5 px-2.5 sm:px-3 rounded-xl border border-slate-200/85 dark:border-white/[0.09] bg-slate-100/80 dark:bg-white/[0.04] text-xs font-semibold text-brand-navy dark:text-slate-200 hover:border-brand-blue/60 hover:text-brand-blue hover:bg-white dark:hover:bg-white/[0.08] transition-all shrink-0"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Back</span>
@@ -498,120 +498,145 @@ export default function Header({
               setPaletteOpen(true);
             }}
             title="Search leads, deals, invoices, or quick actions (Ctrl+K)"
-            className="sm:w-full min-w-0 flex items-center justify-between gap-2 sm:gap-3 p-2 sm:px-3.5 sm:py-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 text-xs sm:text-sm text-slate-400 hover:border-brand-blue hover:bg-white dark:hover:bg-slate-800 transition-colors text-left"
+            className="h-9 sm:h-[38px] sm:w-full min-w-0 flex items-center justify-between gap-2 sm:gap-3 px-2.5 sm:px-3.5 rounded-xl bg-slate-100/80 dark:bg-white/[0.04] border border-slate-200/85 dark:border-white/[0.08] text-xs sm:text-[13px] text-slate-400 dark:text-slate-400 hover:border-brand-blue/60 hover:bg-white dark:hover:bg-white/[0.07] transition-all text-left group shadow-xs"
           >
             <span className="flex items-center gap-2 min-w-0">
-              <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
+              <Search className="w-4 h-4 text-slate-400 group-hover:text-brand-blue dark:group-hover:text-sky-400 transition-colors shrink-0" />
               <span className="hidden sm:inline truncate">
-                Search leads, GSTINs, deals, invoices, or tickets...
+                Search leads, GSTINs, deals, invoices, tickets...
               </span>
             </span>
-            <kbd className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[10px] font-bold text-slate-500 dark:text-slate-300 flex-shrink-0">
-              <Command className="w-3 h-3" /> K
+            <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-slate-200/75 dark:bg-white/[0.07] border border-slate-300/70 dark:border-white/10 text-[10px] font-bold text-slate-600 dark:text-slate-300 shrink-0">
+              <Command className="w-2.5 h-2.5" /> K
             </kbd>
           </button>
         </div>
 
-        {/* Right Status & Actions */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+        {/* Right Status & Segmented Action Dock */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {user?.maskPhones && (
             <span
               title="Anti-Data-Leak Shield active: client mobile numbers are masked"
-              className="hidden lg:inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+              className="hidden 2xl:inline-flex h-8 items-center gap-1.5 text-[11px] font-bold px-2.5 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/70"
             >
               <Shield className="w-3.5 h-3.5" />
               Shield On
             </span>
           )}
 
-          <span className="hidden xl:inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            {tenant?.city || 'Delhi-NCR'} · Live Sync
-          </span>
-
-          {(user?.role === 'manager' || user?.role === 'agent') && (
-            <NavbarBreakToggle />
-          )}
+          {(user?.role === 'manager' ||
+            user?.role === 'agent' ||
+            user?.role === 'support') && <NavbarBreakToggle />}
 
           <ThemeToggle />
 
-          {/* CRM Voice Softphone Trigger */}
-          <button
-            type="button"
-            onClick={() => {
-              setNotifOpen(false);
-              setDialerDrawerOpen(true);
-            }}
-            className={`relative inline-flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl text-xs font-extrabold border transition-all ${
-              callState !== 'idle'
-                ? 'border-emerald-400 bg-emerald-500 text-white shadow-sm'
-                : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-brand-navy dark:text-slate-100 hover:border-emerald-500 hover:text-emerald-600'
-            }`}
-            title="Open CRM Voice Softphone"
-          >
-            <span className="relative flex items-center justify-center">
-              <Phone className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-              <span
-                className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ring-1 ring-white dark:ring-slate-900 ${
-                  callPresence === 'online'
-                    ? 'bg-emerald-500'
-                    : callPresence === 'busy'
-                      ? 'bg-amber-500'
-                      : 'bg-slate-400'
-                }`}
-              />
-            </span>
-            <span className="hidden md:inline">
-              {callState === 'connected' ? 'On Call' : 'Phone'}
-            </span>
-            {pendingMissed > 0 && callState === 'idle' && (
-              <span
-                className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-black leading-none"
-                title={`${pendingMissed} pending missed call / callback${pendingMissed === 1 ? '' : 's'}`}
-              >
-                {pendingMissed}
-              </span>
-            )}
-          </button>
-
-          {isFeatureEnabled(tenant, 'aiScoring', user) &&
-            isFeatureEnabled(tenant, 'aiCopilot', user) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setNotifOpen(false);
-                  setAiCopilotOpen(true);
-                }}
-                className="inline-flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl text-xs font-extrabold border border-brand-blue/35 bg-brand-blue/10 text-brand-blue hover:bg-brand-blue hover:text-white transition-all"
-                title="Ask Leadsetu AI Copilot (Tenant-Scoped RAG)"
-              >
-                <Sparkles className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-                <span className="hidden sm:inline">Ask AI</span>
-              </button>
-            )}
-
-          {/* Live Notification Bell */}
-          <div className="relative" ref={notifContainerRef}>
+          {/* Unified Communication & Intelligence Controls */}
+          <div className="flex items-center gap-1.5">
+            {/* CRM Voice Softphone Trigger */}
             <button
               type="button"
               onClick={() => {
-                const next = !notifOpen;
-                setNotifOpen(next);
-                if (next) loadNotifications();
+                setNotifOpen(false);
+                setDialerDrawerOpen(true);
               }}
-              className="relative p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-brand-blue hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-              aria-label="Notifications"
+              className={`h-9 relative inline-flex items-center gap-1.5 px-2.5 sm:px-3 rounded-xl text-xs font-semibold border transition-all ${
+                callState !== 'idle'
+                  ? 'border-emerald-400 bg-emerald-500 text-white shadow-sm shadow-emerald-500/25'
+                  : 'border-slate-200/85 dark:border-white/[0.09] bg-slate-100/85 dark:bg-white/[0.04] text-brand-navy dark:text-slate-100 hover:border-emerald-500/60 hover:text-emerald-600 dark:hover:text-emerald-300 hover:bg-white dark:hover:bg-white/[0.07]'
+              }`}
+              title="Open CRM Voice Softphone"
             >
-              <Bell className="w-4 h-4" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-extrabold flex items-center justify-center shadow">
-                  {unreadCount > 9 ? '9+' : unreadCount}
+              <span className="relative flex items-center justify-center">
+                <Phone className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                <span
+                  className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ring-2 ring-white dark:ring-[#09111F] ${
+                    callPresence === 'online'
+                      ? 'bg-emerald-500'
+                      : callPresence === 'busy'
+                        ? 'bg-amber-500'
+                        : 'bg-slate-400'
+                  }`}
+                />
+              </span>
+              <span className="hidden lg:inline">
+                {callState === 'connected' ? 'On Call' : 'Phone'}
+              </span>
+              {pendingMissed > 0 && callState === 'idle' && (
+                <span
+                  className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-black leading-none shadow-xs"
+                  title={`${pendingMissed} pending missed call / callback${pendingMissed === 1 ? '' : 's'}`}
+                >
+                  {pendingMissed}
                 </span>
               )}
             </button>
 
-            {notifOpen && (
-              <div className="fixed inset-x-3 top-16 sm:inset-x-auto sm:top-auto sm:absolute sm:right-0 sm:mt-2 w-auto sm:w-96 rounded-2xl bg-white dark:bg-[#0F1829] border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden z-50">
+            {isWorkspaceAdminRole(user) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setNotifOpen(false);
+                  router.push('/support-hq');
+                }}
+                className="h-9 inline-flex items-center gap-1.5 px-2 lg:pl-2 lg:pr-3 rounded-xl text-xs font-semibold border border-indigo-300/65 dark:border-indigo-500/35 bg-indigo-50/90 dark:bg-indigo-950/55 text-indigo-700 dark:text-indigo-200 hover:bg-indigo-600 hover:border-indigo-500 hover:text-white transition-all shadow-xs"
+                title="Raise Platform Issue or Glitch Directly to Leadsetu Super Admin"
+              >
+                <img
+                  src="/hq-support-icon.png"
+                  alt="HQ Support"
+                  className="w-5 h-5 object-contain shrink-0"
+                />
+                <span className="hidden xl:inline whitespace-nowrap">
+                  HQ Support
+                </span>
+              </button>
+            )}
+
+            {isFeatureEnabled(tenant, 'aiScoring', user) &&
+              isFeatureEnabled(tenant, 'aiCopilot', user) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNotifOpen(false);
+                    setAiCopilotOpen(true);
+                  }}
+                  className="h-9 inline-flex items-center gap-1.5 px-2.5 sm:px-3 rounded-xl text-xs font-semibold border border-brand-blue/35 dark:border-sky-400/30 bg-gradient-to-r from-brand-blue/12 via-indigo-500/10 to-cyan-500/10 dark:from-blue-500/20 dark:to-cyan-500/15 text-brand-blue dark:text-sky-300 hover:from-brand-blue hover:to-indigo-600 hover:border-transparent hover:text-white transition-all shadow-xs"
+                  title="Ask Leadsetu AI Copilot (Tenant-Scoped RAG)"
+                >
+                  <Sparkles className="w-4 h-4 sm:w-3.5 sm:h-3.5 shrink-0" />
+                  <span className="hidden md:inline whitespace-nowrap">
+                    Ask AI
+                  </span>
+                </button>
+              )}
+
+            {/* Live Notification Bell */}
+            <div className="relative" ref={notifContainerRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !notifOpen;
+                  setNotifOpen(next);
+                  if (next) loadNotifications();
+                }}
+                className={`relative h-9 w-9 inline-flex items-center justify-center rounded-xl border transition-all ${
+                  notifOpen
+                    ? 'border-brand-blue bg-brand-blue/10 text-brand-blue dark:text-sky-300'
+                    : 'border-slate-200/85 dark:border-white/[0.09] bg-slate-100/85 dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 hover:text-brand-blue dark:hover:text-sky-300 hover:border-brand-blue/50 hover:bg-white dark:hover:bg-white/[0.07]'
+                }`}
+                aria-label="Notifications"
+                aria-expanded={notifOpen}
+              >
+                <Bell className="w-4 h-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-extrabold flex items-center justify-center shadow ring-2 ring-white dark:ring-[#09111F]">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {notifOpen && (
+                <div className="fixed inset-x-3 top-[4.25rem] sm:inset-x-auto sm:absolute sm:top-full sm:right-0 sm:mt-2.5 w-auto sm:w-96 max-h-[calc(100dvh-5.5rem)] rounded-2xl bg-white dark:bg-[#0D1628] border border-slate-200/95 dark:border-white/[0.12] shadow-[0_24px_60px_-14px_rgba(2,6,23,0.45)] overflow-hidden z-[90]">
                 <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                   <div>
                     <div className="text-xs font-extrabold text-brand-navy dark:text-white flex items-center gap-1.5">
@@ -692,13 +717,14 @@ export default function Header({
                     })
                   )}
                 </div>
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block" />
+          <div className="h-6 w-px bg-slate-200/80 dark:bg-white/10 hidden sm:block" />
 
-          <div className="flex items-center gap-1.5 sm:gap-2.5">
+          <div className="flex items-center gap-1 sm:gap-1.5 p-0.5 sm:p-1 rounded-2xl sm:bg-slate-100/85 sm:dark:bg-white/[0.04] sm:border sm:border-slate-200/85 sm:dark:border-white/[0.09] shadow-xs">
             <Link
               href={isWorkspaceAdminRole(user) ? '/settings' : '/profile'}
               title={
@@ -706,24 +732,30 @@ export default function Header({
                   ? 'Company & Workspace Settings'
                   : 'Open My Profile & Feature Access'
               }
-              className="flex items-center gap-2 hover:opacity-90 transition-opacity"
+              className="group flex items-center gap-2 sm:px-2 sm:py-0.5 rounded-xl hover:bg-white/80 dark:hover:bg-white/[0.06] transition-all"
             >
-              <div
-                className="sm:hidden w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold text-white shrink-0 shadow-xs"
-                style={{ background: '#3978EA' }}
-              >
-                {user?.name?.[0]?.toUpperCase() || 'U'}
+              <div className="relative flex-shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#0057FF] via-[#2563EB] to-[#0EA5E9] flex items-center justify-center text-xs font-black text-white shadow-sm ring-1 ring-white/25 group-hover:scale-[1.03] transition-transform">
+                  {user?.name?.[0]?.toUpperCase() || 'U'}
+                </div>
+                <span
+                  className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#09111F]"
+                  title="Active Session"
+                />
               </div>
-              <div className="text-right hidden sm:block">
-                <div className="text-xs font-bold text-brand-navy dark:text-white flex items-center justify-end gap-1.5">
-                  <span>{user?.name}</span>
+
+              <div className="text-left hidden md:block min-w-0 max-w-[180px]">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-extrabold text-brand-navy dark:text-white capitalize truncate">
+                    {user?.name || 'User'}
+                  </span>
                   {tenant?.accountId && (
-                    <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-brand-light dark:bg-brand-blue/20 text-brand-blue dark:text-sky-300 font-extrabold">
-                      Acct #{tenant.accountId}
+                    <span className="font-mono text-[10px] px-1.5 py-0.5 rounded-md bg-brand-blue/10 dark:bg-sky-500/15 border border-brand-blue/20 dark:border-sky-400/25 text-brand-blue dark:text-sky-300 font-black tracking-tight shrink-0">
+                      #{tenant.accountId}
                     </span>
                   )}
                 </div>
-                <div className="text-[11px] text-slate-400">
+                <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate mt-0.5">
                   {user?.role === 'manager'
                     ? 'Sales Manager'
                     : user?.role === 'agent'
@@ -731,8 +763,8 @@ export default function Header({
                       : user?.role === 'support'
                         ? 'Support Engineer'
                         : user?.role === 'owner'
-                          ? 'Company Owner'
-                          : 'Company Admin'}
+                          ? 'Owner'
+                          : 'Admin'}
                   {tenant?.companyName?.trim() ? ` · ${tenant.companyName.trim()}` : ''}
                   {(user?.role === 'manager' || user?.role === 'agent' || user?.role === 'support') && user?.userCode
                     ? ` · UID #${user.userCode}`
@@ -741,15 +773,17 @@ export default function Header({
               </div>
             </Link>
 
+            <div className="hidden sm:block h-6 w-px bg-slate-200 dark:bg-white/10" />
+
             <button
               type="button"
               onClick={requestLogout}
               title="Sign Out"
               aria-label="Sign Out"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold p-2 sm:px-3 sm:py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+              className="h-8 inline-flex items-center gap-1.5 text-[11px] font-bold px-2 sm:px-2.5 rounded-xl bg-slate-200/75 dark:bg-white/[0.06] border border-slate-300/65 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:text-rose-600 dark:hover:text-rose-300 hover:border-rose-300 dark:hover:border-rose-500/40 hover:bg-rose-50 dark:hover:bg-rose-500/15 transition-all"
             >
               <LogOut className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-              <span className="hidden sm:inline">Sign Out</span>
+              <span className="hidden md:inline">Sign Out</span>
             </button>
           </div>
         </div>

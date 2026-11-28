@@ -13,6 +13,7 @@ import {
   FileClock,
   KeyRound,
   LayoutDashboard,
+  LifeBuoy,
   Loader2,
   LogOut,
   Menu,
@@ -40,6 +41,7 @@ import GstinProviderSection from '@/components/super-admin/GstinProviderSection'
 import AiProviderVaultSection from '@/components/super-admin/AiProviderVaultSection';
 import OnboardingFunnelSection from '@/components/super-admin/OnboardingFunnelSection';
 import IntegrationsWatchdogSection from '@/components/super-admin/IntegrationsWatchdogSection';
+import PlatformSupportSection from '@/components/super-admin/PlatformSupportSection';
 import {
   AuditLogsView,
   BillingLedgerView,
@@ -48,6 +50,7 @@ import {
 import ThemeToggle from '@/components/shared/ThemeToggle';
 import { getErrorMessage } from '@/lib/api-client';
 import { logoutApi } from '@/lib/auth';
+import { fetchHqPlatformTicketsApi } from '@/lib/platform-tickets-api';
 import { useAuthUxStore } from '@/store/auth-ux.store';
 import {
   fetchPlatformAuditLogsApi,
@@ -71,6 +74,7 @@ import type {
 type SuperAdminTab =
   | 'overview'
   | 'tenants'
+  | 'support_desk'
   | 'onboarding'
   | 'topups'
   | 'territories'
@@ -132,6 +136,13 @@ const NAV_ITEMS: Array<{
     label: 'Tenants & RBAC',
     subtitle: 'Inspect workspaces, quotas, modules, user RBAC & impersonation',
     icon: Building2,
+  },
+  {
+    id: 'support_desk',
+    group: 'Tenants & Revenue',
+    label: 'Platform Support Desk',
+    subtitle: 'Global cross-tenant bugs, glitches & service requests raised by Workspace Admins',
+    icon: LifeBuoy,
   },
   {
     id: 'onboarding',
@@ -228,6 +239,7 @@ export default function SuperAdminDashboardPage() {
   const [billing, setBilling] = useState<SuperAdminBillingResponse | null>(null);
   const [auditLogs, setAuditLogs] = useState<PlatformAuditLogItem[]>([]);
   const [auditStats, setAuditStats] = useState({ total: 0, critical: 0, warning: 0 });
+  const [openPlatformTicketsCount, setOpenPlatformTicketsCount] = useState(0);
   const [operators, setOperators] = useState<SuperAdminOperatorItem[]>([]);
 
   // Filters & selection
@@ -272,7 +284,7 @@ export default function SuperAdminDashboardPage() {
     if (isManual) setRefreshing(true);
     setError(null);
     try {
-      const [ov, tn, pol, bil, aud, ops] = await Promise.all([
+      const [ov, tn, pol, bil, aud, ops, plt] = await Promise.all([
         fetchSuperAdminOverviewApi(),
         fetchSuperAdminTenantsApi({
           search: tenantSearch.trim() || undefined,
@@ -287,6 +299,7 @@ export default function SuperAdminDashboardPage() {
           limit: 100,
         }),
         fetchSuperAdminOperatorsApi(),
+        fetchHqPlatformTicketsApi({ status: 'active' }).catch(() => null),
       ]);
       setOverview(ov);
       setTenants(tn.data || []);
@@ -298,6 +311,13 @@ export default function SuperAdminDashboardPage() {
       setAuditLogs(aud.data || []);
       setAuditStats(aud.stats || { total: 0, critical: 0, warning: 0 });
       setOperators(ops.data || []);
+      if (plt?.stats) {
+        setOpenPlatformTicketsCount(
+          (plt.stats.openCount || 0) +
+            (plt.stats.inProgressCount || 0) +
+            (plt.stats.waitingAdminCount || 0),
+        );
+      }
       setLastSyncedAt(
         new Date().toLocaleTimeString('en-IN', {
           hour: '2-digit',
@@ -452,6 +472,12 @@ export default function SuperAdminDashboardPage() {
                     let badgeAlert = false;
                     if (item.id === 'tenants' && tenants.length > 0) {
                       badge = tenants.length;
+                    } else if (
+                      item.id === 'support_desk' &&
+                      openPlatformTicketsCount > 0
+                    ) {
+                      badge = `${openPlatformTicketsCount} OPEN`;
+                      badgeAlert = true;
                     } else if (
                       item.id === 'topups' &&
                       (overview?.kpis?.pendingTopupRequests || 0) > 0
@@ -801,6 +827,16 @@ export default function SuperAdminDashboardPage() {
                   onStatusFilterChange={setStatusFilter}
                   planFilter={planFilter}
                   onPlanFilterChange={setPlanFilter}
+                />
+              )}
+
+              {activeTab === 'support_desk' && (
+                <PlatformSupportSection
+                  onInspectTenant={(id) => {
+                    setSelectedTenantId(id);
+                    setActiveTab('tenants');
+                  }}
+                  onCountChange={(cnt) => setOpenPlatformTicketsCount(cnt)}
                 />
               )}
 

@@ -71,6 +71,13 @@ export default function OmnichannelConnectorsPanel() {
   const [jdSecret, setJdSecret] = useState('');
   const [jdCategory, setJdCategory] = useState('');
   const [jdAutoWa, setJdAutoWa] = useState(true);
+  const [jdPincodeRules, setJdPincodeRules] = useState('');
+  const [jdAutoTicketService, setJdAutoTicketService] = useState(true);
+  const [jdServiceKeywords, setJdServiceKeywords] = useState(
+    'repair, service, amc, installation, complaint, warranty',
+  );
+  const [jdReviewBooster, setJdReviewBooster] = useState(true);
+  const [jdReviewLink, setJdReviewLink] = useState('');
 
   // TradeIndia state
   const [tiEnabled, setTiEnabled] = useState(true);
@@ -110,6 +117,16 @@ export default function OmnichannelConnectorsPanel() {
     setJdSecret(res.justdialWebhook.secretToken);
     setJdCategory(res.justdialWebhook.categoryFilter);
     setJdAutoWa(res.justdialWebhook.autoWhatsAppWelcome);
+    setJdPincodeRules(res.justdialWebhook.pincodeZoneRules || '');
+    setJdAutoTicketService(
+      res.justdialWebhook.autoCreateTicketForService !== false,
+    );
+    setJdServiceKeywords(
+      res.justdialWebhook.serviceCategoryKeywords ||
+        'repair, service, amc, installation, complaint, warranty',
+    );
+    setJdReviewBooster(res.justdialWebhook.reviewBoosterEnabled !== false);
+    setJdReviewLink(res.justdialWebhook.reviewLink || '');
 
     setTiEnabled(res.tradeindiaWebhook.enabled);
     setTiSecret(res.tradeindiaWebhook.secretToken);
@@ -176,6 +193,11 @@ export default function OmnichannelConnectorsPanel() {
           secretToken: jdSecret.trim(),
           categoryFilter: jdCategory.trim(),
           autoWhatsAppWelcome: jdAutoWa,
+          pincodeZoneRules: jdPincodeRules.trim(),
+          autoCreateTicketForService: jdAutoTicketService,
+          serviceCategoryKeywords: jdServiceKeywords.trim(),
+          reviewBoosterEnabled: jdReviewBooster,
+          reviewLink: jdReviewLink.trim(),
         },
         tradeindiaWebhook: {
           enabled: tiEnabled,
@@ -557,14 +579,71 @@ export default function OmnichannelConnectorsPanel() {
               </div>
             </div>
 
-            <label className="inline-flex items-center gap-2 font-bold cursor-pointer">
-              <input
-                type="checkbox"
-                checked={jdAutoWa}
-                onChange={(e) => setJdAutoWa(e.target.checked)}
-              />
-              <span>Auto-send &lt;10s WhatsApp welcome message on Justdial inquiry</span>
-            </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block font-bold mb-1">
+                  Pincode Territory Zone Rules (e.g. `110*:Delhi Hub, 201*:Noida Team`)
+                </label>
+                <input
+                  type="text"
+                  value={jdPincodeRules}
+                  onChange={(e) => setJdPincodeRules(e.target.value)}
+                  placeholder="110*:Delhi Hub, 201*:Noida Team, 122*:Gurugram Desk"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/15 bg-white dark:bg-[#0D1628] font-mono"
+                />
+              </div>
+              <div>
+                <label className="block font-bold mb-1">
+                  Service-to-Ticket Keywords (Auto-Opens SLA Ticket)
+                </label>
+                <input
+                  type="text"
+                  value={jdServiceKeywords}
+                  onChange={(e) => setJdServiceKeywords(e.target.value)}
+                  placeholder="repair, service, amc, installation, complaint, warranty"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/15 bg-white dark:bg-[#0D1628]"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block font-bold mb-1">
+                  Justdial Listing Review URL (For Post-Conversion Rating Booster)
+                </label>
+                <input
+                  type="url"
+                  value={jdReviewLink}
+                  onChange={(e) => setJdReviewLink(e.target.value)}
+                  placeholder="https://www.justdial.com/Delhi/Your-Business-Listing/reviews"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/15 bg-white dark:bg-[#0D1628] font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4">
+              <label className="inline-flex items-center gap-2 font-bold cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={jdAutoWa}
+                  onChange={(e) => setJdAutoWa(e.target.checked)}
+                />
+                <span>Auto-send &lt;10s WhatsApp welcome message on Justdial inquiry</span>
+              </label>
+              <label className="inline-flex items-center gap-2 font-bold cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={jdAutoTicketService}
+                  onChange={(e) => setJdAutoTicketService(e.target.checked)}
+                />
+                <span>Auto-open SLA Ticket for repair/AMC categories</span>
+              </label>
+              <label className="inline-flex items-center gap-2 font-bold cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={jdReviewBooster}
+                  onChange={(e) => setJdReviewBooster(e.target.checked)}
+                />
+                <span>Enable Justdial Review Booster</span>
+              </label>
+            </div>
           </div>
         )}
 

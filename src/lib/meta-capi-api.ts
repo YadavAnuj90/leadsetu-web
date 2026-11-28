@@ -22,6 +22,7 @@ export interface MetaCapiConfigDto {
   autoFireOnLeadQualified: boolean;
   autoFireOnDealWon: boolean;
   autoFireOnInvoicePaid: boolean;
+  monthlyAdSpendInr?: number;
   lastFiredAt: string;
   lastStatus: string;
   lastError: string;
@@ -33,6 +34,15 @@ export interface MetaCapiStatsDto {
   simulatedEvents: number;
   failedEvents: number;
   ctwaLeadsCount: number;
+  qualifiedLeadsCount?: number;
+  wonDealsCount?: number;
+  wonRevenueInr?: number;
+  pipelineValueInr?: number;
+  monthlyAdSpendInr?: number;
+  roasMultiplier?: number;
+  cplInr?: number;
+  cpqlInr?: number;
+  leadToWonPct?: number;
   attributedRevenueInr: number;
   purchaseEventsCount: number;
 }
@@ -95,6 +105,7 @@ export async function updateMetaCapiConfigApi(payload: {
   autoFireOnLeadQualified?: boolean;
   autoFireOnDealWon?: boolean;
   autoFireOnInvoicePaid?: boolean;
+  monthlyAdSpendInr?: number;
 }): Promise<MetaCapiOverviewResponse> {
   const { data } = await apiClient.patch<MetaCapiOverviewResponse>(
     '/meta-capi/config',

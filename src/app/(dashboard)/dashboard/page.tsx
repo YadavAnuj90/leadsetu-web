@@ -237,7 +237,7 @@ export default function DashboardPage() {
             {leadsEnabled && (
               <Link
                 href="/leads"
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white text-slate-950 text-xs font-extrabold shadow-md hover:bg-sky-50 transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#F8FAFC] to-[#E0F2FE] hover:from-[#FFFFFF] hover:to-[#BAE6FD] text-[#071021] text-xs font-extrabold shadow-lg shadow-sky-950/30 border border-white/60 transition-all hover:-translate-y-0.5"
               >
                 <Plus className="w-4 h-4 text-[#0057FF]" />
                 <span>Manage Leads</span>

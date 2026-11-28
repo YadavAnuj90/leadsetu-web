@@ -377,7 +377,9 @@ export function getRouteFeatureRestriction(
   if (!pathname) return null;
 
   if (
-    (pathname === '/settings' || pathname.startsWith('/settings/')) &&
+    (pathname === '/settings' ||
+      pathname.startsWith('/settings/') ||
+      pathname === '/support-hq') &&
     isScopedMemberRole(user)
   ) {
     return {

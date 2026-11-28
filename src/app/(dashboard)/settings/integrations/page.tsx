@@ -452,7 +452,7 @@ export default function IntegrationsSettingsPage() {
             res.businessDisplayName ? ` · ${res.businessDisplayName}` : ''
           }${res.verifiedPhoneNumber ? ` (${res.verifiedPhoneNumber})` : ''}${
             res.qualityRating ? ` · Quality: ${res.qualityRating}` : ''
-          }`,
+          }${res.messagingLimitTier ? ` · Tier: ${res.messagingLimitTier.replace('TIER_', '')}/day` : ''}`,
         });
       } else {
         setWaFeedback({
@@ -801,13 +801,33 @@ export default function IntegrationsSettingsPage() {
             </div>
             <div>
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
-                Connection Status
+                Connection &amp; WABA Health
               </span>
               <p className="text-xs font-bold text-emerald-700 mt-1">
                 {isOwnConnected
-                  ? 'Active · Company WhatsApp Number (Managed by Leadsetu)'
-                  : 'Active · Leadsetu Shared Gateway (Two-Way + Ticks)'}
+                  ? 'Active · Company WhatsApp Number'
+                  : 'Active · Leadsetu Shared Gateway'}
               </p>
+              <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                {waConfig?.qualityRating && (
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                      waConfig.qualityRating === 'RED'
+                        ? 'bg-rose-100 text-rose-700 border-rose-200'
+                        : waConfig.qualityRating === 'YELLOW'
+                          ? 'bg-amber-100 text-amber-700 border-amber-200'
+                          : 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                    }`}
+                  >
+                    Quality: {waConfig.qualityRating}
+                  </span>
+                )}
+                {waConfig?.messagingLimitTier && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-50 text-brand-blue border border-blue-200">
+                    Tier: {waConfig.messagingLimitTier.replace('TIER_', '')}/day
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         )}

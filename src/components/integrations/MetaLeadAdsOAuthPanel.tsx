@@ -18,6 +18,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import {
+  backfillMetaLeadsApi,
   exchangeMetaOAuthCodeApi,
   fetchMetaConnectionsApi,
   fetchMetaOAuthUrlApi,
@@ -61,6 +62,7 @@ export default function MetaLeadAdsOAuthPanel() {
   const [expandedPageId, setExpandedPageId] = useState<string | null>(null);
   const [savingFormKey, setSavingFormKey] = useState<string | null>(null);
   const [simulatingLead, setSimulatingLead] = useState(false);
+  const [backfillingPageId, setBackfillingPageId] = useState<string | null>(null);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -271,6 +273,23 @@ export default function MetaLeadAdsOAuthPanel() {
     }
   };
 
+  const handleBackfillPage = async (pageId?: string) => {
+    setBackfillingPageId(pageId || '__all__');
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await backfillMetaLeadsApi(pageId ? { pageId } : {});
+      setNotice(
+        `Safety-net backfill checked ${res.checkedForms} form(s): pulled ${res.pulledCount} lead(s), created ${res.createdCount} new, skipped ${res.deduplicatedCount} existing.`,
+      );
+      await loadAll();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setBackfillingPageId(null);
+    }
+  };
+
   const updateDraftField = (
     key: string,
     patch: Partial<(typeof formDrafts)[string]>,
@@ -448,6 +467,21 @@ export default function MetaLeadAdsOAuthPanel() {
                             : 'Subscribe Webhook'}
                       </span>
                     </label>
+
+                    <button
+                      type="button"
+                      disabled={backfillingPageId === page.pageId}
+                      onClick={() => void handleBackfillPage(page.pageId)}
+                      title="Pull missed leads directly from Meta Graph API for this Page"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-500/35 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-200 font-bold disabled:opacity-50"
+                    >
+                      {backfillingPageId === page.pageId ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      )}
+                      <span>Backfill Missed Leads</span>
+                    </button>
 
                     <button
                       type="button"

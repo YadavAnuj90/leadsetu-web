@@ -138,3 +138,23 @@ export async function simulateMetaTestLeadApi(payload?: {
   );
   return data;
 }
+
+export async function backfillMetaLeadsApi(payload?: {
+  pageId?: string;
+  formId?: string;
+  limit?: number;
+}): Promise<{
+  checkedPages: number;
+  checkedForms: number;
+  pulledCount: number;
+  createdCount: number;
+  deduplicatedCount: number;
+  formErrors: Array<{ pageId: string; formId: string; error: string }>;
+  syncedAt: string;
+}> {
+  const { data } = await apiClient.post(
+    '/integrations/meta/backfill',
+    payload || {},
+  );
+  return data;
+}

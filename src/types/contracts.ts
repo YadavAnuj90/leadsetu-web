@@ -568,6 +568,8 @@ export interface WhatsAppCloudConfig {
   verifyToken: string;
   webhookPath: string;
   lastTestedAt: string;
+  qualityRating?: string;
+  messagingLimitTier?: string;
   lastTestStatus: 'untested' | 'connected' | 'error';
   lastError: string;
   updatedAt: string;
@@ -609,6 +611,7 @@ export interface WhatsAppCloudTestResponse {
   verifiedPhoneNumber: string;
   businessDisplayName: string;
   qualityRating: string;
+  messagingLimitTier?: string;
   error: string;
   config: WhatsAppCloudConfig;
 }
@@ -2860,4 +2863,82 @@ export interface PortalPaymentIntentResponse {
   paymentLink: string;
   message: string;
   portal: BuyerPortalData;
+}
+
+// ─── Global HQ Platform Support Tickets (Workspace Admin <-> Super Admin) ────
+export type PlatformTicketCategory =
+  | 'ui_glitch'
+  | 'whatsapp_api'
+  | 'indiamart_sync'
+  | 'gst_invoicing'
+  | 'calling_webrtc'
+  | 'billing_plan'
+  | 'feature_help'
+  | 'other';
+
+export type PlatformTicketPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export type PlatformTicketStatus =
+  | 'open'
+  | 'in_progress'
+  | 'waiting_admin'
+  | 'resolved'
+  | 'closed';
+
+export interface PlatformTicketComment {
+  id: string;
+  authorName: string;
+  authorRole: 'tenant_admin' | 'super_admin' | 'system';
+  message: string;
+  createdAt: string;
+}
+
+export interface PlatformTicketItem {
+  id: string;
+  ticketNumber: string;
+  subject: string;
+  category: PlatformTicketCategory;
+  priority: PlatformTicketPriority;
+  status: PlatformTicketStatus;
+  description: string;
+  resolutionSummary: string;
+  resolvedByName: string;
+  resolvedAt: string;
+  comments: PlatformTicketComment[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SuperAdminPlatformTicketItem extends PlatformTicketItem {
+  tenantId: string;
+  accountId: string;
+  companyName: string;
+  businessMode: string;
+  tenantPlan: string;
+  raisedByUserId: string;
+  raisedByName: string;
+  raisedByEmail: string;
+  raisedByRole: string;
+  pageUrl: string;
+}
+
+export interface PlatformTicketsTenantResponse {
+  data: PlatformTicketItem[];
+  stats: {
+    total: number;
+    openCount: number;
+    resolvedCount: number;
+  };
+}
+
+export interface SuperAdminPlatformTicketsResponse {
+  data: SuperAdminPlatformTicketItem[];
+  stats: {
+    total: number;
+    openCount: number;
+    inProgressCount: number;
+    waitingAdminCount: number;
+    resolvedCount: number;
+    urgentActiveCount: number;
+  };
 }

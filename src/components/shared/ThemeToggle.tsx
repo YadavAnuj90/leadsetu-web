@@ -106,12 +106,17 @@ export default function ThemeToggle({
         setOpen(false);
       }
     };
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
 
     window.addEventListener(THEME_EVENT, handleSync);
     document.addEventListener('mousedown', handleOutside);
+    window.addEventListener('keydown', handleEsc);
     return () => {
       window.removeEventListener(THEME_EVENT, handleSync);
       document.removeEventListener('mousedown', handleOutside);
+      window.removeEventListener('keydown', handleEsc);
     };
   }, []);
 
@@ -155,10 +160,10 @@ export default function ThemeToggle({
   if (!mounted) {
     return (
       <div
-        className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 bg-slate-50 ${className}`}
+        className={`h-9 inline-flex items-center gap-1.5 px-3 rounded-xl border border-slate-200/80 dark:border-white/[0.08] text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100/80 dark:bg-white/[0.04] ${className}`}
       >
         <Palette className="w-3.5 h-3.5 text-brand-blue" />
-        <span>Theme</span>
+        <span className="hidden xl:inline">Theme</span>
       </div>
     );
   }
@@ -166,70 +171,84 @@ export default function ThemeToggle({
   return (
     <div
       ref={containerRef}
-      className={`relative inline-flex items-center gap-1.5 ${className}`}
+      className={`relative inline-flex items-center ${className}`}
     >
-      {/* 3-Theme Style Selector Trigger */}
-      <button
-        type="button"
-        onClick={() => setOpen((p) => !p)}
-        title={`Theme: ${activePreset.name} — Click to switch palette`}
-        className={`inline-flex items-center whitespace-nowrap rounded-xl border border-slate-200 dark:border-white/15 bg-white dark:bg-[#0F1829] text-xs font-bold text-brand-navy dark:text-slate-200 hover:border-brand-blue transition-all cursor-pointer select-none shadow-sm ${
-          compact ? 'gap-1.5 px-2.5 py-2' : 'gap-2 px-3 py-2'
-        }`}
-      >
-        <span
-          className="w-3.5 h-3.5 rounded-full ring-2 ring-white dark:ring-slate-800 shrink-0"
-          style={{ background: activePreset.swatchStyle }}
-        />
-        {!compact && (
-          <span className="hidden sm:inline">{activePreset.name}</span>
-        )}
-        {!compact && activePreset.badge === 'LIVE' && (
-          <span className="px-1.5 py-0.5 rounded bg-brand-blue/15 text-brand-blue text-[9px] font-extrabold">
-            LIVE
-          </span>
-        )}
-        <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-      </button>
+      {/* Unified Appearance Capsule: Preset Picker + Light/Dark Switch */}
+      <div className="h-9 inline-flex items-center p-0.5 rounded-xl border border-slate-200/85 dark:border-white/[0.09] bg-slate-100/85 dark:bg-white/[0.04] shadow-xs">
+        <button
+          type="button"
+          onClick={() => setOpen((p) => !p)}
+          aria-expanded={open}
+          aria-haspopup="menu"
+          title={`Theme: ${activePreset.name} — Click to switch workspace palette`}
+          className={`h-8 inline-flex items-center whitespace-nowrap rounded-[10px] text-xs font-semibold text-brand-navy dark:text-slate-100 hover:bg-white/90 dark:hover:bg-white/[0.08] transition-all cursor-pointer select-none ${
+            compact ? 'gap-1.5 px-2' : 'gap-2 px-2.5'
+          } ${open ? 'bg-white dark:bg-white/[0.09] shadow-xs' : ''}`}
+        >
+          <span
+            className="w-3 h-3 rounded-full ring-2 ring-white/90 dark:ring-slate-800 shrink-0 shadow-xs"
+            style={{ background: activePreset.swatchStyle }}
+          />
+          {!compact && (
+            <span className="hidden xl:inline tracking-tight">
+              {activePreset.name}
+            </span>
+          )}
+          {!compact && activePreset.badge === 'LIVE' && (
+            <span className="hidden 2xl:inline px-1.5 py-0.5 rounded-md bg-brand-blue/15 text-brand-blue dark:text-sky-300 text-[9px] font-extrabold leading-none">
+              LIVE
+            </span>
+          )}
+          <ChevronDown
+            className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 shrink-0 ${
+              open ? 'rotate-180 text-brand-blue dark:text-sky-300' : ''
+            }`}
+          />
+        </button>
 
-      {/* Quick Light / Dark Toggle */}
-      <button
-        type="button"
-        onClick={toggleDarkMode}
-        title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-        aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-        className={`p-2 rounded-xl border text-xs font-bold transition-all cursor-pointer select-none ${
-          isDark
-            ? 'border-amber-400/40 bg-amber-500/15 text-amber-300 hover:bg-amber-500/25'
-            : 'border-slate-200 bg-slate-100/90 text-brand-navy hover:border-brand-blue hover:text-brand-blue'
-        }`}
-      >
-        {isDark ? (
-          <Sun className="w-4 h-4 text-amber-400" />
-        ) : (
-          <Moon className="w-4 h-4 text-brand-blue" />
-        )}
-      </button>
+        <div className="h-4 w-px bg-slate-200/90 dark:bg-white/10 mx-0.5 shrink-0" />
 
-      {/* Theme Picker Popover */}
+        <button
+          type="button"
+          onClick={toggleDarkMode}
+          title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          className={`h-8 w-8 inline-flex items-center justify-center rounded-[10px] transition-all cursor-pointer select-none ${
+            isDark
+              ? 'text-amber-300 hover:bg-amber-500/15'
+              : 'text-slate-600 hover:bg-white/90 hover:text-brand-blue'
+          }`}
+        >
+          {isDark ? (
+            <Sun className="w-4 h-4 text-amber-400" />
+          ) : (
+            <Moon className="w-4 h-4 text-brand-blue" />
+          )}
+        </button>
+      </div>
+
+      {/* Theme Picker Popover (anchored directly beneath the ThemeToggle trigger) */}
       {open && (
-        <div className="fixed inset-x-3 top-16 sm:inset-x-auto sm:top-auto sm:absolute sm:right-0 sm:mt-2 w-auto sm:w-72 rounded-2xl bg-white dark:bg-[#0F1829] border border-slate-200 dark:border-slate-700 shadow-2xl p-3.5 space-y-3 z-50">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+        <div
+          role="menu"
+          className="fixed inset-x-3 top-[4.25rem] sm:inset-x-auto sm:absolute sm:top-full sm:right-0 lg:left-1/2 lg:right-auto lg:-translate-x-1/2 sm:mt-2.5 w-auto sm:w-80 max-h-[calc(100dvh-5.5rem)] overflow-y-auto rounded-2xl bg-white dark:bg-[#0D1628] border border-slate-200/95 dark:border-white/[0.12] shadow-[0_24px_60px_-14px_rgba(2,6,23,0.45)] p-3.5 space-y-3 z-[90]"
+        >
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/[0.07] pb-2.5">
             <div className="flex items-center gap-1.5 text-xs font-extrabold text-brand-navy dark:text-white">
-              <Palette className="w-3.5 h-3.5 text-brand-blue" />
-              <span>Workspace Theme (3 Presets)</span>
+              <Palette className="w-3.5 h-3.5 text-brand-blue dark:text-sky-400" />
+              <span>Workspace Theme</span>
             </div>
-            <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 p-0.5 bg-slate-50 dark:bg-slate-800/70">
+            <div className="inline-flex rounded-xl border border-slate-200/90 dark:border-white/10 p-0.5 bg-slate-100 dark:bg-white/[0.04]">
               <button
                 type="button"
                 onClick={() => {
                   setIsDark(false);
                   broadcastUpdate(false, colorTheme);
                 }}
-                className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold transition ${
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition ${
                   !isDark
-                    ? 'bg-white text-brand-navy shadow-sm'
-                    : 'text-slate-400'
+                    ? 'bg-sky-50 text-brand-blue ring-1 ring-brand-blue/25 shadow-xs'
+                    : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <Sun className="w-3 h-3" /> Light
@@ -240,10 +259,10 @@ export default function ThemeToggle({
                   setIsDark(true);
                   broadcastUpdate(true, colorTheme);
                 }}
-                className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold transition ${
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition ${
                   isDark
-                    ? 'bg-slate-900 text-amber-300 shadow-sm'
-                    : 'text-slate-500'
+                    ? 'bg-[#16233B] text-amber-300 ring-1 ring-white/10 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
                 <Moon className="w-3 h-3" /> Dark
@@ -261,13 +280,13 @@ export default function ThemeToggle({
                   onClick={() => selectColorTheme(opt.id)}
                   className={`w-full text-left p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2.5 ${
                     selected
-                      ? 'border-brand-blue bg-brand-light/70 dark:bg-brand-blue/15'
-                      : 'border-slate-200/80 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                      ? 'border-brand-blue/60 bg-blue-50/75 dark:bg-brand-blue/15 dark:border-sky-400/40 shadow-xs'
+                      : 'border-slate-200/75 dark:border-white/[0.07] hover:bg-slate-50 dark:hover:bg-white/[0.04]'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span
-                      className={`w-7 h-7 rounded-xl shrink-0 ring-2 ring-white dark:ring-slate-800 shadow-sm ${
+                      className={`w-7 h-7 rounded-xl shrink-0 ring-2 ring-white/80 dark:ring-slate-800 shadow-sm ${
                         opt.badge === 'LIVE' ? 'animate-pulse' : ''
                       }`}
                       style={{ background: opt.swatchStyle }}
@@ -280,8 +299,8 @@ export default function ThemeToggle({
                         <span
                           className={`inline-flex items-center gap-0.5 text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
                             opt.badge === 'LIVE'
-                              ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300'
-                              : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                              ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300'
+                              : 'bg-slate-100 text-slate-600 dark:bg-white/[0.06] dark:text-slate-300'
                           }`}
                         >
                           {opt.badge === 'LIVE' && (
@@ -290,13 +309,13 @@ export default function ThemeToggle({
                           {opt.badge}
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                      <p className="text-[10.5px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
                         {opt.desc}
                       </p>
                     </div>
                   </div>
                   {selected && (
-                    <Check className="w-4 h-4 text-brand-blue shrink-0" />
+                    <Check className="w-4 h-4 text-brand-blue dark:text-sky-400 shrink-0" />
                   )}
                 </button>
               );

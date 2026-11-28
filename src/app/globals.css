@@ -486,6 +486,15 @@ html.dark .dashboard-shell textarea::placeholder {
   color: #64748B !important;
 }
 
+html.dark .dashboard-shell .light-preview-canvas input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+html.dark .dashboard-shell .light-preview-canvas select,
+html.dark .dashboard-shell .light-preview-canvas textarea {
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
+  border-color: #E2E8F0 !important;
+  color-scheme: light;
+}
+
 /* Native dark scrollbars & color-scheme so overflow tables never show white tracks or corners */
 html.dark {
   color-scheme: dark;
