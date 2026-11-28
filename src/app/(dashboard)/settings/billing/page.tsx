@@ -518,7 +518,7 @@ export default function BillingSettingsPage() {
             </div>
             <div className="text-slate-200/90">
               {billing?.seller.sellerAddress ||
-                'Tower B, 7th Floor, Sector 62, Noida & Connaught Place, New Delhi – 110001, India'}
+                'Tower B, 7th Floor, Sector 62, Noida Electronic City, UP – 201309, India'}
             </div>
             <div className="font-mono text-[11px] text-emerald-300">
               GSTIN: {billing?.seller.sellerGstin || '07AABCL4821K1Z5'} · SAC 998314

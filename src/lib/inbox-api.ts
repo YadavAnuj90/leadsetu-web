@@ -402,3 +402,137 @@ export async function syncCatalogKnowledgeApi(): Promise<AiKnowledgeOverviewResp
   );
   return data;
 }
+
+// ---------------------------------------------------------------------------
+// WhatsApp Interactive Multi-Step Bot Flow Builder APIs
+// ---------------------------------------------------------------------------
+
+export type BotFlowLanguage = 'english' | 'hindi' | 'hinglish';
+export type BotFlowMenuMode = 'auto' | 'buttons' | 'list';
+export type BotFlowActionType =
+  | 'send_rate_card'
+  | 'send_booking_link'
+  | 'track_order'
+  | 'create_sla_ticket'
+  | 'handoff_rep'
+  | 'sub_menu';
+
+export interface BotFlowLocalizedText {
+  english: string;
+  hindi: string;
+  hinglish: string;
+}
+
+export interface BotFlowBranch {
+  id: string;
+  enabled: boolean;
+  title: BotFlowLocalizedText;
+  description: BotFlowLocalizedText;
+  keywords: string[];
+  actionType: BotFlowActionType;
+  replyBody: BotFlowLocalizedText;
+  followUpButtons: string[];
+  ticketPriority: 'low' | 'medium' | 'high' | 'urgent';
+  ticketCategory:
+    | 'dispatch_delay'
+    | 'warranty'
+    | 'gst_correction'
+    | 'installation'
+    | 'amc_service'
+    | 'general';
+  routeToRole: 'sales' | 'support' | 'manager' | 'owner';
+  hitsCount: number;
+}
+
+export interface WhatsAppBotFlowConfig {
+  enabled: boolean;
+  defaultLanguage: BotFlowLanguage;
+  autoDetectLanguage: boolean;
+  menuMode: BotFlowMenuMode;
+  triggerKeywords: string[];
+  triggerOnFirstMessage: boolean;
+  cooldownMinutes: number;
+  listButtonLabel: BotFlowLocalizedText;
+  welcomeHeader: BotFlowLocalizedText;
+  welcomeBody: BotFlowLocalizedText;
+  footerText: string;
+  branches: BotFlowBranch[];
+  stats: {
+    totalRuns: number;
+    buttonsTapped: number;
+    ticketsCreated: number;
+    rateCardsSent: number;
+    demosShared: number;
+    ordersTracked: number;
+    lastTriggeredAt?: string;
+  };
+}
+
+export interface BotSessionState {
+  step?: 'root' | 'awaiting_ticket_issue' | 'completed';
+  lastBranchId?: string;
+  lastMenuSentAt?: string;
+  language?: BotFlowLanguage;
+}
+
+export interface InteractiveBotPayload {
+  body: string;
+  footerText: string;
+  interactiveType: 'buttons' | 'list' | 'none';
+  buttons?: Array<{ id: string; title: string }>;
+  listMenu?: {
+    headerText?: string;
+    buttonLabel: string;
+    sectionTitle: string;
+    rows: Array<{ id: string; title: string; description?: string }>;
+  };
+}
+
+export interface BotSimulationResponse {
+  handled: boolean;
+  payload: InteractiveBotPayload | null;
+  nextSession: BotSessionState;
+  actionExecuted: string;
+  crmActionSummary: string;
+  branchId?: string;
+  createdTicketNumber?: string;
+  language: BotFlowLanguage;
+}
+
+export async function fetchBotFlowConfigApi(): Promise<WhatsAppBotFlowConfig> {
+  const { data } = await apiClient.get<WhatsAppBotFlowConfig>('/inbox/bot-flow');
+  return data;
+}
+
+export async function updateBotFlowConfigApi(
+  payload: Partial<WhatsAppBotFlowConfig>,
+): Promise<WhatsAppBotFlowConfig> {
+  const { data } = await apiClient.patch<WhatsAppBotFlowConfig>(
+    '/inbox/bot-flow',
+    payload,
+  );
+  return data;
+}
+
+export async function resetBotFlowConfigApi(): Promise<WhatsAppBotFlowConfig> {
+  const { data } = await apiClient.post<WhatsAppBotFlowConfig>(
+    '/inbox/bot-flow/reset-defaults',
+  );
+  return data;
+}
+
+export async function simulateBotFlowStepApi(payload: {
+  message?: string;
+  interactiveOptionId?: string;
+  language?: BotFlowLanguage;
+  session?: BotSessionState;
+  buyerName?: string;
+  buyerPhone?: string;
+  draftConfig?: Partial<WhatsAppBotFlowConfig>;
+}): Promise<BotSimulationResponse> {
+  const { data } = await apiClient.post<BotSimulationResponse>(
+    '/inbox/bot-flow/simulate',
+    payload,
+  );
+  return data;
+}

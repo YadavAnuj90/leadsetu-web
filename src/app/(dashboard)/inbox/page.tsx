@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Loader2, MessageSquare, Plus, Settings2 } from 'lucide-react';
+import { GitBranch, Loader2, MessageSquare, Plus, Settings2 } from 'lucide-react';
 import { useInbox } from '@/hooks/useInbox';
 import { useWhatsappWebRtc } from '@/hooks/useWhatsappWebRtc';
 import { useAuthStore } from '@/store/auth.store';
@@ -17,6 +17,7 @@ import WhatsAppTemplateManagerModal from '@/components/inbox/WhatsAppTemplateMan
 import VoiceCrmAuditModal from '@/components/ai/VoiceCrmAuditModal';
 import DealerRfqModal from '@/components/ai/DealerRfqModal';
 import { AiConciergeModal } from '@/components/inbox/AiConciergeModal';
+import { WhatsAppBotBuilderModal } from '@/components/inbox/WhatsAppBotBuilderModal';
 import WhatsAppCartBuilderModal, {
   type PrefilledCartLineInput,
 } from '@/components/inbox/WhatsAppCartBuilderModal';
@@ -48,6 +49,7 @@ function InboxPageContent() {
     message?: string;
   } | null>(null);
   const [conciergeModalOpen, setConciergeModalOpen] = useState(false);
+  const [botBuilderOpen, setBotBuilderOpen] = useState(false);
   const [cartModalOpen, setCartModalOpen] = useState(false);
   const [prefilledCart, setPrefilledCart] = useState<{
     lines: PrefilledCartLineInput[];
@@ -154,6 +156,13 @@ function InboxPageContent() {
             >
               <Settings2 className="w-4 h-4 text-brand-blue" /> Manage Templates
             </button>
+            <button
+              type="button"
+              onClick={() => setBotBuilderOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:border-emerald-500"
+            >
+              <GitBranch className="w-4 h-4" /> Bot Flow Builder
+            </button>
           </div>
         </div>
       ) : (
@@ -176,6 +185,7 @@ function InboxPageContent() {
               onStatusFilterChange={setStatusFilter}
               onNewConversation={() => setStartModalOpen(true)}
               onOpenTemplates={openTemplateManager}
+              onOpenBotBuilder={() => setBotBuilderOpen(true)}
               isLiveConnected={isLiveConnected}
             />
           </div>
@@ -201,6 +211,7 @@ function InboxPageContent() {
                   isGeneratingAi={isGeneratingAi}
                   aiAgentMode={aiAgentPolicy?.mode || 'draft_only'}
                   onOpenAiConcierge={() => setConciergeModalOpen(true)}
+                  onOpenBotBuilder={() => setBotBuilderOpen(true)}
                   onToggleAutopilot={toggleAutopilot}
                   onOpenVoiceAudit={
                     canUseVoiceCrm ? () => setVoiceModalOpen(true) : undefined
@@ -385,6 +396,13 @@ function InboxPageContent() {
               }
             : undefined
         }
+      />
+
+      <WhatsAppBotBuilderModal
+        open={botBuilderOpen}
+        onClose={() => setBotBuilderOpen(false)}
+        defaultBuyerName={activeConversation?.contactName}
+        defaultBuyerPhone={activeConversation?.phone}
       />
 
       <WhatsAppCartBuilderModal

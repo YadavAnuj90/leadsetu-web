@@ -18,7 +18,11 @@ import {
   X,
 } from 'lucide-react';
 import { fetchProductsApi } from '@/lib/products-api';
-import { createWhatsappCartCheckoutApi } from '@/lib/invoices-api';
+import {
+  createWhatsappCartCheckoutApi,
+  fetchInvoiceUpiQrApi,
+  updateRecoveryConfigApi,
+} from '@/lib/invoices-api';
 import { getErrorMessage } from '@/lib/api-client';
 import type { Conversation, Product } from '@/types/contracts';
 
@@ -73,6 +77,7 @@ export default function WhatsAppCartBuilderModal({
   const [error, setError] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<{
+    invoiceId: string;
     invoiceNumber: string;
     grandTotal: number;
     upiPaymentUri: string;
@@ -80,6 +85,10 @@ export default function WhatsAppCartBuilderModal({
     paymentLink: string;
     whatsappDispatched: boolean;
   } | null>(null);
+  const [inlineUpiId, setInlineUpiId] = useState('');
+  const [inlineMerchant, setInlineMerchant] = useState('');
+  const [savingInlineUpi, setSavingInlineUpi] = useState(false);
+  const [inlineUpiError, setInlineUpiError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -213,6 +222,7 @@ export default function WhatsAppCartBuilderModal({
       });
 
       setReceipt({
+        invoiceId: res.invoice.id,
         invoiceNumber: res.invoice.invoiceNumber,
         grandTotal: res.invoice.grandTotal,
         upiPaymentUri: res.upiPaymentUri,
@@ -220,6 +230,7 @@ export default function WhatsAppCartBuilderModal({
         paymentLink: res.paymentLink,
         whatsappDispatched: res.whatsappDispatched,
       });
+      setInlineUpiError(null);
       onSent?.(
         `Sent WhatsApp Cart ${res.invoice.invoiceNumber} (₹${res.invoice.grandTotal.toLocaleString('en-IN')}) with scannable UPI QR & Payment Link.`,
       );
@@ -227,6 +238,39 @@ export default function WhatsAppCartBuilderModal({
       setError(getErrorMessage(err));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleSaveInlineUpi = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!receipt) return;
+    const cleanVpa = inlineUpiId.trim();
+    if (!/^[a-zA-Z0-9._-]{2,}@[a-zA-Z0-9.-]{2,}$/.test(cleanVpa)) {
+      setInlineUpiError('Enter a valid UPI VPA (e.g. yourbusiness@okicici or store@ybl).');
+      return;
+    }
+    setSavingInlineUpi(true);
+    setInlineUpiError(null);
+    try {
+      await updateRecoveryConfigApi({
+        upiId: cleanVpa,
+        merchantName: inlineMerchant.trim() || undefined,
+      });
+      const qr = await fetchInvoiceUpiQrApi(receipt.invoiceId);
+      setReceipt((prev) =>
+        prev
+          ? {
+              ...prev,
+              upiPaymentUri: qr.upiPaymentUri,
+              upiQrDataUrl: qr.upiQrDataUrl,
+              paymentLink: qr.paymentLink || prev.paymentLink,
+            }
+          : prev,
+      );
+    } catch (err) {
+      setInlineUpiError(getErrorMessage(err));
+    } finally {
+      setSavingInlineUpi(false);
     }
   };
 
@@ -279,15 +323,50 @@ export default function WhatsAppCartBuilderModal({
                   className="w-44 h-44 rounded-xl border border-slate-200 bg-white p-1"
                 />
               ) : (
-                <div className="p-4 text-center space-y-1.5">
-                  <QrCode className="w-16 h-16 text-amber-500 mx-auto" />
-                  <p className="text-[11px] font-bold text-amber-700 dark:text-amber-300">
-                    UPI QR skipped (Business UPI ID not configured yet)
-                  </p>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                    Set your active VPA in Invoices → UPI QR or Udhaar Recovery Config.
-                  </p>
-                </div>
+                <form
+                  onSubmit={(e) => void handleSaveInlineUpi(e)}
+                  className="w-full p-2 text-left space-y-2.5"
+                >
+                  <div className="flex items-center gap-2">
+                    <QrCode className="w-7 h-7 text-amber-500 shrink-0" />
+                    <div>
+                      <p className="text-[11px] font-extrabold text-amber-700 dark:text-amber-300">
+                        Business UPI VPA Not Set Yet
+                      </p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                        Save once right here to generate scannable QR immediately:
+                      </p>
+                    </div>
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={inlineUpiId}
+                    onChange={(e) => setInlineUpiId(e.target.value)}
+                    placeholder="yourbusiness@okicici"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-white/15 bg-slate-50 dark:bg-[#081020] text-[11px] font-mono text-brand-navy dark:text-white"
+                  />
+                  <input
+                    type="text"
+                    value={inlineMerchant}
+                    onChange={(e) => setInlineMerchant(e.target.value)}
+                    placeholder="Merchant Name (optional)"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-white/15 bg-slate-50 dark:bg-[#081020] text-[11px] text-brand-navy dark:text-white"
+                  />
+                  {inlineUpiError && (
+                    <p className="text-[10px] font-semibold text-rose-600 dark:text-rose-300">
+                      {inlineUpiError}
+                    </p>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={savingInlineUpi}
+                    className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-extrabold disabled:opacity-50"
+                  >
+                    {savingInlineUpi && <Loader2 className="w-3 h-3 animate-spin" />}
+                    <span>Save UPI &amp; Generate QR Now</span>
+                  </button>
+                </form>
               )}
               <span className="mt-2 text-xs font-extrabold text-brand-navy dark:text-white">
                 Pay ₹{receipt.grandTotal.toLocaleString('en-IN')}

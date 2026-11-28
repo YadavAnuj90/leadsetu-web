@@ -69,6 +69,10 @@ export interface BillingSummaryResponse extends TenantWorkspaceResponse {
   invoices: SubscriptionInvoice[];
   latestInvoice?: SubscriptionInvoice;
   lifecycle?: SubscriptionLifecycleInfo;
+  razorpay?: {
+    keyId: string;
+    mode: 'razorpay_live' | 'razorpay_sandbox';
+  };
   refundRequests?: SubscriptionRefundRequestItem[];
   proration?: Record<'starter' | 'growth' | 'enterprise', PlanProrationPreview>;
 }

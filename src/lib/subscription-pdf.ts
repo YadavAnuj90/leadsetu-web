@@ -113,7 +113,7 @@ export function buildSubscriptionInvoicePdfBlob(
     752,
     8,
     inv.sellerAddress ||
-      'Tower B, 7th Floor, Sector 62, Noida & Connaught Place, New Delhi - 110001, India',
+      'Tower B, 7th Floor, Sector 62, Noida Electronic City, UP - 201309, India',
     false,
     0.75,
     0.83,
@@ -170,7 +170,7 @@ export function buildSubscriptionInvoicePdfBlob(
   );
   const sellerLines = wrapText(
     inv.sellerAddress ||
-      'Tower B, 7th Floor, Sector 62, Noida & Connaught Place, New Delhi - 110001, India',
+      'Tower B, 7th Floor, Sector 62, Noida Electronic City, UP - 201309, India',
     42,
   );
   sellerLines.slice(0, 2).forEach((ln, idx) => {
@@ -358,7 +358,7 @@ export function buildSubscriptionInvoicePdfBlob(
     40,
     104,
     8,
-    'Registered Office: Tower B, 7th Floor, Sector 62, Noida & Connaught Place, New Delhi - 110001 | support@leadsetu.in',
+    'Registered Office: Tower B, 7th Floor, Sector 62, Noida, UP - 201309 | hello@leadsetu.in',
     false,
     0.4,
     0.45,

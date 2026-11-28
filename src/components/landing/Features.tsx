@@ -686,7 +686,7 @@ const departmentWorkspaces: DepartmentWorkspace[] = [
       {
         datePill: 'MANAGER',
         dateColor: 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300',
-        title: 'Rohit Verma · Connaught Place Hub',
+        title: 'Sales Lead · New Delhi Hub',
         amount: '#7391048261',
         stage: 'Sales Manager',
         stageColor: 'bg-sky-500 text-white',
@@ -1091,71 +1091,71 @@ const features = [
   },
   {
     icon: ShieldCheck,
-    badge: 'Enterprise Identity',
-    metric: '5-Digit Account ID',
-    title: 'Team RBAC & 10-Digit User IDs',
+    badge: 'Team Governance',
+    metric: '5-Role RBAC + Audit',
+    title: 'Team RBAC, Quotas & Phone Masking',
     description:
-      'Every workspace gets a unique 5-digit Account ID and every team member gets a 10-digit User ID with Owner, Admin, Manager, and Agent roles.',
+      'Dedicated workspace accounts with Owner, Admin, Manager, Sales & Support roles, per-user feature permissions, and full audit trails.',
     accent: '#6366F1',
     highlights: [
-      'Add reps by Email + Indian Mobile',
-      'Monthly INR target progress bars',
+      'Email + Indian Mobile invites',
+      'Rep phone-masking privacy toggle',
       'Zero-orphan lead reassignment',
     ],
   },
   {
     icon: Inbox,
-    badge: 'Omnichannel',
-    metric: '< 15 Sec First Reply',
-    title: 'Unified WhatsApp & IndiaMART Inbox',
+    badge: 'Bots + Omnichannel',
+    metric: '< 15 Sec Auto-Reply',
+    title: 'WhatsApp Bot Flows, Calling & AI Inbox',
     description:
-      'Consolidate WhatsApp Cloud, IndiaMART, and Email buyer threads into a single team inbox with SetuAI smart reply drafting.',
+      'Interactive English, Hindi & Hinglish Button/List menus, 24×7 SetuAI sales replies, WebRTC WhatsApp calls, and IndiaMART sync in one inbox.',
     accent: '#EC4899',
     highlights: [
-      '1-click Hinglish AI smart replies',
-      'Buyer AI score badge in chat',
-      'Instant thread resolution',
+      'Rate Card, Demo, Order & SLA Bot',
+      'WhatsApp Cart + Pay Button CTA',
+      'Real-time WebSocket inbox sync',
     ],
   },
   {
     icon: Building2,
     badge: 'B2B Directory',
     metric: '15-Digit GSTIN',
-    title: 'B2B Contacts & Lifetime Value',
+    title: 'B2B Contacts, Credit Hold & LTV',
     description:
-      'Maintain a verified directory of Customers, Prospects, Partners, and Vendors with GSTIN records and cumulative INR Lifetime Value.',
+      'Verified directory of buyers and dealers with 15-digit GSTIN, buyer magic portals, overdue credit-hold guardrails, and cumulative INR LTV.',
     accent: '#0EA5E9',
     highlights: [
-      'Verified 15-digit GSTIN lookup',
-      'Account type segmentation',
+      'Auto credit-hold & release on pay',
+      'Passwordless Buyer Portal (/portal)',
       'Auto-fills GST invoice builder',
     ],
   },
   {
     icon: BarChart3,
-    badge: 'CEO Cockpit',
-    metric: '8-Collection Sync',
-    title: 'Real-Time Attribution Analytics',
+    badge: 'Revenue Analytics',
+    metric: 'Closed-Loop ROAS',
+    title: 'UTM, Meta CAPI & GST Attribution',
     description:
-      'Live workspace aggregation across Leads, Deals, Invoices, Campaigns, and Workflows with NCR regional hub breakdowns.',
+      'Live aggregation across Instant Forms, WhatsApp Ads (CTWA), Deals, Paid GST Invoices, and SLA Tickets across Pan-India hubs.',
     accent: '#06B6D4',
     highlights: [
-      'WhatsApp vs IndiaMART vs Meta ROI',
-      'Noida, Delhi & Gurugram hub stats',
-      'Live GST tax liability tracker',
+      'Instant Form UTM → Paid Revenue',
+      'Meta CAPI Lead & Purchase events',
+      'GSTR-1 & Tally Prime CSV export',
     ],
   },
 ];
 
 const integrations = [
-  { name: 'WhatsApp Cloud API', category: 'Official Green-Tick', dot: 'bg-emerald-500' },
-  { name: 'IndiaMART Lead Sync', category: 'B2B Marketplace', dot: 'bg-rose-500' },
-  { name: 'Justdial Inquiries', category: 'Local B2B Leads', dot: 'bg-orange-500' },
-  { name: 'Meta Lead Ads', category: 'FB & Instagram', dot: 'bg-blue-500' },
-  { name: 'Google Ads', category: 'Search & Display', dot: 'bg-amber-500' },
-  { name: 'Razorpay Links', category: 'Instant UPI & NEFT', dot: 'bg-indigo-500' },
-  { name: 'Rule-46 GST & Tally', category: 'HSN & CGST/IGST', dot: 'bg-teal-500' },
-  { name: 'SetuAI Neural Core', category: 'Hinglish NLP Engine', dot: 'bg-violet-500' },
+  { name: 'WhatsApp Cloud & Bot', category: 'Buttons, Lists & Calling', dot: 'bg-emerald-500' },
+  { name: 'IndiaMART & Justdial', category: 'Instant Marketplace Sync', dot: 'bg-rose-500' },
+  { name: 'Instant Forms & Booking', category: 'OTP /f & /book Slots', dot: 'bg-orange-500' },
+  { name: 'Meta Lead Ads & CAPI', category: 'CTWA & Purchase ROAS', dot: 'bg-blue-500' },
+  { name: 'Universal Webhooks', category: 'HTTPS GET/POST Upsert', dot: 'bg-amber-500' },
+  { name: 'Razorpay & UPI Pay', category: 'WhatsApp CTA + Auto-Paid', dot: 'bg-indigo-500' },
+  { name: 'Rule-46 GST & Tally', category: 'CGST/IGST & GSTR-1 CSV', dot: 'bg-teal-500' },
+  { name: 'SetuAI Neural Core', category: '24×7 Hinglish Concierge', dot: 'bg-violet-500' },
 ];
 
 // ─── SECTION A COMPONENT: CONTINUOUS 360° AUTO-ROTATING LIGHT FOCUS ORBIT ────
@@ -1984,15 +1984,15 @@ export default function Features() {
           {/* Section Header */}
           <div className="text-center max-w-3xl mx-auto mb-14">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-4 border bg-brand-light dark:bg-brand-blue/15 text-brand-blue dark:text-brand-sky border-brand-blue/25">
-              <Sparkles className="w-3.5 h-3.5" /> Interactive Product Tour · 14 Live Modules
+              <Sparkles className="w-3.5 h-3.5" /> Interactive Product Tour · End-to-End Revenue OS
             </div>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mb-5 leading-tight text-brand-navy dark:text-white">
-              Every tool an Indian SME needs to{' '}
-              <span className="text-gradient-navy">turn leads into GST revenue</span>
+              One WhatsApp-first platform to{' '}
+              <span className="text-gradient-navy">capture, close &amp; collect GST revenue</span>
             </h2>
             <p className="text-slate-500 dark:text-slate-400 text-base sm:text-lg leading-relaxed">
-              Click any module below to explore how Leadsetu connects your WhatsApp, IndiaMART,
-              Kanban pipeline, 18% GST billing, and sales team in one unified platform.
+              Explore how Leadsetu unifies Instant Forms, AI WhatsApp Bots, IndiaMART &amp; Meta CAPI,
+              Kanban Deals, and 18% GST Billing with Razorpay &amp; UPI auto-reconciliation.
             </p>
           </div>
 
@@ -2637,8 +2637,8 @@ export default function Features() {
                   Plugs directly into your Indian business stack
                 </h3>
                 <p className="text-slate-300 text-sm leading-relaxed">
-                  No expensive webhooks or Zapier bills. Connect your lead sources, WhatsApp number,
-                  and 18% GST billing tools in under 5 minutes.
+                  Skip third-party Zapier fees. Connect Meta Lead Ads, IndiaMART, WhatsApp Cloud,
+                  Universal Webhooks, and Razorpay + 18% GST billing in under 5 minutes.
                 </p>
               </div>
 

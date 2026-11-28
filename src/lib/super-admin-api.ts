@@ -1111,3 +1111,233 @@ export async function testAiProviderApi(payload?: {
   );
   return data;
 }
+
+// ─── Super Admin Dynamic Careers & Talent Portal ───────────────────────
+
+export type CareerJobStatus = 'open' | 'paused' | 'closed';
+export type CareerTeamName =
+  | 'Engineering & AI'
+  | 'Product & Design'
+  | 'Growth & Success'
+  | 'Operations & Trust';
+export type CareerApplicationStage =
+  | 'new'
+  | 'shortlisted'
+  | 'interview'
+  | 'offer'
+  | 'rejected';
+
+export interface SuperAdminCareerJobItem {
+  id: string;
+  slug: string;
+  title: string;
+  team: CareerTeamName;
+  location: string;
+  experience: string;
+  employmentType: 'Full-Time' | 'Contract' | 'Internship';
+  compensation: string;
+  summary: string;
+  responsibilities: string[];
+  skills: string[];
+  status: CareerJobStatus;
+  featured: boolean;
+  sortOrder: number;
+  applicationsCount: number;
+  createdByName?: string;
+  createdByEmail?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SuperAdminCareerApplicationItem {
+  id: string;
+  jobId: string;
+  jobTitle: string;
+  jobTeam: string;
+  candidateName: string;
+  candidateEmail: string;
+  candidatePhone: string;
+  noticePeriod: string;
+  portfolioUrl: string;
+  coverNote: string;
+  resumeFileName: string;
+  resumeSizeBytes: number;
+  stage: CareerApplicationStage;
+  reviewerNotes: string;
+  createdAt: string;
+}
+
+export interface SuperAdminCareersOverviewResponse {
+  jobs: SuperAdminCareerJobItem[];
+  applications: SuperAdminCareerApplicationItem[];
+  stats: {
+    totalJobs: number;
+    openJobs: number;
+    pausedJobs: number;
+    closedJobs: number;
+    totalApplications: number;
+    newApplications: number;
+    shortlistedApplications: number;
+  };
+}
+
+export async function fetchSuperAdminCareersApi(): Promise<SuperAdminCareersOverviewResponse> {
+  const { data } = await apiClient.get<SuperAdminCareersOverviewResponse>(
+    '/super-admin/careers',
+  );
+  return data;
+}
+
+export async function createSuperAdminCareerJobApi(payload: {
+  title: string;
+  team: CareerTeamName;
+  location: string;
+  experience: string;
+  employmentType: 'Full-Time' | 'Contract' | 'Internship';
+  compensation: string;
+  summary: string;
+  responsibilities: string[] | string;
+  skills: string[] | string;
+  status?: CareerJobStatus;
+  featured?: boolean;
+  sortOrder?: number;
+}): Promise<{ job: SuperAdminCareerJobItem }> {
+  const { data } = await apiClient.post<{ job: SuperAdminCareerJobItem }>(
+    '/super-admin/careers/jobs',
+    payload,
+  );
+  return data;
+}
+
+export async function updateSuperAdminCareerJobApi(
+  jobId: string,
+  payload: Partial<{
+    title: string;
+    team: CareerTeamName;
+    location: string;
+    experience: string;
+    employmentType: 'Full-Time' | 'Contract' | 'Internship';
+    compensation: string;
+    summary: string;
+    responsibilities: string[] | string;
+    skills: string[] | string;
+    status: CareerJobStatus;
+    featured: boolean;
+    sortOrder: number;
+  }>,
+): Promise<{ job: SuperAdminCareerJobItem }> {
+  const { data } = await apiClient.patch<{ job: SuperAdminCareerJobItem }>(
+    `/super-admin/careers/jobs/${jobId}`,
+    payload,
+  );
+  return data;
+}
+
+export async function deleteSuperAdminCareerJobApi(
+  jobId: string,
+): Promise<{ deleted: boolean; id: string }> {
+  const { data } = await apiClient.delete<{ deleted: boolean; id: string }>(
+    `/super-admin/careers/jobs/${jobId}`,
+  );
+  return data;
+}
+
+export async function updateSuperAdminCareerApplicationApi(
+  applicationId: string,
+  payload: {
+    stage?: CareerApplicationStage;
+    reviewerNotes?: string;
+  },
+): Promise<{ application: SuperAdminCareerApplicationItem }> {
+  const { data } = await apiClient.patch<{
+    application: SuperAdminCareerApplicationItem;
+  }>(`/super-admin/careers/applications/${applicationId}`, payload);
+  return data;
+}
+
+export async function downloadSuperAdminCareerResumeApi(
+  applicationId: string,
+  fileName: string,
+): Promise<void> {
+  const response = await apiClient.get(
+    `/super-admin/careers/applications/${applicationId}/resume`,
+    { responseType: 'blob' },
+  );
+  const blobUrl = URL.createObjectURL(
+    new Blob([response.data], { type: 'application/pdf' }),
+  );
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = fileName || 'candidate-resume.pdf';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+}
+
+// ─── Super Admin Public Sales & Demo Inquiries ─────────────────────────
+
+export type ContactInquiryStatus =
+  | 'new'
+  | 'contacted'
+  | 'demo_scheduled'
+  | 'converted'
+  | 'archived';
+
+export interface SuperAdminContactInquiryItem {
+  id: string;
+  name: string;
+  company: string;
+  email: string;
+  phone: string;
+  topic: string;
+  message: string;
+  status: ContactInquiryStatus;
+  ownerNotes: string;
+  source: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SuperAdminContactInquiriesResponse {
+  data: SuperAdminContactInquiryItem[];
+  stats: {
+    total: number;
+    newCount: number;
+    contactedCount: number;
+    demoScheduledCount: number;
+    convertedCount: number;
+  };
+}
+
+export async function fetchSuperAdminContactInquiriesApi(
+  status?: string,
+): Promise<SuperAdminContactInquiriesResponse> {
+  const { data } = await apiClient.get<SuperAdminContactInquiriesResponse>(
+    '/super-admin/contact-inquiries',
+    { params: status && status !== 'all' ? { status } : undefined },
+  );
+  return data;
+}
+
+export async function updateSuperAdminContactInquiryApi(
+  inquiryId: string,
+  payload: {
+    status?: ContactInquiryStatus;
+    ownerNotes?: string;
+  },
+): Promise<{ inquiry: SuperAdminContactInquiryItem }> {
+  const { data } = await apiClient.patch<{
+    inquiry: SuperAdminContactInquiryItem;
+  }>(`/super-admin/contact-inquiries/${inquiryId}`, payload);
+  return data;
+}
+
+export async function deleteSuperAdminContactInquiryApi(
+  inquiryId: string,
+): Promise<{ deleted: boolean; id: string }> {
+  const { data } = await apiClient.delete<{ deleted: boolean; id: string }>(
+    `/super-admin/contact-inquiries/${inquiryId}`,
+  );
+  return data;
+}

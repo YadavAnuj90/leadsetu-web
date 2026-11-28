@@ -137,10 +137,7 @@ export default function AboutCompanyPage() {
                   Noida Sector 62 HQ
                 </span>
                 <span className="px-3 py-1 rounded-full bg-white/[0.07] border border-white/10">
-                  Connaught Place, New Delhi
-                </span>
-                <span className="px-3 py-1 rounded-full bg-white/[0.07] border border-white/10">
-                  Built for 4,500+ SMEs
+                  Built for Indian B2B SMEs
                 </span>
               </div>
             </div>
@@ -234,8 +231,8 @@ export default function AboutCompanyPage() {
             },
             {
               icon: Building2,
-              title: 'Contact & Offices',
-              desc: 'Visit our Noida Sector 62 HQ or Connaught Place office, or book an executive demo.',
+              title: 'Contact & Office',
+              desc: 'Visit our Noida Sector 62 HQ or book a live product walkthrough with our team.',
               href: '/company/contact',
               cta: 'Get in Touch',
             },

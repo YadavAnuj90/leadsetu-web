@@ -2,39 +2,36 @@ import { Star, Quote, CheckCircle2, TrendingUp, Building2 } from 'lucide-react';
 
 const testimonials = [
   {
-    name: 'Rajesh Sharma',
-    role: 'Managing Director, RS Electricals',
+    name: 'Electrical & Switchgear Wholesaler',
+    role: 'Managing Director · Verified B2B Account',
     location: 'Karol Bagh, New Delhi',
     industry: 'B2B Wholesale & Distribution',
     impact: '+42% Revenue in 90 Days',
-    avatar: 'RS',
     avatarColor: '#3978EA',
     quote:
       'Leadsetu ne hamara IndiaMART aur WhatsApp lead response time 4 ghante se 30 seconds kar diya. Clients get instant GST quotations on WhatsApp, and our monthly conversions jumped 42% in one quarter.',
     rating: 5,
   },
   {
-    name: 'Priya Mehta',
-    role: 'Founder, PM Luxury Realty',
+    name: 'Commercial Real Estate Advisory',
+    role: 'Founder · Multi-Brokerage Team',
     location: 'Sector 62, Noida',
     industry: 'Real Estate & Commercial',
     impact: '3.4x More Site Visits',
-    avatar: 'PM',
     avatarColor: '#8B5CF6',
     quote:
       'We used to juggle Excel sheets, Meta Lead Ads, and 8 brokers on personal WhatsApp. Leadsetu replaced all of them. The SetuAI lead score accurately flags which property buyers have ready budgets.',
     rating: 5,
   },
   {
-    name: 'Amit Gupta',
-    role: 'CEO, ScaleUp Digital & Exports',
+    name: 'Industrial Digital & Exports Group',
+    role: 'Sales Operations Head · 18-Rep Team',
     location: 'Cyber City, Gurugram',
     industry: 'B2B Services & Exports',
     impact: '12+ Hours Saved Weekly',
-    avatar: 'AG',
     avatarColor: '#0D9488',
     quote:
-      'Managing 18 sales reps across Gurugram and Okhla used to be chaos. Now every lead is auto-assigned by territory, and the CEO dashboard shows exact ROI per ad rupee spent. Best software investment we made.',
+      'Managing 18 sales reps across Gurugram and Okhla used to be chaos. Now every lead is auto-assigned by territory, and the leadership dashboard shows exact ROI per ad rupee spent. Best software investment we made.',
     rating: 5,
   },
 ];
@@ -108,10 +105,10 @@ export default function Testimonials() {
               <div className="pt-5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-3.5">
                   <div
-                    className="w-11 h-11 rounded-2xl flex items-center justify-center font-extrabold text-white text-sm shadow-sm"
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center font-extrabold text-white text-sm shadow-sm shrink-0"
                     style={{ background: t.avatarColor }}
                   >
-                    {t.avatar}
+                    <Building2 className="w-5 h-5" />
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5">

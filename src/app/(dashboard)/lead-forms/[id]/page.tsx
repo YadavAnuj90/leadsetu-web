@@ -1,15 +1,17 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
+  AlertCircle,
   ArrowLeft,
   CheckCircle2,
   ExternalLink,
   GripVertical,
   Laptop,
   ListChecks,
+  Loader2,
   MessageSquare,
   Palette,
   Plus,
@@ -24,21 +26,35 @@ import {
 import InstantFormRenderer from '@/components/lead-forms/InstantFormRenderer';
 import PhonePreviewFrame from '@/components/lead-forms/PhonePreviewFrame';
 import {
+  createLeadFormApi,
+  fetchLeadFormBySlugApi,
+  updateLeadFormApi,
+} from '@/lib/lead-forms-api';
+import { getErrorMessage } from '@/lib/api-client';
+import {
   BRAND_COLOR_PRESETS,
+  createBlankFormConfig,
   getMockFormBySlug,
   type LeadFormConfig,
   type LeadFormFieldType,
+  type LeadFormStatus,
 } from '@/lib/lead-forms-mock';
 
 type StudioTab = 'design' | 'questions' | 'verification' | 'thankyou' | 'automation';
 
 export default function FormStudioBuilderPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const slugParam = String(params?.id || 'new');
+  const isNew = slugParam === 'new';
 
   const [form, setForm] = useState<LeadFormConfig>(() =>
-    getMockFormBySlug(slugParam),
+    isNew ? createBlankFormConfig() : getMockFormBySlug(slugParam),
   );
+  const [persistedId, setPersistedId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(!isNew);
+  const [saving, setSaving] = useState(false);
+
   const [activeTab, setActiveTab] = useState<StudioTab>('design');
   const [previewStep, setPreviewStep] = useState(0);
   const [deviceVariant, setDeviceVariant] = useState<'mobile' | 'desktop'>(
@@ -48,6 +64,34 @@ export default function FormStudioBuilderPage() {
     Record<number, LeadFormFieldType>
   >({});
   const [banner, setBanner] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isNew) {
+      setLoading(false);
+      setPersistedId(null);
+      return;
+    }
+    let active = true;
+    setLoading(true);
+    setErrorMsg(null);
+    fetchLeadFormBySlugApi(slugParam)
+      .then((loaded) => {
+        if (!active) return;
+        setForm(loaded);
+        setPersistedId(loaded.id);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setErrorMsg(`Using local draft (${getErrorMessage(err)})`);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [slugParam, isNew]);
 
   const previewSteps = useMemo(() => {
     const list: Array<{ index: number; label: string }> = [{ index: 0, label: 'Intro' }];
@@ -159,14 +203,56 @@ export default function FormStudioBuilderPage() {
     }));
   };
 
-  const handleSaveDraft = () => {
-    setForm((prev) => ({ ...prev, status: 'draft', updatedAt: 'Saved just now' }));
-    setBanner('Draft saved locally in Form Studio preview.');
-  };
+  const persistForm = async (nextStatus: LeadFormStatus) => {
+    setSaving(true);
+    setBanner(null);
+    setErrorMsg(null);
+    const payload = {
+      slug: form.slug,
+      title: form.title,
+      headline: form.headline,
+      subheadline: form.subheadline,
+      brandColor: form.brandColor,
+      logoText: form.logoText,
+      companyName: form.companyName,
+      status: nextStatus,
+      trustBullets: form.trustBullets,
+      steps: form.steps,
+      requireWhatsappOtp: form.requireWhatsappOtp,
+      duplicateStrategy: form.duplicateStrategy,
+      thankYou: form.thankYou,
+      automation: form.automation,
+      channels: form.channels,
+    };
 
-  const handlePublish = () => {
-    setForm((prev) => ({ ...prev, status: 'live', updatedAt: 'Published just now' }));
-    setBanner(`Published "${form.title}" live at /f/${form.slug}!`);
+    try {
+      if (persistedId) {
+        const saved = await updateLeadFormApi(persistedId, payload);
+        setForm(saved);
+        setBanner(
+          nextStatus === 'live'
+            ? `Published "${saved.title}" live at /f/${saved.slug}!`
+            : `Saved draft changes for "${saved.title}".`,
+        );
+        if (saved.slug !== slugParam) {
+          router.replace(`/lead-forms/${saved.slug}`);
+        }
+      } else {
+        const created = await createLeadFormApi(payload);
+        setForm(created);
+        setPersistedId(created.id);
+        setBanner(
+          nextStatus === 'live'
+            ? `Published "${created.title}" live at /f/${created.slug}!`
+            : `Saved new draft "${created.title}".`,
+        );
+        router.replace(`/lead-forms/${created.slug}`);
+      }
+    } catch (err) {
+      setErrorMsg(getErrorMessage(err));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const statusBadgeClass =
@@ -175,6 +261,15 @@ export default function FormStudioBuilderPage() {
       : form.status === 'paused'
         ? 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-500/30'
         : 'bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/10';
+
+  if (loading) {
+    return (
+      <div className="p-10 flex items-center justify-center gap-2 text-xs font-semibold text-slate-400">
+        <Loader2 className="w-5 h-5 animate-spin text-brand-blue" />
+        <span>Loading Form Studio...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
@@ -218,19 +313,29 @@ export default function FormStudioBuilderPage() {
 
           <button
             type="button"
-            onClick={handleSaveDraft}
-            className="h-9 px-3.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100/80 dark:bg-white/[0.04] hover:border-brand-blue/50 text-xs font-semibold text-brand-navy dark:text-slate-200 inline-flex items-center gap-1.5 transition cursor-pointer"
+            disabled={saving}
+            onClick={() => void persistForm('draft')}
+            className="h-9 px-3.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100/80 dark:bg-white/[0.04] hover:border-brand-blue/50 text-xs font-semibold text-brand-navy dark:text-slate-200 inline-flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
           >
-            <Save className="w-3.5 h-3.5" />
+            {saving ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Save className="w-3.5 h-3.5" />
+            )}
             <span>Save Draft</span>
           </button>
 
           <button
             type="button"
-            onClick={handlePublish}
-            className="h-9 px-4 rounded-xl bg-brand-blue hover:bg-blue-600 text-white font-semibold text-xs inline-flex items-center gap-1.5 shadow-sm shadow-brand-blue/25 transition cursor-pointer"
+            disabled={saving}
+            onClick={() => void persistForm('live')}
+            className="h-9 px-4 rounded-xl bg-brand-blue hover:bg-blue-600 text-white font-semibold text-xs inline-flex items-center gap-1.5 shadow-sm shadow-brand-blue/25 transition cursor-pointer disabled:opacity-50"
           >
-            <Rocket className="w-3.5 h-3.5" />
+            {saving ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Rocket className="w-3.5 h-3.5" />
+            )}
             <span>Publish</span>
           </button>
         </div>
@@ -252,11 +357,17 @@ export default function FormStudioBuilderPage() {
         </div>
       )}
 
+      {errorMsg && (
+        <div className="px-4 py-3 rounded-2xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-200 text-xs font-bold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
+
       {/* Split-Screen Studio Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-6 items-start">
         {/* LEFT: Configuration Sections */}
         <div className="space-y-5 min-w-0">
-          {/* Segmented Section Tabs */}
           <div className="overflow-x-auto pb-1">
             <div className="inline-flex p-1 rounded-2xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/80 dark:bg-white/[0.04] gap-1">
               {(
@@ -297,8 +408,32 @@ export default function FormStudioBuilderPage() {
                   Brand Identity &amp; Intro Card
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Customize the first screen visitors see before answering your micro-steps.
+                  Customize the public URL slug and first screen visitors see.
                 </p>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                  Public Form URL Slug
+                </label>
+                <div className="flex items-center h-9 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0B1322] overflow-hidden focus-within:ring-2 focus-within:ring-brand-blue/30">
+                  <span className="px-3 h-full flex items-center bg-slate-100 dark:bg-white/[0.05] border-r border-slate-200 dark:border-white/10 font-mono text-xs text-slate-500 shrink-0">
+                    /f/
+                  </span>
+                  <input
+                    type="text"
+                    value={form.slug}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        slug: e.target.value
+                          .toLowerCase()
+                          .replace(/[^a-z0-9-]+/g, '-'),
+                      }))
+                    }
+                    className="flex-1 h-full px-3 bg-transparent font-mono text-xs focus:outline-none"
+                  />
+                </div>
               </div>
 
               {/* Color Swatches */}
@@ -456,7 +591,6 @@ export default function FormStudioBuilderPage() {
                     )}
                   </div>
 
-                  {/* Fields List */}
                   <div className="space-y-2.5">
                     {step.fields.map((field, fIdx) => (
                       <div
@@ -522,7 +656,6 @@ export default function FormStudioBuilderPage() {
                     ))}
                   </div>
 
-                  {/* Add Field Row */}
                   <div className="flex items-center gap-2 pt-1">
                     <select
                       value={newFieldTypeByStep[sIdx] || 'text'}
@@ -611,7 +744,7 @@ export default function FormStudioBuilderPage() {
                       Bot Honeypot &amp; Rate-Limit Guard
                     </div>
                     <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                      Always active · Blocks automated bots &amp; max 5 submissions/min per IP
+                      Always active · Blocks automated bots &amp; ignores hidden honeypot hits
                     </div>
                   </div>
                 </div>
@@ -905,7 +1038,7 @@ export default function FormStudioBuilderPage() {
                       Fire Meta CAPI &ldquo;LeadSubmitted&rdquo; Event
                     </div>
                     <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                      Sends server-side conversion signal if fbclid / ad pixel present
+                      Sends server-side conversion signal if Pixel/CAPI configured
                     </div>
                   </div>
                   <input
@@ -994,7 +1127,6 @@ export default function FormStudioBuilderPage() {
 
         {/* RIGHT: Sticky Interactive Live Preview */}
         <div className="lg:sticky lg:top-20 space-y-3.5">
-          {/* Device & Step Jump Header */}
           <div className="rounded-2xl border border-slate-200/80 dark:border-white/[0.08] bg-white dark:bg-[#0D1628] shadow-sm p-3 space-y-2.5">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -1026,7 +1158,6 @@ export default function FormStudioBuilderPage() {
               </div>
             </div>
 
-            {/* Step Jump Bar */}
             <div className="flex flex-wrap items-center gap-1">
               {previewSteps.map((st) => (
                 <button

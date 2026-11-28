@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
   Activity,
   AlertTriangle,
+  Briefcase,
   Building2,
   Cpu,
   CreditCard,
@@ -16,6 +17,7 @@ import {
   LifeBuoy,
   Loader2,
   LogOut,
+  Mail,
   Menu,
   MapPin,
   MessageSquare,
@@ -42,6 +44,8 @@ import AiProviderVaultSection from '@/components/super-admin/AiProviderVaultSect
 import OnboardingFunnelSection from '@/components/super-admin/OnboardingFunnelSection';
 import IntegrationsWatchdogSection from '@/components/super-admin/IntegrationsWatchdogSection';
 import PlatformSupportSection from '@/components/super-admin/PlatformSupportSection';
+import CareersManagementSection from '@/components/super-admin/CareersManagementSection';
+import ContactInquiriesSection from '@/components/super-admin/ContactInquiriesSection';
 import {
   AuditLogsView,
   BillingLedgerView,
@@ -75,6 +79,8 @@ type SuperAdminTab =
   | 'overview'
   | 'tenants'
   | 'support_desk'
+  | 'inquiries'
+  | 'careers'
   | 'onboarding'
   | 'topups'
   | 'territories'
@@ -143,6 +149,20 @@ const NAV_ITEMS: Array<{
     label: 'Platform Support Desk',
     subtitle: 'Global cross-tenant bugs, glitches & service requests raised by Workspace Admins',
     icon: LifeBuoy,
+  },
+  {
+    id: 'inquiries',
+    group: 'Tenants & Revenue',
+    label: 'Sales & Demo Inquiries',
+    subtitle: 'Inbound walkthrough & enterprise demo leads submitted on /company/contact',
+    icon: Mail,
+  },
+  {
+    id: 'careers',
+    group: 'Tenants & Revenue',
+    label: 'Careers & Hiring',
+    subtitle: 'Publish open jobs on /company/careers & review candidate PDF applications',
+    icon: Briefcase,
   },
   {
     id: 'onboarding',
@@ -839,6 +859,10 @@ export default function SuperAdminDashboardPage() {
                   onCountChange={(cnt) => setOpenPlatformTicketsCount(cnt)}
                 />
               )}
+
+              {activeTab === 'careers' && <CareersManagementSection />}
+
+              {activeTab === 'inquiries' && <ContactInquiriesSection />}
 
               {activeTab === 'onboarding' && (
                 <OnboardingFunnelSection

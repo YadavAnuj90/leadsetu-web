@@ -49,6 +49,7 @@ import IndiaMartPullPanel from '@/components/integrations/IndiaMartPullPanel';
 import OmnichannelConnectorsPanel from '@/components/integrations/OmnichannelConnectorsPanel';
 import MetaLeadAdsOAuthPanel from '@/components/integrations/MetaLeadAdsOAuthPanel';
 import UniversalWebhooksManager from '@/components/integrations/UniversalWebhooksManager';
+import WorkspaceLaunchChecklist from '@/components/integrations/WorkspaceLaunchChecklist';
 
 interface FacebookSdkLoginResponse {
   authResponse?: {
@@ -680,6 +681,12 @@ export default function IntegrationsSettingsPage() {
           </Link>
         </div>
       </div>
+
+      {/* Workspace Production Launch Checklist */}
+      <WorkspaceLaunchChecklist
+        waConfig={waConfig}
+        onSelectChannel={(tab) => setActiveChannelTab(tab)}
+      />
 
       {/* 5-Card Interactive Channel Selector Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">

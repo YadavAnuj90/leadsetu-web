@@ -5,6 +5,7 @@ import {
   Building2,
   CheckCircle2,
   Clock,
+  Loader2,
   Mail,
   MapPin,
   MessageSquare,
@@ -16,6 +17,8 @@ import Navbar from '@/components/landing/Navbar';
 import CTABanner from '@/components/landing/CTABanner';
 import Footer from '@/components/landing/Footer';
 import CompanySubnav from '@/components/company/CompanySubnav';
+import { getErrorMessage } from '@/lib/api-client';
+import { submitPublicContactInquiryApi } from '@/lib/contact-api';
 
 export default function ContactOfficesPage() {
   const [name, setName] = useState('');
@@ -24,17 +27,47 @@ export default function ContactOfficesPage() {
   const [phone, setPhone] = useState('');
   const [topic, setTopic] = useState('Enterprise Demo & Migration');
   const [message, setMessage] = useState('');
-  const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: FormEvent) => {
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submittedRecord, setSubmittedRecord] = useState<{
+    inquiryId: string;
+    email: string;
+    topic: string;
+  } | null>(null);
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim()) return;
-    setSubmitted(true);
-    setName('');
-    setCompany('');
-    setEmail('');
-    setPhone('');
-    setMessage('');
+    if (!name.trim() || !company.trim() || !email.trim() || !message.trim()) {
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const res = await submitPublicContactInquiryApi({
+        name: name.trim(),
+        company: company.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        topic,
+        message: message.trim(),
+      });
+      setSubmittedRecord({
+        inquiryId: res.inquiryId,
+        email: res.email,
+        topic: res.topic,
+      });
+      setName('');
+      setCompany('');
+      setEmail('');
+      setPhone('');
+      setMessage('');
+    } catch (err) {
+      setSubmitError(getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -55,20 +88,21 @@ export default function ContactOfficesPage() {
 
           <div className="block">
             <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border bg-blue-50/90 dark:bg-[#0057FF]/15 text-[#0057FF] dark:text-sky-300 border-[#0057FF]/25">
-              <MapPin className="w-3.5 h-3.5" /> Contact &amp; Corporate Offices
+              <MapPin className="w-3.5 h-3.5" /> Contact &amp; Corporate Desk
             </span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.1] max-w-3xl mx-auto">
             Talk directly with our{' '}
             <span className="bg-gradient-to-r from-[#0057FF] to-[#2563EB] dark:from-sky-400 dark:to-blue-400 bg-clip-text text-transparent">
-              Delhi-NCR team.
+              Leadsetu HQ team.
             </span>
           </h1>
 
           <p className="text-slate-600 dark:text-slate-300 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
-            Whether you need an enterprise rollout across 50+ reps, Tally/ERP integration, or a
-            live WhatsApp Cloud walkthrough, our specialists reply within 2 business hours.
+            Whether you need an enterprise rollout across 50+ reps, Tally/ERP
+            integration, or a live WhatsApp Cloud walkthrough, our specialists
+            reply within 2 business hours.
           </p>
         </div>
       </section>
@@ -80,25 +114,28 @@ export default function ContactOfficesPage() {
           <div className="lg:col-span-5 space-y-5">
             <div className="rounded-3xl p-7 bg-[#FAFCFF] dark:bg-[#0D1628] border border-slate-200/85 dark:border-slate-800 shadow-sm space-y-3">
               <div className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#0057FF] dark:text-sky-400">
-                <MapPin className="w-4 h-4" /> Noida Headquarters
+                <MapPin className="w-4 h-4" /> Leadsetu Cloud HQ
               </div>
               <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">
                 Product, AI &amp; Engineering Hub
               </h2>
               <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                Tower B, 7th Floor, Sector 62, Noida Electronic City, Uttar Pradesh – 201309, India
+                Dedicated cloud architecture, onboarding specialists, and
+                pan-India B2B implementation engineering desk.
               </p>
             </div>
 
             <div className="rounded-3xl p-7 bg-[#FAFCFF] dark:bg-[#0D1628] border border-slate-200/85 dark:border-slate-800 shadow-sm space-y-3">
               <div className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#0057FF] dark:text-sky-400">
-                <Building2 className="w-4 h-4" /> New Delhi Desk
+                <Building2 className="w-4 h-4" /> Corporate Entity &amp; Sales
+                Desk
               </div>
               <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">
                 Executive, Sales &amp; GST Advisory Desk
               </h2>
               <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                Connaught Place, New Delhi – 110001, India · Anujali Technologies Pvt. Ltd.
+                Leadsetu Technologies (Anujali Technologies Pvt. Ltd.) ·
+                Enterprise Billing, Compliance &amp; Partner Program.
               </p>
             </div>
 
@@ -129,7 +166,9 @@ export default function ContactOfficesPage() {
               </a>
               <div className="pt-2 border-t border-white/10 flex items-center gap-2 text-emerald-300 font-semibold">
                 <Clock className="w-3.5 h-3.5" />
-                <span>Average enterprise response time: under 2 business hours</span>
+                <span>
+                  Average enterprise response time: under 2 business hours
+                </span>
               </div>
             </div>
           </div>
@@ -145,18 +184,24 @@ export default function ContactOfficesPage() {
               </h2>
             </div>
 
-            {submitted ? (
-              <div className="rounded-2xl p-6 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-700/60 text-emerald-800 dark:text-emerald-200 space-y-2">
+            {submittedRecord ? (
+              <div className="rounded-2xl p-6 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-700/60 text-emerald-800 dark:text-emerald-200 space-y-2.5">
                 <div className="flex items-center gap-2 font-extrabold text-sm">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                  <span>Thank you! Your inquiry is logged with Leadsetu Delhi-NCR HQ.</span>
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span>Thank you! Your inquiry is logged with Leadsetu HQ.</span>
                 </div>
                 <p className="text-xs leading-relaxed">
-                  Our team will reach out shortly, or call +91 8851520832 for immediate onboarding help.
+                  Reference ID:{' '}
+                  <code className="font-mono font-bold">
+                    {submittedRecord.inquiryId.slice(-8).toUpperCase()}
+                  </code>{' '}
+                  · Topic: <strong>{submittedRecord.topic}</strong>. Our team
+                  will contact <strong>{submittedRecord.email}</strong> shortly,
+                  or call +91 8851520832 for urgent onboarding help.
                 </p>
                 <button
                   type="button"
-                  onClick={() => setSubmitted(false)}
+                  onClick={() => setSubmittedRecord(null)}
                   className="mt-2 text-xs font-extrabold underline"
                 >
                   Send another message
@@ -164,6 +209,12 @@ export default function ContactOfficesPage() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+                {submitError && (
+                  <div className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-[11px] font-bold text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300">
+                    {submitError}
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
@@ -253,10 +304,19 @@ export default function ContactOfficesPage() {
 
                 <button
                   type="submit"
-                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#0057FF] to-[#2563EB] hover:from-[#0046D5] hover:to-[#1D4ED8] text-white font-extrabold text-sm shadow-lg shadow-[#0057FF]/25 inline-flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5"
+                  disabled={submitting}
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#0057FF] to-[#2563EB] hover:from-[#0046D5] hover:to-[#1D4ED8] text-white font-extrabold text-sm shadow-lg shadow-[#0057FF]/25 inline-flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 disabled:opacity-60"
                 >
-                  <Send className="w-4 h-4" />
-                  <span>Send Message to Leadsetu HQ</span>
+                  {submitting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                  <span>
+                    {submitting
+                      ? 'Submitting to Leadsetu HQ...'
+                      : 'Send Message to Leadsetu HQ'}
+                  </span>
                 </button>
               </form>
             )}

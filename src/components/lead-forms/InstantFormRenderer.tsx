@@ -1,18 +1,27 @@
 'use client';
 
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AlertCircle,
   ArrowLeft,
   ArrowRight,
   CalendarClock,
   Check,
   CheckCircle2,
   Download,
+  Loader2,
   MessageCircle,
   ShieldCheck,
   Sparkles,
   Zap,
 } from 'lucide-react';
+import {
+  requestPublicFormOtpApi,
+  submitPublicLeadFormApi,
+  trackPublicFormStartApi,
+  verifyPublicFormOtpApi,
+} from '@/lib/lead-forms-api';
+import { getErrorMessage } from '@/lib/api-client';
 import type { LeadFormConfig } from '@/lib/lead-forms-mock';
 
 interface InstantFormRendererProps {
@@ -20,6 +29,10 @@ interface InstantFormRendererProps {
   mode: 'preview' | 'public';
   activeStep?: number;
   onStepChange?: (stepIndex: number) => void;
+  publicContext?: {
+    bookingSlug?: string;
+    whatsappNumber?: string;
+  };
 }
 
 export default function InstantFormRenderer({
@@ -27,12 +40,26 @@ export default function InstantFormRenderer({
   mode,
   activeStep,
   onStepChange,
+  publicContext,
 }: InstantFormRendererProps) {
   const [internalStep, setInternalStep] = useState(0);
   const [chipValues, setChipValues] = useState<Record<string, string>>({});
   const [textValues, setTextValues] = useState<Record<string, string>>({});
-  const [otpDigits, setOtpDigits] = useState(['4', '8', '2', '9']);
+  const [honeypot, setHoneypot] = useState('');
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '']);
+  const [otpHint, setOtpHint] = useState<string | null>(null);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [stepError, setStepError] = useState<string | null>(null);
+  const [submittedResult, setSubmittedResult] = useState<{
+    bookingSlug?: string;
+    whatsappNumber?: string;
+    brochureUrl?: string;
+  } | null>(null);
+
   const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const startedSentRef = useRef(false);
+  const otpRequestedRef = useRef(false);
 
   const stepsCount = Math.max(1, form.steps.length);
   const otpStepIndex = form.requireWhatsappOtp ? stepsCount + 1 : -1;
@@ -44,7 +71,46 @@ export default function InstantFormRenderer({
     Math.max(0, activeStep !== undefined ? activeStep : internalStep),
   );
 
+  // Build collected answers map (combining chip defaults/selections & text/select inputs)
+  const buildAllAnswers = (): Record<string, string> => {
+    const out: Record<string, string> = {};
+    for (const step of form.steps) {
+      for (const field of step.fields) {
+        if (field.type === 'chips') {
+          out[field.key] = chipValues[field.key] || field.options?.[0] || '';
+        } else if (field.type === 'select') {
+          out[field.key] = textValues[field.key] ?? field.options?.[0] ?? '';
+        } else {
+          out[field.key] = (textValues[field.key] || '').trim();
+        }
+      }
+    }
+    return out;
+  };
+
+  const getPhoneValue = (): string => {
+    for (const step of form.steps) {
+      for (const field of step.fields) {
+        if (field.type === 'phone' || field.key.toLowerCase().includes('phone')) {
+          const val = (textValues[field.key] || '').trim();
+          if (val) return val;
+        }
+      }
+    }
+    return (textValues.phone || textValues.mobile || '').trim();
+  };
+
+  const getNameValue = (): string => {
+    return (
+      textValues.full_name ||
+      textValues.name ||
+      Object.entries(textValues).find(([k]) => k.toLowerCase().includes('name'))?.[1] ||
+      ''
+    ).trim();
+  };
+
   const goTo = (next: number) => {
+    setStepError(null);
     const clamped = Math.min(totalScreens - 1, Math.max(0, next));
     if (activeStep === undefined) {
       setInternalStep(clamped);
@@ -52,22 +118,57 @@ export default function InstantFormRenderer({
     onStepChange?.(clamped);
   };
 
+  const triggerOtpSend = async () => {
+    if (mode !== 'public') return;
+    const phone = getPhoneValue();
+    if (phone.replace(/\D/g, '').length < 10) return;
+
+    setOtpLoading(true);
+    setStepError(null);
+    try {
+      const res = await requestPublicFormOtpApi(form.slug, {
+        phone,
+        name: getNameValue() || undefined,
+      });
+      if (res.demoOtpHint) {
+        setOtpHint(res.demoOtpHint);
+        setOtpDigits(res.demoOtpHint.split('').slice(0, 4));
+      } else {
+        setOtpHint(null);
+      }
+    } catch (err) {
+      setStepError(getErrorMessage(err));
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (
+      mode === 'public' &&
+      form.requireWhatsappOtp &&
+      currentStep === otpStepIndex &&
+      !otpRequestedRef.current
+    ) {
+      otpRequestedRef.current = true;
+      void triggerOtpSend();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep, otpStepIndex, mode, form.requireWhatsappOtp]);
+
   const progressPct = useMemo(() => {
     if (totalScreens <= 1) return 100;
     return Math.round(((currentStep + 1) / totalScreens) * 100);
   }, [currentStep, totalScreens]);
 
   const phonePreview = useMemo(() => {
-    const raw =
-      textValues.phone ||
-      textValues.mobile ||
-      Object.entries(textValues).find(([k]) => k.includes('phone'))?.[1] ||
-      '98112 45678';
+    const raw = getPhoneValue() || '98112 45678';
     const digits = raw.replace(/\D/g, '');
     if (digits.length >= 4) {
       return `+91 ${digits.slice(0, 2)}XXXXXX${digits.slice(-2)}`;
     }
     return '+91 98XXXXXX10';
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [textValues]);
 
   const isCompact = mode === 'preview';
@@ -91,6 +192,131 @@ export default function InstantFormRenderer({
     }
   };
 
+  const validateCurrentStep = (stepNum: number): string | null => {
+    if (mode !== 'public') return null;
+    const stepDef = form.steps[stepNum - 1];
+    if (!stepDef) return null;
+
+    for (const field of stepDef.fields) {
+      if (field.type === 'chips') continue;
+      if (field.type === 'select') continue;
+      const val = (textValues[field.key] || '').trim();
+      if (field.required && !val) {
+        return `Please enter "${field.label}" to continue.`;
+      }
+      if (field.type === 'phone' && val) {
+        const digits = val.replace(/\D/g, '');
+        if (digits.length < 10) {
+          return 'Please enter a valid 10-digit WhatsApp mobile number.';
+        }
+      }
+      if (field.type === 'email' && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+        return 'Please enter a valid email address.';
+      }
+    }
+    return null;
+  };
+
+  const readUtmAndSubmit = async (enteredOtp?: string) => {
+    if (mode !== 'public') {
+      goTo(thankYouIndex);
+      return;
+    }
+
+    setSubmitting(true);
+    setStepError(null);
+    try {
+      const search =
+        typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search)
+          : null;
+      const res = await submitPublicLeadFormApi(form.slug, {
+        answers: buildAllAnswers(),
+        ...(enteredOtp ? { otpCode: enteredOtp } : {}),
+        utmSource: search?.get('utm_source') || undefined,
+        utmMedium: search?.get('utm_medium') || undefined,
+        utmCampaign: search?.get('utm_campaign') || undefined,
+        referrer:
+          typeof document !== 'undefined' ? document.referrer : undefined,
+        _hp: honeypot || undefined,
+      });
+      setSubmittedResult({
+        bookingSlug: res.bookingSlug,
+        whatsappNumber: res.whatsappNumber,
+        brochureUrl: res.brochureUrl,
+      });
+      goTo(thankYouIndex);
+    } catch (err) {
+      setStepError(getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleStartClick = () => {
+    if (mode === 'public' && !startedSentRef.current) {
+      startedSentRef.current = true;
+      void trackPublicFormStartApi(form.slug).catch(() => {});
+    }
+    goTo(1);
+  };
+
+  const handleContinueStep = async () => {
+    const err = validateCurrentStep(currentStep);
+    if (err) {
+      setStepError(err);
+      return;
+    }
+    if (currentStep === stepsCount && !form.requireWhatsappOtp) {
+      await readUtmAndSubmit();
+      return;
+    }
+    goTo(currentStep + 1);
+  };
+
+  const handleVerifyAndSubmitOtp = async () => {
+    const entered = otpDigits.join('').trim();
+    if (mode !== 'public') {
+      goTo(thankYouIndex);
+      return;
+    }
+    if (entered.length < 4) {
+      setStepError('Please enter the 4-digit WhatsApp verification code.');
+      return;
+    }
+    setSubmitting(true);
+    setStepError(null);
+    try {
+      await verifyPublicFormOtpApi(form.slug, {
+        phone: getPhoneValue(),
+        code: entered,
+      });
+      await readUtmAndSubmit(entered);
+    } catch (err) {
+      setStepError(getErrorMessage(err));
+      setSubmitting(false);
+    }
+  };
+
+  // Resolved Thank-You links
+  const resolvedBookingSlug =
+    submittedResult?.bookingSlug || publicContext?.bookingSlug || 'book-demo';
+  const rawWaNumber =
+    submittedResult?.whatsappNumber ||
+    publicContext?.whatsappNumber ||
+    '919811245678';
+  const waDigits = rawWaNumber.replace(/\D/g, '');
+  const waLinkDigits =
+    waDigits.length === 10 ? `91${waDigits}` : waDigits || '919811245678';
+  const waPreText = encodeURIComponent(
+    `Hi ${form.companyName}, I just submitted "${form.title}" (${getNameValue() || 'Buyer'}). Please share quotation details.`,
+  );
+  const waUrl = `https://wa.me/${waLinkDigits}?text=${waPreText}`;
+  const brochureHref =
+    submittedResult?.brochureUrl ||
+    form.thankYou.brochureUrl ||
+    'https://leadsetu.app';
+
   return (
     <div
       className={`light-preview-canvas flex flex-col justify-between h-full ${
@@ -98,6 +324,17 @@ export default function InstantFormRenderer({
       }`}
       style={{ backgroundColor: '#FFFFFF', color: '#0F172A' }}
     >
+      {/* Hidden Spam Honeypot */}
+      <input
+        type="text"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        value={honeypot}
+        onChange={(e) => setHoneypot(e.target.value)}
+        className="hidden"
+      />
+
       {/* Top Progress Header */}
       <div className="space-y-2 mb-4">
         <div className="flex items-center justify-between text-[11px] font-bold text-[#64748B]">
@@ -130,6 +367,14 @@ export default function InstantFormRenderer({
           />
         </div>
       </div>
+
+      {/* Inline Validation / Server Error */}
+      {stepError && (
+        <div className="mb-3 px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-[11px] font-bold flex items-center gap-2">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+          <span>{stepError}</span>
+        </div>
+      )}
 
       {/* Main Screen Area */}
       <div className="flex-1 flex flex-col justify-between min-h-0">
@@ -191,7 +436,7 @@ export default function InstantFormRenderer({
 
             <button
               type="button"
-              onClick={() => goTo(1)}
+              onClick={handleStartClick}
               className="w-full h-11 rounded-xl text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:brightness-105 transition cursor-pointer"
               style={{ backgroundColor: form.brandColor }}
             >
@@ -333,16 +578,20 @@ export default function InstantFormRenderer({
               </button>
               <button
                 type="button"
-                onClick={() => goTo(currentStep + 1)}
-                className="flex-1 h-10 rounded-xl text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-sm hover:brightness-105 transition cursor-pointer"
+                disabled={submitting}
+                onClick={() => void handleContinueStep()}
+                className="flex-1 h-10 rounded-xl text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-sm hover:brightness-105 transition cursor-pointer disabled:opacity-60"
                 style={{ backgroundColor: form.brandColor }}
               >
+                {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 <span>
                   {currentStep === stepsCount && !form.requireWhatsappOtp
-                    ? 'Submit Inquiry'
+                    ? submitting
+                      ? 'Submitting...'
+                      : 'Submit Inquiry'
                     : 'Continue'}
                 </span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                {!submitting && <ArrowRight className="w-3.5 h-3.5" />}
               </button>
             </div>
           </div>
@@ -387,11 +636,22 @@ export default function InstantFormRenderer({
                 ))}
               </div>
 
+              {otpHint && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10.5px] font-bold text-amber-800">
+                  Sandbox OTP Code: <span className="font-mono">{otpHint}</span>
+                </div>
+              )}
+
               <p className="text-[11px] font-semibold text-slate-400">
                 Didn&apos;t get it?{' '}
-                <span className="text-emerald-600 font-bold">
-                  Resend in 0:28
-                </span>
+                <button
+                  type="button"
+                  disabled={otpLoading}
+                  onClick={() => void triggerOtpSend()}
+                  className="text-emerald-600 font-bold underline cursor-pointer disabled:opacity-50"
+                >
+                  {otpLoading ? 'Sending...' : 'Resend WhatsApp Code'}
+                </button>
               </p>
 
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F1F5F9] text-[10.5px] font-semibold text-[#475569]">
@@ -411,11 +671,16 @@ export default function InstantFormRenderer({
               </button>
               <button
                 type="button"
-                onClick={() => goTo(thankYouIndex)}
-                className="flex-1 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-sm transition cursor-pointer"
+                disabled={submitting}
+                onClick={() => void handleVerifyAndSubmitOtp()}
+                className="flex-1 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-sm transition cursor-pointer disabled:opacity-60"
               >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Verify &amp; Get Quote</span>
+                {submitting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4" />
+                )}
+                <span>{submitting ? 'Verifying...' : 'Verify & Get Quote'}</span>
               </button>
             </div>
           </div>
@@ -439,10 +704,11 @@ export default function InstantFormRenderer({
 
             <div className="space-y-2 pt-1 text-left">
               {form.thankYou.bookingCta && (
-                <button
-                  type="button"
-                  onClick={() => {}}
-                  className="w-full p-3 rounded-xl border border-[#E2E8F0] hover:border-blue-300 bg-[#F8FAFC] flex items-center justify-between gap-2.5 transition cursor-pointer"
+                <a
+                  href={`/book/${encodeURIComponent(resolvedBookingSlug)}`}
+                  target={mode === 'preview' ? '_blank' : '_self'}
+                  rel="noreferrer"
+                  className="w-full p-3 rounded-xl border border-[#E2E8F0] hover:border-blue-300 bg-[#F8FAFC] flex items-center justify-between gap-2.5 transition"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span
@@ -461,14 +727,15 @@ export default function InstantFormRenderer({
                     </div>
                   </div>
                   <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                </button>
+                </a>
               )}
 
               {form.thankYou.whatsappCta && (
-                <button
-                  type="button"
-                  onClick={() => {}}
-                  className="w-full p-3 rounded-xl border border-[#A7F3D0] bg-[#ECFDF5] hover:bg-[#D1FAE5] flex items-center justify-between gap-2.5 transition cursor-pointer"
+                <a
+                  href={waUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full p-3 rounded-xl border border-[#A7F3D0] bg-[#ECFDF5] hover:bg-[#D1FAE5] flex items-center justify-between gap-2.5 transition"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
@@ -484,14 +751,15 @@ export default function InstantFormRenderer({
                     </div>
                   </div>
                   <ArrowRight className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                </button>
+                </a>
               )}
 
               {form.thankYou.brochureCta && (
-                <button
-                  type="button"
-                  onClick={() => {}}
-                  className="w-full p-3 rounded-xl border border-[#E2E8F0] hover:border-slate-300 bg-[#FFFFFF] flex items-center justify-between gap-2.5 transition cursor-pointer"
+                <a
+                  href={brochureHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full p-3 rounded-xl border border-[#E2E8F0] hover:border-slate-300 bg-[#FFFFFF] flex items-center justify-between gap-2.5 transition"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center shrink-0">
@@ -507,7 +775,7 @@ export default function InstantFormRenderer({
                     </div>
                   </div>
                   <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                </button>
+                </a>
               )}
             </div>
 
@@ -524,7 +792,6 @@ export default function InstantFormRenderer({
         )}
       </div>
 
-      {/* Tiny Branded Footer inside Form */}
       <div className="pt-3 mt-3 border-t border-[#F1F5F9] flex items-center justify-center gap-1 text-[10px] font-semibold text-slate-400">
         <Sparkles className="w-3 h-3 text-blue-500" />
         <span>Powered by Leadsetu AI CRM</span>

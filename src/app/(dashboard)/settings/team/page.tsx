@@ -61,6 +61,7 @@ import {
 } from '@/lib/feature-access';
 import { getErrorMessage } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth.store';
+import ActionDialogModal from '@/components/ui/ActionDialogModal';
 import type {
   AssignableTeamRole,
   MemberCredentials,
@@ -135,6 +136,13 @@ export default function TeamSettingsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [teamDialog, setTeamDialog] = useState<{
+    title: string;
+    description: string;
+    confirmLabel: string;
+    danger: boolean;
+    run: () => Promise<void>;
+  } | null>(null);
 
   // Add member modal
   const [addOpen, setAddOpen] = useState(false);
@@ -377,8 +385,7 @@ export default function TeamSettingsPage() {
     }
   };
 
-  const handleToggleStatus = async (m: TeamMember) => {
-    if (m.isActive && !window.confirm(`Deactivate ${m.name}? They will not be able to sign in.`)) return;
+  const executeToggleStatus = async (m: TeamMember) => {
     setBusyId(m.id);
     try {
       await setTeamMemberStatus(m.id, !m.isActive);
@@ -389,6 +396,20 @@ export default function TeamSettingsPage() {
     } finally {
       setBusyId(null);
     }
+  };
+
+  const handleToggleStatus = async (m: TeamMember) => {
+    if (m.isActive) {
+      setTeamDialog({
+        title: `Deactivate ${m.name}?`,
+        description: `${m.name} will immediately lose sign-in access until reactivated. Their historical CRM activity remains intact.`,
+        confirmLabel: 'Deactivate Member',
+        danger: true,
+        run: () => executeToggleStatus(m),
+      });
+      return;
+    }
+    await executeToggleStatus(m);
   };
 
   const handleToggleMemberMask = async (m: TeamMember) => {
@@ -407,39 +428,48 @@ export default function TeamSettingsPage() {
     }
   };
 
-  const handleResetPassword = async (m: TeamMember) => {
-    if (!window.confirm(`Generate a new temporary password for ${m.name}? Their current password will stop working.`)) return;
-    setBusyId(m.id);
-    try {
-      const res = await resetTeamMemberPassword(m.id);
-      setCredentials({ ...res.credentials, name: m.name, phone: m.phone, isReset: true });
-    } catch (err) {
-      setErrorMsg(getErrorMessage(err));
-    } finally {
-      setBusyId(null);
-    }
+  const handleResetPassword = (m: TeamMember) => {
+    setTeamDialog({
+      title: `Reset Password for ${m.name}?`,
+      description: `Generate a new temporary password for ${m.name}? Their current password will stop working immediately.`,
+      confirmLabel: 'Generate Temp Password',
+      danger: false,
+      run: async () => {
+        setBusyId(m.id);
+        try {
+          const res = await resetTeamMemberPassword(m.id);
+          setCredentials({ ...res.credentials, name: m.name, phone: m.phone, isReset: true });
+        } catch (err) {
+          setErrorMsg(getErrorMessage(err));
+        } finally {
+          setBusyId(null);
+        }
+      },
+    });
   };
 
-  const handleRemove = async (m: TeamMember) => {
-    if (
-      !window.confirm(
-        `Remove ${m.name} (User ID ${m.userCode}) permanently?\n\nTheir leads, deals, tasks and contacts will be re-assigned to the workspace owner. Tip: "Deactivate" keeps their history instead.`,
-      )
-    )
-      return;
-    setBusyId(m.id);
-    try {
-      const res = await removeTeamMember(m.id);
-      const moved = Object.values(res.reassigned || {}).reduce((s, n) => s + n, 0);
-      showToast(
-        `${m.name} removed.${moved ? ` ${moved} record(s) re-assigned to ${res.reassignedTo?.name || 'the owner'}.` : ''}`,
-      );
-      await loadTeam();
-    } catch (err) {
-      setErrorMsg(getErrorMessage(err));
-    } finally {
-      setBusyId(null);
-    }
+  const handleRemove = (m: TeamMember) => {
+    setTeamDialog({
+      title: `Remove ${m.name} Permanently?`,
+      description: `User ID ${m.userCode} will be removed permanently. All leads, deals, tasks, and contacts owned by them will be re-assigned to the workspace owner.\n\nTip: Use "Deactivate" instead if you want to keep their account history.`,
+      confirmLabel: 'Remove Permanently',
+      danger: true,
+      run: async () => {
+        setBusyId(m.id);
+        try {
+          const res = await removeTeamMember(m.id);
+          const moved = Object.values(res.reassigned || {}).reduce((s, n) => s + n, 0);
+          showToast(
+            `${m.name} removed.${moved ? ` ${moved} record(s) re-assigned to ${res.reassignedTo?.name || 'the owner'}.` : ''}`,
+          );
+          await loadTeam();
+        } catch (err) {
+          setErrorMsg(getErrorMessage(err));
+        } finally {
+          setBusyId(null);
+        }
+      },
+    });
   };
 
   const inviteOrgLabel =
@@ -1608,6 +1638,20 @@ export default function TeamSettingsPage() {
         canManage={Boolean(viewer?.canManageTeam)}
         onClose={() => setScorecardMemberId(null)}
         onUpdated={() => void loadTeam()}
+      />
+
+      <ActionDialogModal
+        open={Boolean(teamDialog)}
+        mode="confirm"
+        title={teamDialog?.title || ''}
+        description={teamDialog?.description}
+        confirmLabel={teamDialog?.confirmLabel || 'Confirm'}
+        danger={teamDialog?.danger}
+        onClose={() => setTeamDialog(null)}
+        onConfirm={async () => {
+          if (!teamDialog) return;
+          await teamDialog.run();
+        }}
       />
     </div>
   );

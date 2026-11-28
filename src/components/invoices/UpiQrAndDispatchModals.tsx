@@ -127,8 +127,11 @@ export function InvoiceUpiQrModal({
     setError(null);
     try {
       const res = await simulateInvoiceWebhookPaidApi(invoice.id);
+      const capiTag = res.metaCapiPurchaseFired
+        ? ` · Meta CAPI Purchase Fired (${res.metaCapiEventId || res.metaCapiStatus || 'sent'})`
+        : '';
       await onUpdated(
-        `Webhook Reconciled ${res.invoiceNumber}: settled ₹${res.amountSettledInr.toLocaleString('en-IN')} (Txn ${res.paymentId}) → Status: ${res.status.toUpperCase()}${res.whatsappReceiptSent ? ' · WhatsApp Receipt Sent' : ''}.`,
+        `Webhook Reconciled ${res.invoiceNumber}: settled ₹${res.amountSettledInr.toLocaleString('en-IN')} (Txn ${res.paymentId}) → Status: ${res.status.toUpperCase()}${res.whatsappReceiptSent ? ' · WhatsApp Receipt Sent' : ''}${capiTag}.`,
       );
       onClose();
     } catch (err) {
@@ -314,20 +317,25 @@ export function InvoiceUpiQrModal({
               </div>
             ) : null}
 
-            {invoice.status !== 'paid' && invoice.docType === 'tax_invoice' && (
-              <button
-                type="button"
-                disabled={simulating}
-                onClick={() => void handleSimulatePaid()}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold disabled:opacity-50"
-              >
-                {simulating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Zap className="w-4 h-4" />
-                )}
-                <span>Simulate Razorpay/UPI Webhook Paid → Auto-Reconcile</span>
-              </button>
+            {invoice.status !== 'paid' && invoice.status !== 'cancelled' && (
+              <div className="space-y-1.5">
+                <button
+                  type="button"
+                  disabled={simulating}
+                  onClick={() => void handleSimulatePaid()}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold disabled:opacity-50"
+                >
+                  {simulating ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Zap className="w-4 h-4" />
+                  )}
+                  <span>Simulate Razorpay/UPI Webhook Paid → Auto-Reconcile</span>
+                </button>
+                <p className="text-[10px] text-center text-slate-400">
+                  Marks {invoice.docType === 'proforma_quote' ? 'Quotation' : 'GST Invoice'} PAID, clears Credit Hold, sends WhatsApp Receipt &amp; fires Meta CAPI <code className="text-emerald-500 font-bold">Purchase</code>.
+                </p>
+              </div>
             )}
           </div>
         ) : null}

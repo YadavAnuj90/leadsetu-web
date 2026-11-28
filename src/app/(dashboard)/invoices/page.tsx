@@ -41,6 +41,7 @@ import {
   InvoiceDispatchModal,
   InvoiceUpiQrModal,
 } from '@/components/invoices/UpiQrAndDispatchModals';
+import ActionDialogModal from '@/components/ui/ActionDialogModal';
 import {
   fetchInvoices,
   createInvoice,
@@ -555,23 +556,14 @@ export default function InvoicesPage() {
   };
 
   const [sendingWaId, setSendingWaId] = useState<string | null>(null);
+  const [waPhonePromptInv, setWaPhonePromptInv] = useState<Invoice | null>(null);
 
-  const handleShareWhatsApp = async (inv: Invoice) => {
-    let targetPhone = (inv.phone || '').trim();
-    if (targetPhone.replace(/\D/g, '').length < 10 && typeof window !== 'undefined') {
-      const entered = window.prompt(
-        `Enter buyer 10-digit WhatsApp number for ${inv.clientName} (${inv.invoiceNumber}):`,
-        '+91 ',
-      );
-      if (!entered || entered.replace(/\D/g, '').length < 10) return;
-      targetPhone = entered.trim();
-    }
-
+  const dispatchInvoiceWhatsApp = async (inv: Invoice, phoneOverride?: string) => {
     setSendingWaId(inv.id);
     setErrorMsg(null);
     try {
       const res = await sendDocumentWhatsAppApi(inv.id, {
-        phone: targetPhone || undefined,
+        phone: phoneOverride || undefined,
         publicBaseUrl:
           typeof window !== 'undefined' ? window.location.origin : undefined,
       });
@@ -592,6 +584,15 @@ export default function InvoicesPage() {
     } finally {
       setSendingWaId(null);
     }
+  };
+
+  const handleShareWhatsApp = async (inv: Invoice) => {
+    const targetPhone = (inv.phone || '').trim();
+    if (targetPhone.replace(/\D/g, '').length < 10) {
+      setWaPhonePromptInv(inv);
+      return;
+    }
+    await dispatchInvoiceWhatsApp(inv, targetPhone);
   };
 
   const handleCopyPublicLink = async (inv: Invoice) => {
@@ -2717,6 +2718,26 @@ export default function InvoicesPage() {
         onUpdated={async (msg) => {
           setReminderToast(msg);
           await loadInvoices();
+        }}
+      />
+
+      <ActionDialogModal
+        open={Boolean(waPhonePromptInv)}
+        mode="prompt"
+        inputType="phone"
+        title={`Send ${waPhonePromptInv?.invoiceNumber || 'Invoice'} on WhatsApp`}
+        description={
+          waPhonePromptInv
+            ? `No WhatsApp number is saved for ${waPhonePromptInv.clientName}. Enter their 10-digit mobile number to dispatch the PDF + Razorpay Pay button.`
+            : undefined
+        }
+        inputLabel="Buyer WhatsApp Mobile Number"
+        inputPlaceholder="98110 01122"
+        confirmLabel="Send Invoice PDF + Pay Link"
+        onClose={() => setWaPhonePromptInv(null)}
+        onConfirm={async (normalizedPhone) => {
+          if (!waPhonePromptInv) return;
+          await dispatchInvoiceWhatsApp(waPhonePromptInv, normalizedPhone);
         }}
       />
     </div>

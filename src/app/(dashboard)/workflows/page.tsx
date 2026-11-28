@@ -40,6 +40,7 @@ import {
 } from '@/lib/workflows-api';
 import { getErrorMessage } from '@/lib/api-client';
 import VisualWorkflowCanvasModal from '@/components/workflows/VisualWorkflowCanvasModal';
+import { WhatsAppBotBuilderModal } from '@/components/inbox/WhatsAppBotBuilderModal';
 import type {
   WorkflowRule,
   WorkflowStats,
@@ -137,6 +138,7 @@ export default function WorkflowsPage() {
   // Visual Canvas Modal State
   const [canvasOpen, setCanvasOpen] = useState(false);
   const [editingWorkflow, setEditingWorkflow] = useState<WorkflowRule | null>(null);
+  const [botBuilderOpen, setBotBuilderOpen] = useState(false);
 
   // Enrollments Drawer State
   const [enrollDrawerWf, setEnrollDrawerWf] = useState<WorkflowRule | null>(null);
@@ -319,6 +321,15 @@ export default function WorkflowsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setBotBuilderOpen(true)}
+            className="h-10 inline-flex items-center gap-2 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-xs transition-all"
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>WhatsApp Bot Flow</span>
+          </button>
+
           <button
             type="button"
             disabled={processingDrips}
@@ -879,6 +890,11 @@ export default function WorkflowsPage() {
           </div>
         </div>
       )}
+
+      <WhatsAppBotBuilderModal
+        open={botBuilderOpen}
+        onClose={() => setBotBuilderOpen(false)}
+      />
     </div>
   );
 }

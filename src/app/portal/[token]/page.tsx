@@ -980,7 +980,7 @@ export default function BuyerMagicPortalPage() {
       {/* Payment Intent Modal (Live UPI QR + NEFT Bank + UTR / PTP Submit) */}
       {payInvoice && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 border border-slate-200 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white text-slate-900 rounded-3xl max-w-lg w-full p-6 border border-slate-200 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-base font-extrabold text-slate-900">

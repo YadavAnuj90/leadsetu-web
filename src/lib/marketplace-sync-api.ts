@@ -370,18 +370,11 @@ export async function fetchPublicBookingSlotsApi(
   slug: string,
   dateYmd?: string,
 ): Promise<PublicSchedulerInfoResponse> {
-  const base = (
-    process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:4000/v1'
-  ).replace(/\/+$/, '');
-  const url = `${base}/public/booking/${encodeURIComponent(slug)}${
-    dateYmd ? `?date=${encodeURIComponent(dateYmd)}` : ''
-  }`;
-  const res = await fetch(url, { cache: 'no-store' });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(json?.message || 'Booking calendar unavailable.');
-  }
-  return json as PublicSchedulerInfoResponse;
+  const { data } = await apiClient.get<PublicSchedulerInfoResponse>(
+    `/public/booking/${encodeURIComponent(slug)}`,
+    { params: dateYmd ? { date: dateYmd } : undefined },
+  );
+  return data;
 }
 
 export async function createPublicBookingApi(
@@ -409,17 +402,9 @@ export async function createPublicBookingApi(
   confirmationSent: boolean;
   icsContent: string;
 }> {
-  const base = (
-    process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:4000/v1'
-  ).replace(/\/+$/, '');
-  const res = await fetch(`${base}/public/booking/${encodeURIComponent(slug)}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(json?.message || 'Failed to schedule appointment.');
-  }
-  return json;
+  const { data } = await apiClient.post(
+    `/public/booking/${encodeURIComponent(slug)}`,
+    payload,
+  );
+  return data;
 }

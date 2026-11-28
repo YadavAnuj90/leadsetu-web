@@ -1,10 +1,11 @@
 'use client';
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import { Lock, Sparkles } from 'lucide-react';
+import { Loader2, Lock, Sparkles } from 'lucide-react';
 import InstantFormRenderer from '@/components/lead-forms/InstantFormRenderer';
-import { getMockFormBySlug } from '@/lib/lead-forms-mock';
+import { fetchPublicLeadFormApi } from '@/lib/lead-forms-api';
+import { getMockFormBySlug, type LeadFormConfig } from '@/lib/lead-forms-mock';
 
 function PublicInstantFormInner() {
   const params = useParams<{ slug: string }>();
@@ -12,7 +13,37 @@ function PublicInstantFormInner() {
   const slug = String(params?.slug || 'industrial-stabilizer-quote');
   const isEmbed = searchParams?.get('embed') === '1';
 
-  const form = getMockFormBySlug(slug);
+  const [form, setForm] = useState<LeadFormConfig>(() => getMockFormBySlug(slug));
+  const [publicContext, setPublicContext] = useState<{
+    bookingSlug?: string;
+    whatsappNumber?: string;
+  }>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    fetchPublicLeadFormApi(slug, true)
+      .then((res) => {
+        if (!active) return;
+        if (res?.form) {
+          setForm(res.form);
+        }
+        if (res?.publicContext) {
+          setPublicContext(res.publicContext);
+        }
+      })
+      .catch(() => {
+        // Fallback cleanly to local template when API unavailable
+        if (active) setForm(getMockFormBySlug(slug));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [slug]);
 
   if (isEmbed) {
     return (
@@ -21,7 +52,18 @@ function PublicInstantFormInner() {
           className="w-full max-w-md rounded-3xl shadow-xl border border-slate-200/80 p-6"
           style={{ backgroundColor: '#FFFFFF' }}
         >
-          <InstantFormRenderer form={form} mode="public" />
+          {loading ? (
+            <div className="py-12 flex items-center justify-center gap-2 text-xs text-slate-500">
+              <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+              <span>Loading Form...</span>
+            </div>
+          ) : (
+            <InstantFormRenderer
+              form={form}
+              mode="public"
+              publicContext={publicContext}
+            />
+          )}
         </div>
       </div>
     );
@@ -47,7 +89,18 @@ function PublicInstantFormInner() {
         className="relative z-10 w-full max-w-md rounded-3xl shadow-xl border border-slate-200/80 p-6 sm:p-8"
         style={{ backgroundColor: '#FFFFFF' }}
       >
-        <InstantFormRenderer form={form} mode="public" />
+        {loading ? (
+          <div className="py-16 flex items-center justify-center gap-2 text-xs font-semibold text-slate-500">
+            <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+            <span>Loading Instant Form...</span>
+          </div>
+        ) : (
+          <InstantFormRenderer
+            form={form}
+            mode="public"
+            publicContext={publicContext}
+          />
+        )}
       </div>
 
       {/* Trust & Leadsetu Attribution Footer */}

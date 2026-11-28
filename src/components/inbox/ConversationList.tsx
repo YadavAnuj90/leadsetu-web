@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, Search, Settings2, Sparkles } from 'lucide-react';
+import { GitBranch, Plus, Search, Settings2, Sparkles } from 'lucide-react';
 import type { Conversation } from '@/types/contracts';
 
 interface ConversationListProps {
@@ -13,6 +13,7 @@ interface ConversationListProps {
   onStatusFilterChange: (val: 'all' | 'open' | 'resolved') => void;
   onNewConversation: () => void;
   onOpenTemplates: () => void;
+  onOpenBotBuilder?: () => void;
   isLiveConnected?: boolean;
 }
 
@@ -26,6 +27,7 @@ export default function ConversationList({
   onStatusFilterChange,
   onNewConversation,
   onOpenTemplates,
+  onOpenBotBuilder,
   isLiveConnected,
 }: ConversationListProps) {
   return (
@@ -50,6 +52,17 @@ export default function ConversationList({
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
+            {onOpenBotBuilder && (
+              <button
+                type="button"
+                onClick={onOpenBotBuilder}
+                title="WhatsApp Interactive Button & List Bot Flow Builder"
+                className="inline-flex items-center gap-1 px-2 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-500/10 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 hover:border-emerald-500"
+              >
+                <GitBranch className="w-3.5 h-3.5" />
+                <span className="hidden xl:inline">Bot</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={onOpenTemplates}

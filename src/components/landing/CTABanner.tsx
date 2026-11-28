@@ -32,19 +32,19 @@ export default function CTABanner() {
 
         <div className="relative z-10 max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase tracking-wider mb-6 border bg-[#0057FF]/20 border-sky-400/35 text-sky-300">
-            <Sparkles className="w-3.5 h-3.5" /> Start Closing More Deals Today
+            <Sparkles className="w-3.5 h-3.5" /> Launch Your Revenue OS in 10 Minutes
           </div>
 
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-5 tracking-tight leading-tight">
-            Ready to Bridge Every Lead{' '}
+            Capture Leads. Close on WhatsApp.{' '}
             <span className="bg-gradient-to-r from-sky-300 to-blue-400 bg-clip-text text-transparent">
-              to Revenue?
+              Collect GST Paid Automatically.
             </span>
           </h2>
 
           <p className="text-slate-300 text-base sm:text-lg mb-9 max-w-2xl mx-auto leading-relaxed">
-            Join 4,500+ fast-growing Indian B2B teams. Launch your AI-powered WhatsApp &amp; GST
-            sales pipeline in under 15 minutes — completely free for 14 days.
+            Go live with OTP Instant Forms, Multi-Step WhatsApp Bot Flows, Meta CAPI attribution,
+            and 18% GST billing with Razorpay &amp; UPI auto-reconciliation — free for 14 days.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -61,19 +61,19 @@ export default function CTABanner() {
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-bold text-white text-sm sm:text-base border border-white/20 bg-white/[0.06] hover:bg-white/[0.12] transition-all"
             >
               <PhoneCall className="w-4 h-4 text-sky-300" />
-              <span>Schedule Live 1-on-1 Demo</span>
+              <span>Book Live Walkthrough</span>
             </Link>
           </div>
 
           <div className="mt-8 pt-7 border-t border-white/10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-slate-300 font-medium">
             <span className="inline-flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Free 14-day trial
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> 14-day full-feature trial
             </span>
             <span className="inline-flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" /> No credit card needed
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Free white-glove onboarding
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> WhatsApp Cloud &amp; UPI QR ready
             </span>
             <span className="inline-flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Cancel anytime in 1 click

@@ -18,34 +18,33 @@ import {
 } from 'lucide-react';
 
 const footerLinks = {
-  'About Company': [
+  Product: [
+    { label: 'WhatsApp Cloud & Bots', href: '/#features' },
+    { label: 'Instant Forms & Booking', href: '/#features' },
+    { label: 'GST & Razorpay Collect', href: '/#integrations' },
+    { label: 'Pricing & Plan Compare', href: '/pricing#compare' },
+    { label: 'Start 14-Day Free Trial', href: '/signup' },
+  ],
+  Company: [
     { label: 'About Us', href: '/company' },
-    { label: 'Careers', href: '/company/careers' },
     { label: 'Leadership & Mission', href: '/company/leadership' },
     { label: 'Customer Stories', href: '/#testimonials' },
+    { label: 'Careers', href: '/company/careers' },
     { label: 'Contact & Offices', href: '/company/contact' },
   ],
-  'Indian Integrations': [
-    { label: 'WhatsApp Business Cloud', href: '/#integrations' },
-    { label: 'IndiaMART Lead Sync', href: '/#integrations' },
-    { label: 'Meta & Google Lead Ads', href: '/#integrations' },
-    { label: 'Razorpay UPI & NEFT', href: '/#integrations' },
-    { label: 'Rule-46 GSTR-1 & Tally CSV', href: '/#features' },
-  ],
-  'Company & Plans': [
-    { label: 'Plans & Billing FAQ', href: '/pricing' },
-    { label: 'Compare All Plans', href: '/pricing#compare' },
-    { label: 'Customer Case Studies', href: '/#testimonials' },
-    { label: 'Start 14-Day Free Trial', href: '/signup' },
+  'Resources & Trust': [
+    { label: 'Plans & Billing FAQ', href: '/pricing#faq' },
+    { label: 'Integrations Ecosystem', href: '/#integrations' },
+    { label: 'Data Security & RBAC', href: '/security' },
+    { label: 'Service Level Agreement', href: '/sla' },
     { label: 'Sign In to Workspace', href: '/login' },
-    { label: 'Register Company Account', href: '/register' },
   ],
-  'Trust & Compliance': [
-    { label: 'DPDP Act 2023 Shield', href: '/#integrations' },
-    { label: 'Anti-Data-Leak Phone Masking', href: '/#features' },
-    { label: 'Immutable Audit Trail', href: '/#features' },
-    { label: '256-Bit SSL Encryption', href: '/pricing#faq' },
-    { label: '99.9% Uptime SLA Policy', href: '/pricing#faq' },
+  'Legal & Compliance': [
+    { label: 'Privacy Policy', href: '/privacy-policy' },
+    { label: 'Terms of Service', href: '/terms' },
+    { label: 'Refund & Cancellation', href: '/refund-policy' },
+    { label: 'DPDP & GST Compliance', href: '/compliance' },
+    { label: 'Data Rights & Deletion', href: '/privacy-policy#data-rights' },
   ],
 };
 
@@ -92,13 +91,13 @@ export default function Footer() {
         <div className="rounded-3xl p-6 sm:p-8 lg:p-10 bg-white/[0.03] border border-white/[0.09] backdrop-blur-xl shadow-2xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-7">
           <div className="max-w-xl">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-[#0057FF]/15 text-sky-300 border border-[#0057FF]/30 mb-3">
-              <Sparkles className="w-3.5 h-3.5" /> The Monday Revenue Dispatch
+              <Sparkles className="w-3.5 h-3.5" /> Executive Product &amp; Compliance Brief
             </div>
             <h3 className="text-xl sm:text-2xl lg:text-[26px] font-black text-white tracking-tight leading-snug">
-              Steal-worthy WhatsApp templates, Hinglish AI prompts &amp; GST closing playbooks — every Monday.
+              WhatsApp Cloud playbooks, GST billing updates &amp; B2B conversion benchmarks — weekly.
             </h3>
             <p className="text-slate-400 text-xs sm:text-sm mt-2">
-              Trusted by 4,500+ founders, revenue heads, and finance teams scaling B2B sales across Delhi-NCR &amp; Pan-India.
+              Practical product releases and compliance notes for Indian sales, operations, and finance leaders.
             </p>
           </div>
 
@@ -160,7 +159,7 @@ export default function Footer() {
             </Link>
 
             <p className="text-slate-400 text-[13px] leading-relaxed max-w-sm">
-              Built by <strong className="text-slate-200 font-semibold">Leadsetu Technologies (Anujali Technologies Pvt. Ltd.)</strong> — India&apos;s flagship AI revenue platform combining Official WhatsApp Cloud, SetuAI Intent Scoring, and Rule-46 18% GST collections.
+              Operated by <strong className="text-slate-200 font-semibold">Anujali Technologies Pvt. Ltd.</strong> — an Indian B2B revenue automation platform combining Official WhatsApp Cloud API, AI lead qualification, and Rule-46 18% GST collections.
             </p>
 
             {/* Corporate Office Cards */}
@@ -168,13 +167,7 @@ export default function Footer() {
               <div className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-sky-400 flex-shrink-0 mt-0.5" />
                 <span>
-                  <strong className="text-slate-200">Noida HQ:</strong> Sector 62, Noida Electronic City, UP – 201309
-                </span>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <Building2 className="w-4 h-4 text-sky-400 flex-shrink-0 mt-0.5" />
-                <span>
-                  <strong className="text-slate-200">Delhi Desk:</strong> Connaught Place, New Delhi – 110001
+                  <strong className="text-slate-200">Corporate HQ:</strong> Tower B, 7th Floor, Sector 62, Noida Electronic City, UP – 201309, India
                 </span>
               </div>
               <div className="pt-2 border-t border-white/[0.07] flex flex-wrap items-center gap-x-4 gap-y-1.5">
@@ -190,8 +183,11 @@ export default function Footer() {
                   className="inline-flex items-center gap-1.5 hover:text-white transition-colors"
                 >
                   <Phone className="w-3.5 h-3.5 text-sky-400" />
-                  <span>+91 8851520832</span>
+                  <span>+91 88515 20832</span>
                 </a>
+              </div>
+              <div className="text-[11px] text-slate-500">
+                Support Desk: Mon–Sat · 09:30–19:30 IST
               </div>
             </div>
 
@@ -252,7 +248,7 @@ export default function Footer() {
 
           <div className="inline-flex items-center gap-2 text-[11px] font-bold text-emerald-300 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>All Systems Operational · Mumbai &amp; Delhi-NCR Region</span>
+            <span>All Systems Operational</span>
           </div>
         </div>
 

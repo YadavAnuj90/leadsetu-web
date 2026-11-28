@@ -25,8 +25,11 @@ import {
   Printer,
   Percent,
   FileText,
+  QrCode,
   Sparkles,
 } from 'lucide-react';
+import { InvoiceUpiQrModal } from '@/components/invoices/UpiQrAndDispatchModals';
+import ActionDialogModal from '@/components/ui/ActionDialogModal';
 import {
   fetchInvoices,
   createInvoice,
@@ -403,23 +406,15 @@ export default function QuotationsPage() {
   };
 
   const [sendingWaId, setSendingWaId] = useState<string | null>(null);
+  const [qrModalQuote, setQrModalQuote] = useState<Invoice | null>(null);
+  const [waPhonePromptQuote, setWaPhonePromptQuote] = useState<Invoice | null>(null);
 
-  const handleShareProposalWhatsApp = async (quote: Invoice) => {
-    let targetPhone = (quote.phone || '').trim();
-    if (targetPhone.replace(/\D/g, '').length < 10 && typeof window !== 'undefined') {
-      const entered = window.prompt(
-        `Enter buyer 10-digit WhatsApp number for ${quote.clientName} (${quote.invoiceNumber}):`,
-        '+91 ',
-      );
-      if (!entered || entered.replace(/\D/g, '').length < 10) return;
-      targetPhone = entered.trim();
-    }
-
+  const dispatchProposalWhatsApp = async (quote: Invoice, phoneOverride?: string) => {
     setSendingWaId(quote.id);
     setErrorMsg(null);
     try {
       const res = await sendDocumentWhatsAppApi(quote.id, {
-        phone: targetPhone || undefined,
+        phone: phoneOverride || undefined,
         publicBaseUrl:
           typeof window !== 'undefined' ? window.location.origin : undefined,
       });
@@ -440,6 +435,15 @@ export default function QuotationsPage() {
     } finally {
       setSendingWaId(null);
     }
+  };
+
+  const handleShareProposalWhatsApp = async (quote: Invoice) => {
+    const targetPhone = (quote.phone || '').trim();
+    if (targetPhone.replace(/\D/g, '').length < 10) {
+      setWaPhonePromptQuote(quote);
+      return;
+    }
+    await dispatchProposalWhatsApp(quote, targetPhone);
   };
 
   return (
@@ -774,9 +778,19 @@ export default function QuotationsPage() {
 
                           <button
                             type="button"
+                            onClick={() => setQrModalQuote(q)}
+                            title="Razorpay Link, Scannable UPI QR & Webhook Auto-Reconciliation"
+                            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50/80 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold transition-colors"
+                          >
+                            <QrCode className="w-3.5 h-3.5" />
+                            <span>Collect / QR</span>
+                          </button>
+
+                          <button
+                            type="button"
                             disabled={sendingWaId === q.id}
                             onClick={() => handleShareProposalWhatsApp(q)}
-                            title="1-Click Send Quotation PDF + Razorpay Link on WhatsApp & Log to Deal/Lead Timeline"
+                            title="1-Click Send Quotation PDF + Razorpay Pay Button on WhatsApp & Log to Deal/Lead Timeline"
                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50/80 hover:bg-emerald-100 text-emerald-700 text-[11px] font-bold transition-colors disabled:opacity-50"
                           >
                             {sendingWaId === q.id ? (
@@ -1277,7 +1291,7 @@ export default function QuotationsPage() {
       {/* ─── PRINTABLE PDF PROPOSAL & QUOTATION MODAL ────────────────── */}
       {selectedQuote && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-3xl w-full border border-slate-200 shadow-2xl overflow-hidden my-8">
+          <div className="light-preview-canvas bg-[#FFFFFF] text-[#0F172A] rounded-3xl max-w-3xl w-full border border-slate-200 shadow-2xl overflow-hidden my-8">
             {/* Top Action Bar */}
             <div className="px-6 py-4 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
@@ -1559,6 +1573,35 @@ export default function QuotationsPage() {
           </div>
         </div>
       )}
+      <InvoiceUpiQrModal
+        invoice={qrModalQuote}
+        onClose={() => setQrModalQuote(null)}
+        onUpdated={async (msg) => {
+          setToastMsg(msg);
+          setTimeout(() => setToastMsg(null), 5000);
+          await loadQuotations();
+        }}
+      />
+
+      <ActionDialogModal
+        open={Boolean(waPhonePromptQuote)}
+        mode="prompt"
+        inputType="phone"
+        title={`Send ${waPhonePromptQuote?.invoiceNumber || 'Quotation'} on WhatsApp`}
+        description={
+          waPhonePromptQuote
+            ? `No WhatsApp number is saved for ${waPhonePromptQuote.clientName}. Enter their 10-digit mobile number to dispatch the PDF + Razorpay Pay button.`
+            : undefined
+        }
+        inputLabel="Buyer WhatsApp Mobile Number"
+        inputPlaceholder="98110 01122"
+        confirmLabel="Send Proposal PDF + Pay Link"
+        onClose={() => setWaPhonePromptQuote(null)}
+        onConfirm={async (normalizedPhone) => {
+          if (!waPhonePromptQuote) return;
+          await dispatchProposalWhatsApp(waPhonePromptQuote, normalizedPhone);
+        }}
+      />
     </div>
   );
 }

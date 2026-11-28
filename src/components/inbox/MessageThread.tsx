@@ -12,6 +12,7 @@ import {
   ChevronDown,
   ExternalLink,
   FileText,
+  GitBranch,
   Image as ImageIcon,
   Link2,
   Loader2,
@@ -50,6 +51,7 @@ interface MessageThreadProps {
   isGeneratingAi?: boolean;
   aiAgentMode?: 'autopilot' | 'draft_only' | 'off';
   onOpenAiConcierge?: () => void;
+  onOpenBotBuilder?: () => void;
   onToggleAutopilot?: (id: string, paused: boolean) => void;
   whatsappPermission?: WhatsappCallPermissionState | null;
   whatsappPermissionLoading?: boolean;
@@ -84,6 +86,7 @@ export default function MessageThread({
   isGeneratingAi = false,
   aiAgentMode = 'draft_only',
   onOpenAiConcierge,
+  onOpenBotBuilder,
   onToggleAutopilot,
   whatsappPermission,
   whatsappPermissionLoading = false,
@@ -371,6 +374,19 @@ export default function MessageThread({
                     >
                       <Bot className="w-3.5 h-3.5 shrink-0" />
                       <span>Configure AI 24×7</span>
+                    </button>
+                  )}
+                  {onOpenBotBuilder && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setToolsOpen(false);
+                        onOpenBotBuilder();
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left font-semibold text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-white/10"
+                    >
+                      <GitBranch className="w-3.5 h-3.5 shrink-0" />
+                      <span>Interactive Bot Flow</span>
                     </button>
                   )}
                   <button
@@ -758,6 +774,40 @@ export default function MessageThread({
 
                   {msg.content && (
                     <div className="whitespace-pre-line">{msg.content}</div>
+                  )}
+
+                  {msg.ctaButton?.url && (
+                    <div
+                      className={`mt-2.5 pt-2.5 border-t flex items-center justify-between gap-2 ${
+                        isOutbound
+                          ? 'border-white/20'
+                          : 'border-slate-200 dark:border-white/10'
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <div
+                          className={`text-[10px] font-extrabold uppercase tracking-wider ${
+                            isOutbound ? 'text-emerald-200' : 'text-emerald-600 dark:text-emerald-300'
+                          }`}
+                        >
+                          Razorpay / UPI Collect
+                          {msg.ctaButton.invoiceNumber ? ` · ${msg.ctaButton.invoiceNumber}` : ''}
+                        </div>
+                      </div>
+                      <a
+                        href={msg.ctaButton.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold shadow-xs transition-all shrink-0 ${
+                          isOutbound
+                            ? 'bg-emerald-500 hover:bg-emerald-400 text-white'
+                            : 'bg-brand-blue hover:bg-blue-700 text-white'
+                        }`}
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>{msg.ctaButton.label || 'Pay Now'}</span>
+                      </a>
+                    </div>
                   )}
 
                   {msg.status === 'failed' && msg.deliveryError && (

@@ -1,6 +1,14 @@
 'use client';
 
-import { useState, FormEvent, ChangeEvent, DragEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  FormEvent,
+  ChangeEvent,
+  DragEvent,
+} from 'react';
 import {
   ArrowRight,
   Award,
@@ -14,7 +22,9 @@ import {
   FileText,
   HeartHandshake,
   Laptop,
+  Loader2,
   MapPin,
+  RefreshCw,
   Rocket,
   ShieldCheck,
   Sparkles,
@@ -27,106 +37,20 @@ import Navbar from '@/components/landing/Navbar';
 import CTABanner from '@/components/landing/CTABanner';
 import Footer from '@/components/landing/Footer';
 import CompanySubnav from '@/components/company/CompanySubnav';
+import { getErrorMessage } from '@/lib/api-client';
+import {
+  fetchPublicCareerJobsApi,
+  submitCareerApplicationApi,
+  type CareerTeam,
+  type PublicCareerJob,
+} from '@/lib/careers-api';
 
-interface JobOpening {
-  id: string;
-  title: string;
-  team: 'Engineering & AI' | 'Product & Design' | 'Growth & Success';
-  location: string;
-  experience: string;
-  type: string;
-  compensation: string;
-  summary: string;
-  responsibilities: string[];
-  skills: string[];
-}
-
-const OPENINGS: JobOpening[] = [
-  {
-    id: 'fe-next',
-    title: 'Senior Frontend Engineer (Next.js 15 & TypeScript)',
-    team: 'Engineering & AI',
-    location: 'Noida Sector 62 · Hybrid',
-    experience: '3–6 Years',
-    type: 'Full-Time',
-    compensation: '₹18L – ₹28L + ESOPs',
-    summary:
-      'Own high-speed interactive CRM workspaces, real-time WebSocket inbox threads, WebRTC calling controls, and analytics dashboards.',
-    responsibilities: [
-      'Architect modular App Router screens in Next.js 15, TypeScript, Zustand, and Tailwind CSS.',
-      'Optimize perceived latency, streaming states, and accessibility across desktop and mobile CRM flows.',
-      'Collaborate directly with design and backend leads to ship weekly product releases.',
-    ],
-    skills: ['Next.js 15', 'TypeScript', 'Zustand', 'Tailwind CSS', 'WebSockets'],
-  },
-  {
-    id: 'be-nest',
-    title: 'Backend Systems Engineer (NestJS, MongoDB & WebRTC)',
-    team: 'Engineering & AI',
-    location: 'Noida Sector 62 · Hybrid',
-    experience: '2–5 Years',
-    type: 'Full-Time',
-    compensation: '₹15L – ₹25L + ESOPs',
-    summary:
-      'Build multi-tenant APIs powering WhatsApp Cloud webhooks, Razorpay GST invoice reconciliation, TURN calling telemetry, and DPDP audit logs.',
-    responsibilities: [
-      'Design strict tenant-isolated NestJS services with Mongoose indexing and zero-leak guards.',
-      'Maintain high-reliability webhook receivers (Meta WhatsApp Cloud, IndiaMART, Razorpay).',
-      'Write automated end-to-end verification harnesses for billing, RBAC, and SLA workflows.',
-    ],
-    skills: ['NestJS', 'MongoDB', 'TypeScript', 'Socket.IO', 'Razorpay API'],
-  },
-  {
-    id: 'ai-llm',
-    title: 'Applied AI Engineer (LLMs, Hinglish RAG & Agents)',
-    team: 'Engineering & AI',
-    location: 'Noida / New Delhi · Hybrid',
-    experience: '2–5 Years',
-    type: 'Full-Time',
-    compensation: '₹18L – ₹30L + ESOPs',
-    summary:
-      'Evolve SetuAI Neural Core—intent lead scoring, Hinglish WhatsApp smart drafts, Product/Doc Vault RAG, and natural-language workflow builders.',
-    responsibilities: [
-      'Improve semantic chunking, retrieval precision, and SKU/HSN grounding in RAG pipelines.',
-      'Build deterministic evaluation suites measuring hallucination rate, latency, and Hinglish fluency.',
-      'Partner with product to ship trustworthy human-in-the-loop CRM copilot actions.',
-    ],
-    skills: ['Python / TS', 'RAG Indexing', 'LLM Evals', 'FastAPI', 'Prompt Engineering'],
-  },
-  {
-    id: 'pd-ui',
-    title: 'Product Designer (B2B SaaS Systems)',
-    team: 'Product & Design',
-    location: 'Noida Sector 62 · Hybrid',
-    experience: '2–5 Years',
-    type: 'Full-Time',
-    compensation: '₹12L – ₹20L + ESOPs',
-    summary:
-      'Design clear, calm, conversion-focused experiences for complex B2B workflows across Kanban pipelines, CPQ GST quoting, and executive cockpits.',
-    responsibilities: [
-      'Maintain our cohesive design system in Figma spanning light, dark, and aurora surfaces.',
-      'Shadow Indian SME sales managers and accounts teams to simplify daily multi-step tasks.',
-      'Deliver crisp interactive prototypes and collaborate closely with frontend engineers.',
-    ],
-    skills: ['Figma', 'Design Systems', 'Enterprise UX', 'Prototyping'],
-  },
-  {
-    id: 'cs-ent',
-    title: 'Enterprise Onboarding & Customer Success Lead',
-    team: 'Growth & Success',
-    location: 'Connaught Place, New Delhi',
-    experience: '2–4 Years',
-    type: 'Full-Time',
-    compensation: '₹8L – ₹14L + Performance Bonus',
-    summary:
-      'Partner with founders and sales heads to launch Official WhatsApp Cloud API numbers, clean CRM imports, and Rule-46 GST workflows.',
-    responsibilities: [
-      'Run hands-on onboarding sprints taking new B2B accounts live within 48 hours.',
-      'Translate customer feedback from sales floors directly into product roadmap priorities.',
-      'Drive workspace adoption, renewal health, and expansion across North & West India.',
-    ],
-    skills: ['B2B SaaS', 'WhatsApp Cloud API', 'Hindi & English', 'CRM Onboarding'],
-  },
+const TEAM_FILTERS: Array<'All' | CareerTeam> = [
+  'All',
+  'Engineering & AI',
+  'Product & Design',
+  'Growth & Success',
+  'Operations & Trust',
 ];
 
 const WHY_JOIN = [
@@ -166,20 +90,20 @@ const LIFE_AT_LEADSETU = [
   {
     icon: Building2,
     tag: 'WORKSPACES',
-    title: 'Noida Sec-62 HQ & CP New Delhi',
-    desc: 'Two Delhi-NCR hubs connected by Metro—a focused engineering studio in Noida Electronic City and our customer/leadership desk in Connaught Place.',
+    title: 'Hybrid & Remote Engineering Studio',
+    desc: 'Collaborate across our India product hub and distributed engineering pods built for deep technical execution.',
   },
   {
     icon: Sparkles,
     tag: 'FRIDAY RITUAL',
     title: 'Ship & Demo Fridays',
-    desc: 'Every Friday at 4 PM, engineers, designers, and onboarding leads demo live improvements to the whole company over chai and snacks.',
+    desc: 'Every Friday at 4 PM, engineers, designers, and onboarding leads demo live improvements to the whole company.',
   },
   {
     icon: Coffee,
     tag: 'HYBRID RHYTHM',
     title: '3-2 Hybrid Builder Week',
-    desc: 'Three high-energy collaboration days in-office for whiteboarding and customer calls, and two deep-focus remote days from home.',
+    desc: 'Three high-energy collaboration days for whiteboarding and customer calls, and two deep-focus remote days.',
   },
   {
     icon: Award,
@@ -193,22 +117,26 @@ const HIRING_STEPS = [
   {
     step: '01',
     title: 'Application & PDF Resume Review',
-    detail: 'Share your PDF resume & portfolio/GitHub. A real hiring manager reviews every profile within 48 hours.',
+    detail:
+      'Share your PDF resume & portfolio/GitHub. A real hiring manager reviews every profile within 48 hours.',
   },
   {
     step: '02',
     title: '30-Min Intro & Product Chat',
-    detail: 'An honest two-way conversation about your past work, role expectations, and what we are building.',
+    detail:
+      'An honest two-way conversation about your past work, role expectations, and what we are building.',
   },
   {
     step: '03',
     title: 'Practical Craft Deep-Dive',
-    detail: 'Real-world problem solving or system design grounded in Leadsetu’s actual stack—zero trick brainteasers.',
+    detail:
+      'Real-world problem solving or system design grounded in Leadsetu’s actual stack — zero trick brainteasers.',
   },
   {
     step: '04',
     title: 'Founder Chat & Fast Offer',
-    detail: 'A conversation with Anjali Yadav on mission alignment, followed by a clear compensation & ESOP offer within 24–48 hours.',
+    detail:
+      'A conversation with leadership on mission alignment, followed by a clear compensation & ESOP offer within 24–48 hours.',
   },
 ];
 
@@ -218,13 +146,30 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
-export default function CareersPage() {
-  const [selectedTeam, setSelectedTeam] = useState<'All' | JobOpening['team']>('All');
-  const [expandedJobId, setExpandedJobId] = useState<string | null>(OPENINGS[0].id);
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Failed to read PDF file.'));
+    reader.readAsDataURL(file);
+  });
+}
 
-  // Application Modal State (accepts PDF Resume!)
-  const [applyingRoleTitle, setApplyingRoleTitle] = useState<string | null>(null);
-  const [applyingRoleMeta, setApplyingRoleMeta] = useState<string>('');
+export default function CareersPage() {
+  const [jobs, setJobs] = useState<PublicCareerJob[]>([]);
+  const [loadingJobs, setLoadingJobs] = useState(true);
+  const [jobsError, setJobsError] = useState<string | null>(null);
+
+  const [selectedTeam, setSelectedTeam] = useState<'All' | CareerTeam>('All');
+  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
+
+  // Application Modal State
+  const [applyingJob, setApplyingJob] = useState<{
+    id?: string;
+    title: string;
+    team: string;
+    meta: string;
+  } | null>(null);
   const [candidateName, setCandidateName] = useState('');
   const [candidateEmail, setCandidateEmail] = useState('');
   const [candidatePhone, setCandidatePhone] = useState('');
@@ -233,6 +178,8 @@ export default function CareersPage() {
   const [candidateNote, setCandidateNote] = useState('');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [resumeError, setResumeError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
 
   const [submittedConfirmation, setSubmittedConfirmation] = useState<{
@@ -241,22 +188,53 @@ export default function CareersPage() {
     email: string;
   } | null>(null);
 
-  const visibleJobs =
-    selectedTeam === 'All'
-      ? OPENINGS
-      : OPENINGS.filter((j) => j.team === selectedTeam);
+  const loadJobs = useCallback(async () => {
+    setLoadingJobs(true);
+    setJobsError(null);
+    try {
+      const res = await fetchPublicCareerJobsApi();
+      const list = res.data || [];
+      setJobs(list);
+      setExpandedJobId((prev) => {
+        if (prev && list.some((j) => j.id === prev)) return prev;
+        return list[0]?.id || null;
+      });
+    } catch (err) {
+      setJobsError(getErrorMessage(err));
+    } finally {
+      setLoadingJobs(false);
+    }
+  }, []);
 
-  const openModalForRole = (title: string, meta: string) => {
-    setApplyingRoleTitle(title);
-    setApplyingRoleMeta(meta);
+  useEffect(() => {
+    loadJobs();
+  }, [loadJobs]);
+
+  const visibleJobs = useMemo(
+    () =>
+      selectedTeam === 'All'
+        ? jobs
+        : jobs.filter((j) => j.team === selectedTeam),
+    [jobs, selectedTeam],
+  );
+
+  const openModalForRole = (params: {
+    id?: string;
+    title: string;
+    team: string;
+    meta: string;
+  }) => {
+    setApplyingJob(params);
     setResumeError(null);
+    setSubmitError(null);
   };
 
   const validateAndAttachPdf = (file: File | null | undefined) => {
     setResumeError(null);
     if (!file) return;
     const isPdf =
-      file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      file.type === 'application/pdf' ||
+      file.name.toLowerCase().endsWith('.pdf');
     if (!isPdf) {
       setResumeFile(null);
       setResumeError('Only PDF resumes (.pdf) are accepted.');
@@ -280,27 +258,51 @@ export default function CareersPage() {
     validateAndAttachPdf(e.dataTransfer.files?.[0]);
   };
 
-  const handleApplySubmit = (e: FormEvent) => {
+  const handleApplySubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!applyingRoleTitle) return;
+    if (!applyingJob) return;
     if (!resumeFile) {
       setResumeError('Please attach your resume as a PDF file (.pdf).');
       return;
     }
 
-    setSubmittedConfirmation({
-      role: applyingRoleTitle,
-      fileName: resumeFile.name,
-      email: candidateEmail.trim(),
-    });
-    setApplyingRoleTitle(null);
-    setCandidateName('');
-    setCandidateEmail('');
-    setCandidatePhone('');
-    setCandidatePortfolio('');
-    setCandidateNote('');
-    setResumeFile(null);
-    setResumeError(null);
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const resumeBase64 = await readFileAsBase64(resumeFile);
+      const res = await submitCareerApplicationApi({
+        jobId: applyingJob.id,
+        jobTitle: applyingJob.title,
+        jobTeam: applyingJob.team,
+        candidateName: candidateName.trim(),
+        candidateEmail: candidateEmail.trim(),
+        candidatePhone: candidatePhone.trim(),
+        noticePeriod: candidateNotice,
+        portfolioUrl: candidatePortfolio.trim(),
+        coverNote: candidateNote.trim(),
+        resumeFileName: resumeFile.name,
+        resumeSizeBytes: resumeFile.size,
+        resumeBase64,
+      });
+
+      setSubmittedConfirmation({
+        role: res.jobTitle,
+        fileName: res.resumeFileName,
+        email: res.candidateEmail,
+      });
+      setApplyingJob(null);
+      setCandidateName('');
+      setCandidateEmail('');
+      setCandidatePhone('');
+      setCandidatePortfolio('');
+      setCandidateNote('');
+      setResumeFile(null);
+      setResumeError(null);
+    } catch (err) {
+      setSubmitError(getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -321,7 +323,7 @@ export default function CareersPage() {
 
           <div className="block">
             <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border bg-blue-50/90 dark:bg-[#0057FF]/15 text-[#0057FF] dark:text-sky-300 border-[#0057FF]/25">
-              <Briefcase className="w-3.5 h-3.5" /> Careers · Noida HQ &amp; New Delhi
+              <Briefcase className="w-3.5 h-3.5" /> Careers · Hybrid &amp; Remote
             </span>
           </div>
 
@@ -333,8 +335,9 @@ export default function CareersPage() {
           </h1>
 
           <p className="text-slate-600 dark:text-slate-300 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
-            Join Founder &amp; CEO Anjali Yadav and a focused team of engineers, designers, and
-            growth builders transforming how 4,500+ businesses sell on WhatsApp &amp; GST.
+            Join Founder &amp; CEO Anjali Yadav and a focused team of engineers,
+            designers, and growth builders transforming how 4,500+ businesses
+            sell on WhatsApp &amp; GST.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
@@ -342,16 +345,19 @@ export default function CareersPage() {
               href="#open-roles"
               className="px-6 py-3 rounded-full text-xs sm:text-sm font-extrabold text-white bg-gradient-to-r from-[#0057FF] to-[#2563EB] hover:from-[#0046D5] hover:to-[#1D4ED8] shadow-lg shadow-[#0057FF]/25 inline-flex items-center gap-2 transition-all hover:-translate-y-0.5"
             >
-              <span>Explore Open Roles ({OPENINGS.length})</span>
+              <span>
+                Explore Open Roles{loadingJobs ? '' : ` (${jobs.length})`}
+              </span>
               <ArrowRight className="w-4 h-4" />
             </a>
             <button
               type="button"
               onClick={() =>
-                openModalForRole(
-                  'General Talent Pool (PDF Resume)',
-                  'Noida Sector 62 / New Delhi · Full-Time',
-                )
+                openModalForRole({
+                  title: 'General Talent Pool (PDF Resume)',
+                  team: 'General',
+                  meta: 'Hybrid / Remote · Full-Time',
+                })
               }
               className="px-6 py-3 rounded-full text-xs sm:text-sm font-bold border border-slate-200 dark:border-white/15 bg-white dark:bg-[#0D1628] text-slate-800 dark:text-white hover:border-[#0057FF] transition-colors inline-flex items-center gap-2"
             >
@@ -372,7 +378,8 @@ export default function CareersPage() {
             High trust, steep learning curve, real ownership
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-            We keep teams small and senior-minded so everyone has visibility from architecture to customer revenue.
+            We keep teams small and senior-minded so everyone has visibility
+            from architecture to customer revenue.
           </p>
         </div>
 
@@ -405,11 +412,12 @@ export default function CareersPage() {
                 <Coffee className="w-3.5 h-3.5" /> Life at Leadsetu
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
-                Inside our Delhi-NCR engineering &amp; product culture
+                Inside our engineering &amp; product builder culture
               </h2>
             </div>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md">
-              Built in Noida Sector 62 &amp; Connaught Place with collaborative sprint rooms, quiet deep-work zones, and weekly founder demos.
+              Built for deep technical focus, transparent feedback, collaborative
+              sprint rooms, and weekly founder demos.
             </p>
           </div>
 
@@ -471,13 +479,14 @@ export default function CareersPage() {
         </div>
       </section>
 
-      {/* ─── 4. Open Roles Directory ──────────────────────────────────── */}
+      {/* ─── 4. Live Dynamic Open Roles Directory ─────────────────────── */}
       <section id="open-roles" className="py-16 md:py-24 scroll-mt-24">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#0057FF] dark:text-sky-400 mb-1">
-                <Briefcase className="w-3.5 h-3.5" /> Open Positions ({OPENINGS.length})
+                <Briefcase className="w-3.5 h-3.5" /> Open Positions (
+                {loadingJobs ? '...' : jobs.length})
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
                 Explore current openings
@@ -485,22 +494,20 @@ export default function CareersPage() {
             </div>
 
             <div className="flex flex-wrap gap-1.5 p-1.5 rounded-2xl bg-slate-100 dark:bg-[#0D1628] border border-slate-200/80 dark:border-slate-800">
-              {(['All', 'Engineering & AI', 'Product & Design', 'Growth & Success'] as const).map(
-                (team) => (
-                  <button
-                    key={team}
-                    type="button"
-                    onClick={() => setSelectedTeam(team)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                      selectedTeam === team
-                        ? 'bg-[#0057FF] text-white shadow-sm'
-                        : 'text-slate-600 dark:text-slate-300 hover:bg-white/70 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    {team}
-                  </button>
-                ),
-              )}
+              {TEAM_FILTERS.map((team) => (
+                <button
+                  key={team}
+                  type="button"
+                  onClick={() => setSelectedTeam(team)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    selectedTeam === team
+                      ? 'bg-[#0057FF] text-white shadow-sm'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-white/70 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  {team}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -509,107 +516,175 @@ export default function CareersPage() {
               <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
               <div>
                 <div>
-                  Application &amp; PDF resume (<strong>{submittedConfirmation.fileName}</strong>) submitted for{' '}
-                  <strong>{submittedConfirmation.role}</strong>!
+                  Application &amp; PDF resume (
+                  <strong>{submittedConfirmation.fileName}</strong>) submitted
+                  for <strong>{submittedConfirmation.role}</strong>!
                 </div>
                 <div className="text-xs font-medium mt-0.5 opacity-90">
-                  Confirmation will be sent to {submittedConfirmation.email}. Our Delhi-NCR hiring desk reviews every resume within 48 hours.
+                  Confirmation will be sent to {submittedConfirmation.email}.
+                  Our hiring team reviews every resume within 48 hours.
                 </div>
               </div>
             </div>
           )}
 
-          <div className="space-y-4">
-            {visibleJobs.map((job) => {
-              const isExpanded = expandedJobId === job.id;
-              return (
+          {jobsError && (
+            <div className="rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 px-5 py-4 text-xs font-bold text-rose-700 dark:text-rose-300 flex items-center justify-between gap-3">
+              <span>{jobsError}</span>
+              <button
+                type="button"
+                onClick={loadJobs}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 text-white"
+              >
+                <RefreshCw className="w-3.5 h-3.5" /> Retry
+              </button>
+            </div>
+          )}
+
+          {loadingJobs ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((n) => (
                 <div
-                  key={job.id}
-                  className="rounded-3xl p-6 bg-white dark:bg-[#0D1628] border border-slate-200/85 dark:border-slate-800 hover:border-[#0057FF]/45 shadow-sm transition-all space-y-4"
+                  key={n}
+                  className="rounded-3xl p-6 bg-white dark:bg-[#0D1628] border border-slate-200/80 dark:border-slate-800 animate-pulse space-y-3"
                 >
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-                    <div className="space-y-2.5 max-w-2xl">
-                      <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold">
-                        <span className="px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-[#0057FF]/20 text-[#0057FF] dark:text-sky-300">
-                          {job.team}
-                        </span>
-                        <span className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400">
-                          <MapPin className="w-3 h-3" /> {job.location}
-                        </span>
-                        <span className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400">
-                          <Clock className="w-3 h-3" /> {job.experience} · {job.type}
-                        </span>
-                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
-                          {job.compensation}
-                        </span>
-                      </div>
-
-                      <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white">
-                        {job.title}
-                      </h3>
-
-                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                        {job.summary}
-                      </p>
-
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        {job.skills.map((skill) => (
-                          <span
-                            key={skill}
-                            className="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-white/[0.06] text-[11px] font-semibold text-slate-700 dark:text-slate-300"
-                          >
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex sm:flex-row md:flex-col items-stretch sm:items-center md:items-end gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openModalForRole(job.title, `${job.location} · ${job.compensation}`)
-                        }
-                        className="inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-xl bg-[#0057FF] hover:bg-[#0046D5] text-white text-xs font-extrabold shadow-md shadow-[#0057FF]/20 transition-all hover:-translate-y-0.5"
-                      >
-                        <span>Apply with PDF</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setExpandedJobId(isExpanded ? null : job.id)}
-                        className="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-bold text-slate-500 hover:text-[#0057FF] dark:text-slate-400 dark:hover:text-sky-400"
-                      >
-                        <span>{isExpanded ? 'Hide Details' : 'View Responsibilities'}</span>
-                        <ChevronDown
-                          className={`w-3.5 h-3.5 transition-transform ${
-                            isExpanded ? 'rotate-180' : ''
-                          }`}
-                        />
-                      </button>
-                    </div>
-                  </div>
-
-                  {isExpanded && (
-                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
-                      <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
-                        What You&apos;ll Own
-                      </div>
-                      <ul className="space-y-1.5 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-                        {job.responsibilities.map((item) => (
-                          <li key={item} className="flex items-start gap-2">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  <div className="h-4 w-48 rounded bg-slate-200 dark:bg-slate-800" />
+                  <div className="h-6 w-80 rounded bg-slate-200 dark:bg-slate-800" />
+                  <div className="h-4 w-full rounded bg-slate-100 dark:bg-slate-800/70" />
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          ) : visibleJobs.length === 0 ? (
+            <div className="rounded-3xl p-10 text-center bg-slate-50/70 dark:bg-[#0D1628] border border-dashed border-slate-300 dark:border-slate-700 space-y-3">
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                {jobs.length === 0
+                  ? 'No active role postings right now — send your PDF resume below to join our priority talent pool.'
+                  : `No active openings currently listed under "${selectedTeam}".`}
+              </p>
+              {jobs.length > 0 && selectedTeam !== 'All' && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedTeam('All')}
+                  className="px-4 py-2 rounded-xl bg-[#0057FF] text-white text-xs font-extrabold"
+                >
+                  View All Teams ({jobs.length})
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {visibleJobs.map((job) => {
+                const isExpanded = expandedJobId === job.id;
+                return (
+                  <div
+                    key={job.id}
+                    className="rounded-3xl p-6 bg-white dark:bg-[#0D1628] border border-slate-200/85 dark:border-slate-800 hover:border-[#0057FF]/45 shadow-sm transition-all space-y-4"
+                  >
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+                      <div className="space-y-2.5 max-w-2xl">
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold">
+                          {job.featured && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
+                              <Sparkles className="w-3 h-3" /> Priority Hiring
+                            </span>
+                          )}
+                          <span className="px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-[#0057FF]/20 text-[#0057FF] dark:text-sky-300">
+                            {job.team}
+                          </span>
+                          <span className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400">
+                            <MapPin className="w-3 h-3" /> {job.location}
+                          </span>
+                          <span className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400">
+                            <Clock className="w-3 h-3" /> {job.experience} ·{' '}
+                            {job.employmentType}
+                          </span>
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                            {job.compensation}
+                          </span>
+                        </div>
+
+                        <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white">
+                          {job.title}
+                        </h3>
+
+                        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                          {job.summary}
+                        </p>
+
+                        {job.skills.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            {job.skills.map((skill) => (
+                              <span
+                                key={skill}
+                                className="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-white/[0.06] text-[11px] font-semibold text-slate-700 dark:text-slate-300"
+                              >
+                                {skill}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex sm:flex-row md:flex-col items-stretch sm:items-center md:items-end gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openModalForRole({
+                              id: job.id,
+                              title: job.title,
+                              team: job.team,
+                              meta: `${job.location} · ${job.compensation}`,
+                            })
+                          }
+                          className="inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-xl bg-[#0057FF] hover:bg-[#0046D5] text-white text-xs font-extrabold shadow-md shadow-[#0057FF]/20 transition-all hover:-translate-y-0.5"
+                        >
+                          <span>Apply with PDF</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+
+                        {job.responsibilities.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedJobId(isExpanded ? null : job.id)
+                            }
+                            className="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-bold text-slate-500 hover:text-[#0057FF] dark:text-slate-400 dark:hover:text-sky-400"
+                          >
+                            <span>
+                              {isExpanded
+                                ? 'Hide Details'
+                                : 'View Responsibilities'}
+                            </span>
+                            <ChevronDown
+                              className={`w-3.5 h-3.5 transition-transform ${
+                                isExpanded ? 'rotate-180' : ''
+                              }`}
+                            />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {isExpanded && job.responsibilities.length > 0 && (
+                      <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                        <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                          What You&apos;ll Own
+                        </div>
+                        <ul className="space-y-1.5 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+                          {job.responsibilities.map((item) => (
+                            <li key={item} className="flex items-start gap-2">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Speculative / General Talent Card */}
           <div className="rounded-3xl p-7 bg-gradient-to-br from-[#091224] via-[#102145] to-[#0D182F] text-white border border-white/10 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-5">
@@ -621,17 +696,18 @@ export default function CareersPage() {
                 Pitch us how you can accelerate Leadsetu
               </h3>
               <p className="text-xs sm:text-sm text-slate-300">
-                Strong engineers, AI researchers, and GTM builders are always welcome. Drop your PDF
-                resume directly to our talent pool.
+                Strong engineers, AI researchers, and GTM builders are always
+                welcome. Drop your PDF resume directly to our talent pool.
               </p>
             </div>
             <button
               type="button"
               onClick={() =>
-                openModalForRole(
-                  'General Talent Pool (PDF Resume)',
-                  'Noida Sector 62 / New Delhi · Full-Time',
-                )
+                openModalForRole({
+                  title: 'General Talent Pool (PDF Resume)',
+                  team: 'General',
+                  meta: 'Hybrid / Remote · Full-Time',
+                })
               }
               className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-white text-slate-950 hover:bg-sky-50 text-xs font-extrabold shadow-lg transition-colors"
             >
@@ -642,11 +718,11 @@ export default function CareersPage() {
         </div>
       </section>
 
-      {/* ─── Application Modal with PDF Resume Upload ─────────────────── */}
-      {applyingRoleTitle && (
+      {/* ─── Application Modal with Live Backend Submission ───────────── */}
+      {applyingJob && (
         <div
           className="fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
-          onClick={() => setApplyingRoleTitle(null)}
+          onClick={() => setApplyingJob(null)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -655,13 +731,13 @@ export default function CareersPage() {
             <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                  Apply: {applyingRoleTitle}
+                  Apply: {applyingJob.title}
                 </h3>
-                <p className="text-[11px] text-slate-500">{applyingRoleMeta}</p>
+                <p className="text-[11px] text-slate-500">{applyingJob.meta}</p>
               </div>
               <button
                 type="button"
-                onClick={() => setApplyingRoleTitle(null)}
+                onClick={() => setApplyingJob(null)}
                 className="p-1.5 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <X className="w-4 h-4" />
@@ -669,6 +745,12 @@ export default function CareersPage() {
             </div>
 
             <form onSubmit={handleApplySubmit} className="p-6 space-y-4 text-xs">
+              {submitError && (
+                <div className="rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 px-3.5 py-2.5 text-[11px] font-bold text-rose-700 dark:text-rose-300">
+                  {submitError}
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
@@ -786,7 +868,8 @@ export default function CareersPage() {
                       Click to upload PDF or drag &amp; drop
                     </div>
                     <div className="text-[11px] text-slate-400">
-                      Accepted format: <span className="font-semibold">.pdf</span> (up to 5 MB)
+                      Accepted format: <span className="font-semibold">.pdf</span>{' '}
+                      (up to 5 MB)
                     </div>
                   </label>
                 )}
@@ -827,16 +910,20 @@ export default function CareersPage() {
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setApplyingRoleTitle(null)}
+                  onClick={() => setApplyingJob(null)}
                   className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-slate-600 dark:text-slate-300"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-[#0057FF] hover:bg-[#0046D5] font-extrabold text-white shadow-md shadow-[#0057FF]/20"
+                  disabled={submitting}
+                  className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#0057FF] hover:bg-[#0046D5] font-extrabold text-white shadow-md shadow-[#0057FF]/20 disabled:opacity-60"
                 >
-                  Submit Application
+                  {submitting && (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  )}
+                  <span>Submit Application</span>
                 </button>
               </div>
             </form>

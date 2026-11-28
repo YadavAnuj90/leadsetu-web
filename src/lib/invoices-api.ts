@@ -240,6 +240,9 @@ export async function simulateInvoiceWebhookPaidApi(invoiceId: string): Promise<
   status: string;
   creditHoldRemoved: boolean;
   whatsappReceiptSent: boolean;
+  metaCapiPurchaseFired?: boolean;
+  metaCapiEventId?: string;
+  metaCapiStatus?: string;
 }> {
   const { data } = await apiClient.post(`/invoices/${invoiceId}/simulate-webhook-paid`);
   return data;

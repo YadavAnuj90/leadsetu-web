@@ -791,6 +791,13 @@ export interface Message {
   deliveryError?: string;
   metaTemplateName?: string;
   attachment?: ChatAttachment;
+  ctaButton?: {
+    label: string;
+    url: string;
+    amountInr?: number;
+    invoiceId?: string;
+    invoiceNumber?: string;
+  };
   statusUpdatedAt?: string;
   createdAt: string;
 }

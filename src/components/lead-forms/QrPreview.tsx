@@ -6,6 +6,7 @@ interface QrPreviewProps {
   value: string;
   size?: number;
   color?: string;
+  svgRef?: React.RefObject<SVGSVGElement>;
 }
 
 const GRID_SIZE = 21;
@@ -48,6 +49,7 @@ export default function QrPreview({
   value,
   size = 180,
   color = '#0F172A',
+  svgRef,
 }: QrPreviewProps) {
   const modules = useMemo(() => {
     let hash = 2166136261;
@@ -83,6 +85,7 @@ export default function QrPreview({
         style={{ backgroundColor: '#FFFFFF' }}
       >
         <svg
+          ref={svgRef}
           width={size}
           height={size}
           viewBox={`0 0 ${GRID_SIZE} ${GRID_SIZE}`}

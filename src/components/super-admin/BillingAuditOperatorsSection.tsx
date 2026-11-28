@@ -41,6 +41,7 @@ import {
 } from '@/lib/super-admin-api';
 import { getErrorMessage } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth.store';
+import ActionDialogModal from '@/components/ui/ActionDialogModal';
 import type {
   DunningPolicyConfig,
   PlanEntitlementSpec,
@@ -171,6 +172,10 @@ export function BillingLedgerView({
   } | null>(null);
   const [refundRequests, setRefundRequests] = useState<SuperAdminRefundRequestItem[]>([]);
   const [refundPendingCount, setRefundPendingCount] = useState(0);
+  const [refundDialog, setRefundDialog] = useState<{
+    reqItem: SuperAdminRefundRequestItem;
+    action: 'approve' | 'reject';
+  } | null>(null);
 
   const loadRefundRequests = async () => {
     try {
@@ -214,23 +219,24 @@ export function BillingLedgerView({
     await loadRefundRequests();
   };
 
-  const handleResolveRefundRequest = async (
+  const handleResolveRefundRequest = (
     reqItem: SuperAdminRefundRequestItem,
     action: 'approve' | 'reject'
   ) => {
-    const notePrompt = window.prompt(
-      action === 'approve'
-        ? `Approve GST Credit Note & Refund ₹${(reqItem.amountInr || 0).toLocaleString('en-IN')} for ${reqItem.tenantName} (${reqItem.invoiceNumber})? Optional note:`
-        : `Reject refund request for ${reqItem.invoiceNumber}? Reason:`,
-      action === 'approve' ? 'Approved & refunded via GST Credit Note' : 'Outside refund eligibility window'
-    );
-    if (notePrompt === null) return;
+    setRefundDialog({ reqItem, action });
+  };
+
+  const executeResolveRefundRequest = async (
+    reqItem: SuperAdminRefundRequestItem,
+    action: 'approve' | 'reject',
+    note: string
+  ) => {
     setBusyKey(`refund-req-${reqItem.id}`);
     setErrorMsg(null);
     try {
       await resolveSuperAdminRefundRequestApi(reqItem.tenantId, reqItem.id, {
         action,
-        note: notePrompt.trim() || undefined,
+        note: note.trim() || undefined,
       });
       notify(
         action === 'approve'
@@ -1687,6 +1693,44 @@ export function BillingLedgerView({
           </div>
         </div>
       )}
+
+      <ActionDialogModal
+        open={Boolean(refundDialog)}
+        mode="prompt"
+        inputType="textarea"
+        danger={refundDialog?.action === 'reject'}
+        title={
+          refundDialog?.action === 'approve'
+            ? `Approve Refund · ${refundDialog.reqItem.invoiceNumber}`
+            : `Reject Refund · ${refundDialog?.reqItem.invoiceNumber || ''}`
+        }
+        description={
+          refundDialog
+            ? refundDialog.action === 'approve'
+              ? `Issue GST Credit Note & Refund ₹${(refundDialog.reqItem.amountInr || 0).toLocaleString('en-IN')} for ${refundDialog.reqItem.tenantName}.`
+              : `Decline refund request for ${refundDialog.reqItem.tenantName} (${refundDialog.reqItem.invoiceNumber}).`
+            : undefined
+        }
+        inputLabel="Resolution Note / Reason"
+        defaultValue={
+          refundDialog?.action === 'approve'
+            ? 'Approved & refunded via GST Credit Note'
+            : 'Outside refund eligibility window'
+        }
+        required={false}
+        confirmLabel={
+          refundDialog?.action === 'approve' ? 'Approve & Issue Credit Note' : 'Reject Refund'
+        }
+        onClose={() => setRefundDialog(null)}
+        onConfirm={async (note) => {
+          if (!refundDialog) return;
+          await executeResolveRefundRequest(
+            refundDialog.reqItem,
+            refundDialog.action,
+            note,
+          );
+        }}
+      />
     </div>
   );
 }
