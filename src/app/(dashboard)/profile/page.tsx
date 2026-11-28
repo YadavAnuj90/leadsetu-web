@@ -975,7 +975,7 @@ export default function ProfilePage() {
                     onChange={(e) => setTerritory(e.target.value)}
                     disabled={profileLocked}
                     className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue disabled:bg-slate-100 dark:disabled:bg-slate-900/80 disabled:opacity-75 disabled:cursor-not-allowed"
-                    placeholder="e.g., Delhi-NCR, West UP"
+                    placeholder="e.g., Mumbai West, North Hub"
                   />
                 </div>
               </div>

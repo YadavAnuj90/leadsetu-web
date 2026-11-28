@@ -57,10 +57,9 @@ export default function OnboardingFunnelSection({
   const [plan, setPlan] = useState<'starter' | 'growth' | 'enterprise'>('growth');
   const [status, setStatus] = useState<'trial' | 'active'>('trial');
   const [trialDays, setTrialDays] = useState('14');
-  const [city, setCity] = useState('Delhi-NCR');
+  const [city, setCity] = useState('');
   const [gstin, setGstin] = useState('');
   const [seatLimitOverride, setSeatLimitOverride] = useState('');
-  const [seedDemoData, setSeedDemoData] = useState(true);
   const [managerNote, setManagerNote] = useState('');
   const [provisioning, setProvisioning] = useState(false);
   const [provisionReceipt, setProvisionReceipt] =
@@ -110,10 +109,9 @@ export default function OnboardingFunnelSection({
         plan,
         status,
         trialDays: Number(trialDays) || 14,
-        city: city.trim() || 'Delhi-NCR',
+        city: city.trim() || '',
         ...(gstin.trim() ? { gstin: gstin.trim().toUpperCase() } : {}),
         ...(seatLimitOverride ? { seatLimitOverride: Number(seatLimitOverride) } : {}),
-        seedDemoData,
         ...(managerNote.trim() ? { assignedManagerNote: managerNote.trim() } : {}),
       });
       setProvisionReceipt(receipt);
@@ -249,15 +247,9 @@ export default function OnboardingFunnelSection({
                 1-Click Client Workspace Creator
               </h2>
             </div>
-            <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={seedDemoData}
-                onChange={(e) => setSeedDemoData(e.target.checked)}
-                className="rounded border-slate-300 text-[#0057FF]"
-              />
-              <span>Seed Pipeline &amp; Demo Data</span>
-            </label>
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+              Clean Workspace (Pipeline Ready · Zero Dummy Records)
+            </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

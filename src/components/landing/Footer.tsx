@@ -265,7 +265,7 @@ export default function Footer() {
         {/* ─── 4. Bottom Copyright Bar ────────────────────────────────── */}
         <div className="pt-4 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <p className="text-center sm:text-left">
-            © {new Date().getFullYear()} Leadsetu Technologies (Anujali Technologies Pvt. Ltd.) · CIN &amp; GSTIN Compliance Ready · Built in Delhi-NCR, India.
+            © {new Date().getFullYear()} Leadsetu Technologies (Anujali Technologies Pvt. Ltd.) · CIN &amp; GSTIN Compliance Ready · Built in India.
           </p>
 
           <div className="flex items-center gap-2 shrink-0">

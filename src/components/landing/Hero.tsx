@@ -154,7 +154,7 @@ export default function Hero() {
                   #1 Rated AI CRM for WhatsApp Cloud, IndiaMART &amp; Rule-46 18% GST Billing
                 </div>
                 <div className="text-xs text-slate-600 dark:text-slate-400">
-                  Trusted by 500+ scaling teams across Noida, Delhi-NCR &amp; Mumbai.
+                  Trusted by 500+ scaling B2B &amp; SME teams across India.
                 </div>
                 <a
                   href="#features"

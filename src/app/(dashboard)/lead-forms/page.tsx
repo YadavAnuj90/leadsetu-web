@@ -43,7 +43,6 @@ import {
 import { getErrorMessage } from '@/lib/api-client';
 import {
   formatInr,
-  MOCK_LEAD_FORMS,
   type LeadFormConfig,
   type LeadFormStatus,
 } from '@/lib/lead-forms-mock';
@@ -76,7 +75,7 @@ function resolveBackendBaseUrl(): string {
 }
 
 export default function InstantFormsHubPage() {
-  const [forms, setForms] = useState<LeadFormConfig[]>(MOCK_LEAD_FORMS);
+  const [forms, setForms] = useState<LeadFormConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -123,9 +122,9 @@ export default function InstantFormsHubPage() {
       }
     } catch (err) {
       setErrorMsg(
-        `Backend unreachable — displaying sample forms (${getErrorMessage(err)})`,
+        `Unable to load instant forms (${getErrorMessage(err)})`,
       );
-      setForms(MOCK_LEAD_FORMS);
+      setForms([]);
     } finally {
       setLoading(false);
     }
@@ -980,12 +979,20 @@ export default function InstantFormsHubPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              {(forms.length ? forms : MOCK_LEAD_FORMS).slice(0, 4).map((tpl) => (
+              {forms.length === 0 ? (
                 <Link
-                  key={tpl.id}
-                  href={`/lead-forms/${tpl.slug}`}
-                  className="p-4 rounded-2xl border border-slate-200/80 dark:border-white/10 hover:border-brand-blue/60 bg-slate-50/70 dark:bg-white/[0.03] transition space-y-2 block"
+                  href="/lead-forms/new"
+                  className="sm:col-span-2 p-5 rounded-2xl border border-dashed border-slate-300 dark:border-white/20 hover:border-brand-blue text-center text-xs font-extrabold text-brand-blue"
                 >
+                  + Create Your First Blank Instant Form in Studio
+                </Link>
+              ) : (
+                forms.slice(0, 4).map((tpl) => (
+                  <Link
+                    key={tpl.id}
+                    href={`/lead-forms/${tpl.slug}`}
+                    className="p-4 rounded-2xl border border-slate-200/80 dark:border-white/10 hover:border-brand-blue/60 bg-slate-50/70 dark:bg-white/[0.03] transition space-y-2 block"
+                  >
                   <div className="flex items-center justify-between gap-2">
                     <span
                       className="w-3 h-3 rounded-full shrink-0"
@@ -1002,7 +1009,8 @@ export default function InstantFormsHubPage() {
                     {tpl.headline}
                   </p>
                 </Link>
-              ))}
+              ))
+              )}
             </div>
           </div>
         </div>

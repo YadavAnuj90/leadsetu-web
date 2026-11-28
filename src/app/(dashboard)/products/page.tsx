@@ -179,7 +179,7 @@ export default function ProductsPage() {
 
   const handleCopyPitch = async (item: Product) => {
     const gstPrice = Math.round(item.unitPrice * (1 + item.gstRate / 100));
-    const text = `*${item.name}* (SKU: ${item.sku})\nHSN/SAC: ${item.hsnSac} | GST: ${item.gstRate}%\nRate: ${formatInr(item.unitPrice)} / ${item.unit} (+GST = ${formatInr(gstPrice)})\nMOQ: ${item.moq} ${item.unit}\n${item.description || 'Ready for GST billing & dispatch from Delhi-NCR.'}`;
+    const text = `*${item.name}* (SKU: ${item.sku})\nHSN/SAC: ${item.hsnSac} | GST: ${item.gstRate}%\nRate: ${formatInr(item.unitPrice)} / ${item.unit} (+GST = ${formatInr(gstPrice)})\nMOQ: ${item.moq} ${item.unit}\n${item.description || 'Ready for GST billing & dispatch across India.'}`;
     try {
       await navigator.clipboard.writeText(text);
       setCopiedId(item.id);

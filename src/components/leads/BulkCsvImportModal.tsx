@@ -401,7 +401,7 @@ export default function BulkCsvImportModal({
     return sheet.rows.slice(0, 500).map((cols, idx) => {
       const payload: CreateLeadPayload = {
         name: '',
-        city: 'Delhi-NCR',
+        city: '',
         source: 'manual',
         estimatedValue: 0,
       };

@@ -176,7 +176,7 @@ export default function LeadDetailPage() {
         contactName: lead.name,
         contactPhone: lead.phone,
         contactEmail: lead.email,
-        city: lead.city || 'Delhi-NCR',
+        city: lead.city || '',
         value: Number(lead.estimatedValue || 0) || 150000,
         stage: 'proposal',
         probability: 65,
@@ -438,7 +438,7 @@ export default function LeadDetailPage() {
               )}
               <div className="flex items-center gap-2.5">
                 <MapPin className="w-4 h-4 text-brand-blue" />
-                <span>{lead.city || 'Delhi-NCR'}</span>
+                <span>{lead.city || '—'}</span>
               </div>
             </div>
 

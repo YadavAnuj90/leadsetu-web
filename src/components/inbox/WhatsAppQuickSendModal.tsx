@@ -93,7 +93,7 @@ export default function WhatsAppQuickSendModal() {
       buyerName: quickSendTarget?.contactName || '',
       company: quickSendTarget?.company || '',
       dealValue: quickSendTarget?.estimatedValue || 0,
-      city: quickSendTarget?.city || 'Delhi-NCR',
+      city: quickSendTarget?.city || '',
       phone: quickSendTarget?.phone || '',
       agentName: user?.name || 'Sales Team',
     }),

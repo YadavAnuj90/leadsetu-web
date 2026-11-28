@@ -298,7 +298,7 @@ export default function VoiceCrmAuditModal({
         name: buyer,
         company: dealerOrCompany.trim() || buyer,
         phone: initialPhone || undefined,
-        city: extractResult.leadUpdate?.city || cityHint.trim() || 'Delhi-NCR',
+        city: extractResult.leadUpdate?.city || cityHint.trim() || '',
         source: 'manual',
         status: 'qualified',
         estimatedValue: Number(extractResult.leadUpdate?.quotedValueInr || 0),

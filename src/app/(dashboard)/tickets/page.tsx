@@ -1348,7 +1348,7 @@ export default function TicketsPage() {
                   <div>
                     <span className="text-slate-400 block">Site Address:</span>
                     <span className="font-semibold text-slate-700">
-                      {selectedTicket.siteAddress || 'Noida / Delhi-NCR'}
+                      {selectedTicket.siteAddress || 'Site Address Not Set'}
                     </span>
                   </div>
                   {selectedTicket.notes && (

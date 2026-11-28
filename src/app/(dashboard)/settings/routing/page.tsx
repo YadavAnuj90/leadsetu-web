@@ -723,7 +723,7 @@ export default function SmartLeadRoutingPage() {
                   type="text"
                   value={ruleName}
                   onChange={(e) => setRuleName(e.target.value)}
-                  placeholder="e.g. Delhi-NCR IndiaMART Priority"
+                  placeholder="e.g. High-Priority IndiaMART"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-brand-navy"
                 />
               </div>

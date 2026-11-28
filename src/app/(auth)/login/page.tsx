@@ -157,7 +157,7 @@ export default function LoginPage() {
                   &ldquo;Leadsetu cut our WhatsApp lead response time from 4 hours to 20 seconds and
                   boosted conversions by 42%.&rdquo; —{' '}
                   <strong className="not-italic text-slate-950 dark:text-white">
-                    Rajesh Sharma, RS Electricals
+                    Director of Sales · Industrial Electricals Manufacturing
                   </strong>
                 </p>
               </div>

@@ -425,7 +425,7 @@ const departmentWorkspaces: DepartmentWorkspace[] = [
     ],
     kpis: [
       { label: 'On-Time SLA', value: '98.4%', delta: '0 Breaches' },
-      { label: 'Active Field Visits', value: '11 Sites', delta: 'Delhi-NCR' },
+      { label: 'Active Field Visits', value: '11 Sites', delta: 'Pan-India' },
       { label: 'Buyer CSAT Score', value: '4.8 / 5.0', delta: 'Verified' },
     ],
     col1: 'Ticket & Client Site',
@@ -517,7 +517,7 @@ const departmentWorkspaces: DepartmentWorkspace[] = [
       {
         datePill: 'GREEN ✓',
         dateColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
-        title: 'Noida & Delhi-NCR Q4 Industrial Price List',
+        title: 'Q4 Industrial Catalogue Price List',
         amount: '₹8,40,000',
         stage: '96% Delivered',
         stageColor: 'bg-emerald-500 text-white',
@@ -964,7 +964,7 @@ const interactiveTabs = [
     color: '#059669',
     headline: 'Blast green-tick Hinglish catalogues & offers with zero ban risk',
     summary:
-      'Segment your workspace database by AI Score (Hot 75+), City (Noida / Delhi-NCR), or IndiaMART source and dispatch approved WhatsApp Cloud templates.',
+      'Segment your workspace database by AI Score (Hot 75+), City, or IndiaMART source and dispatch approved WhatsApp Cloud templates.',
     bullets: [
       'Live buyer smartphone preview with {{name}} & {{company}}',
       'Real-time Sent, Delivered, Blue-Tick Read & Reply funnel',
@@ -1053,7 +1053,7 @@ const features = [
     metric: '96% Delivery Rate',
     title: 'WhatsApp Broadcast Campaigns',
     description:
-      'Blast green-tick price lists, festival offers, and AMC reminders to segmented Noida & Delhi-NCR buyers with live handset preview.',
+      'Blast green-tick price lists, festival offers, and AMC reminders to segmented B2B buyer lists with live handset preview.',
     accent: '#059669',
     highlights: [
       'Dynamic CRM audience segments',
@@ -2220,7 +2220,7 @@ export default function Features() {
                           </div>
                           <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
                             <span className="font-bold text-brand-sky">
-                              IF: SetuAI Score &gt;= 80 AND City IN [Noida, Delhi-NCR]
+                              IF: SetuAI Score &gt;= 80 AND City IN [Mumbai, Bengaluru, Noida]
                             </span>
                             <span className="text-[10px] font-bold text-emerald-400">Matched ✓</span>
                           </div>

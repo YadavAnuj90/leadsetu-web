@@ -62,7 +62,7 @@ export default function AboutCompanyPage() {
           </h1>
 
           <p className="text-slate-600 dark:text-slate-300 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
-            Born in Delhi-NCR, Leadsetu unifies IndiaMART lead capture, Official WhatsApp Cloud,
+            Built for Indian commerce, Leadsetu unifies IndiaMART lead capture, Official WhatsApp Cloud,
             SetuAI deal intelligence, and automated 18% GST collections inside a single platform built
             for how Indian businesses actually close deals.
           </p>
@@ -224,7 +224,7 @@ export default function AboutCompanyPage() {
             },
             {
               icon: Layers,
-              title: 'Careers in Delhi-NCR',
+              title: 'Careers at Leadsetu',
               desc: 'Join builders shipping NestJS, Next.js, WebRTC, and LLM systems for Indian SMEs.',
               href: '/company/careers',
               cta: 'View Open Roles',

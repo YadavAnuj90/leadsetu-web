@@ -8,11 +8,11 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'Leadsetu — Bridge Every Lead to Revenue',
   description:
-    "India's first AI-powered CRM for Delhi-NCR SMEs. Capture, qualify, and close leads 3x faster with WhatsApp integration and smart pipelines.",
+    "India's AI-powered B2B CRM for SMEs. Capture, qualify, and close leads 3x faster with WhatsApp integration and smart pipelines.",
   keywords: [
     'CRM',
     'AI CRM',
-    'Delhi NCR CRM',
+    'Indian B2B CRM',
     'WhatsApp CRM',
     'Lead Management',
     'Sales CRM India',
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'Leadsetu — Bridge Every Lead to Revenue',
-    description: "India's first AI-powered CRM for Delhi-NCR SMEs.",
+    description: "India's AI-powered B2B CRM for SMEs.",
     type: 'website',
     locale: 'en_IN',
   },

@@ -219,7 +219,7 @@ export default function DashboardPage() {
               <strong className="text-white">
                 {tenant?.companyName?.trim() || 'Leadsetu CRM'}
               </strong>{' '}
-              ({tenant?.city || 'Noida / Delhi-NCR'})
+              {tenant?.city ? `(${tenant.city})` : ''}
               {isAdmin && (
                 <>
                   {' '}
@@ -692,7 +692,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="text-xs text-slate-500 dark:text-slate-400">
                           {lead.company || 'Direct Buyer'} ·{' '}
-                          {lead.city || 'Delhi-NCR'}
+                          {lead.city || '—'}
                         </div>
                       </div>
                     </div>

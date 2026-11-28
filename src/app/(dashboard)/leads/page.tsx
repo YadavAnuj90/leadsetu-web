@@ -309,7 +309,7 @@ export default function LeadsPage() {
               onChange={(e) =>
                 setFilters((prev) => ({ ...prev, search: e.target.value }))
               }
-              placeholder="Search by buyer name, company, +91 phone, or Delhi-NCR city..."
+              placeholder="Search by buyer name, company, +91 phone, or city..."
               className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm text-brand-navy focus:outline-none focus:border-brand-blue"
             />
           </div>
@@ -576,7 +576,7 @@ export default function LeadsPage() {
                           </span>
                         )}
                         <div className="text-xs text-slate-400 mt-1">
-                          {lead.city || 'Delhi-NCR'}
+                          {lead.city || '—'}
                         </div>
                       </td>
 

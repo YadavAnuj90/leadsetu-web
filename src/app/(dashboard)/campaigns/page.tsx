@@ -49,7 +49,7 @@ import type {
 const SEGMENT_LABELS: Record<CampaignSegment, string> = {
   all_leads: 'All Active CRM Leads',
   hot_leads: 'AI Score 75+ Hot Prospects',
-  noida_delhi_ncr: 'Noida, Delhi & Gurugram Buyers',
+  noida_delhi_ncr: 'North India Metro Buyers',
   indiamart_buyers: 'IndiaMART Inbound Inquiries',
   gst_customers: 'GSTIN Verified B2B Accounts',
   b2b_accounts: 'B2B Business Accounts Only',
@@ -337,7 +337,7 @@ export default function CampaignsPage() {
             WhatsApp Broadcast &amp; Drip Campaigns
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Blast green-tick Hinglish &amp; English templates to segmented leads across Noida, Delhi-NCR &amp; IndiaMART with zero ban risk.
+            Blast green-tick Hinglish &amp; English templates to segmented leads across your buyer segments &amp; IndiaMART with zero ban risk.
           </p>
         </div>
 
@@ -458,7 +458,7 @@ export default function CampaignsPage() {
             <option value="b2b_accounts">B2B Business Accounts</option>
             <option value="b2c_consumers">B2C Retail Consumers</option>
             <option value="delivered_customers">Past Won / Delivered Customers</option>
-            <option value="noida_delhi_ncr">Noida &amp; Delhi-NCR Buyers</option>
+            <option value="noida_delhi_ncr">North India Metro Buyers</option>
             <option value="hot_leads">AI Score 75+ Hot Leads</option>
             <option value="indiamart_buyers">IndiaMART Inquiries</option>
             <option value="gst_customers">GSTIN Verified Accounts</option>
@@ -784,7 +784,7 @@ export default function CampaignsPage() {
                         AI Score 75+ Hot Prospects ({segCounts.hot_leads || 0})
                       </option>
                       <option value="noida_delhi_ncr">
-                        Noida &amp; Delhi-NCR Buyers ({segCounts.noida_delhi_ncr || 0})
+                        North India Metro Buyers ({segCounts.noida_delhi_ncr || 0})
                       </option>
                       <option value="indiamart_buyers">
                         IndiaMART Inquiries ({segCounts.indiamart_buyers || 0})

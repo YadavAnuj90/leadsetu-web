@@ -101,11 +101,11 @@ export default function WhatsAppTemplateManagerModal({
 
   const mergedPreviewCtx = useMemo<WhatsAppVariableContext>(
     () => ({
-      buyerName: previewContext?.buyerName || 'Rajesh Sharma',
-      company: previewContext?.company || 'Apex Steel Pvt Ltd',
+      buyerName: previewContext?.buyerName || 'Sample Buyer',
+      company: previewContext?.company || 'Sample Company',
       dealValue: previewContext?.dealValue || 250000,
-      city: previewContext?.city || 'Delhi-NCR',
-      phone: previewContext?.phone || '+91 98112 45678',
+      city: previewContext?.city || 'Mumbai',
+      phone: previewContext?.phone || '+91 98000 00000',
       agentName: previewContext?.agentName || user?.name || 'Sales Team',
       quoteLink: previewContext?.quoteLink || 'https://leadsetu.in/quote/demo',
       callLink: previewContext?.callLink || 'https://leadsetu.in/call/demo',

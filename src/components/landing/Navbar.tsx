@@ -101,7 +101,7 @@ const aiQuickPrompts = [
   {
     prompt: 'Score an IndiaMART 150 KVA Stabilizer inquiry',
     answer:
-      'SetuAI Score: 94/100 (HOT BUYER). Detected: High-ticket B2B machinery request (Est. ₹4,50,000, Delhi-NCR). Recommended Next Action: Auto-send Hinglish GST brochure on WhatsApp & assign to Senior Closer with a 15-min call task.',
+      'SetuAI Score: 94/100 (HOT BUYER). Detected: High-ticket B2B machinery request (Est. ₹4,50,000, Pan-India). Recommended Next Action: Auto-send Hinglish GST brochure on WhatsApp & assign to Senior Closer with a 15-min call task.',
   },
   {
     prompt: 'Calculate 18% GST split for Noida vs Delhi buyer',

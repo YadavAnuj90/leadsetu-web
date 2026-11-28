@@ -141,7 +141,7 @@ export function BillingLedgerView({
   const [partnerCode, setPartnerCode] = useState('');
   const [partnerName, setPartnerName] = useState('');
   const [partnerEmail, setPartnerEmail] = useState('');
-  const [partnerCity, setPartnerCity] = useState('Delhi-NCR');
+  const [partnerCity, setPartnerCity] = useState('');
   const [partnerRate, setPartnerRate] = useState('15');
   const [payoutTarget, setPayoutTarget] = useState<{
     id: string;

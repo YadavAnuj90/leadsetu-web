@@ -215,7 +215,7 @@ export default function ContactDetailPage() {
             </div>
           )}
           <div className="flex items-center gap-2.5">
-            <MapPin className="w-4 h-4 text-brand-blue" /> {contact.city || 'Delhi-NCR'}
+            <MapPin className="w-4 h-4 text-brand-blue" /> {contact.city || 'India'}
           </div>
         </div>
       </div>

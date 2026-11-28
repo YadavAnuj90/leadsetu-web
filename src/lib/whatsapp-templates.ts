@@ -9,7 +9,7 @@ export const WHATSAPP_VARIABLE_LIST: WhatsAppVariableMeta[] = [
   { key: 'buyer_name', token: '{{buyer_name}}', label: 'Buyer Name', example: 'Rajesh Sharma' },
   { key: 'company', token: '{{company}}', label: 'Company Name', example: 'Apex Steel Pvt Ltd' },
   { key: 'deal_value', token: '{{deal_value}}', label: 'Deal / Est. Value', example: '₹2,50,000' },
-  { key: 'city', token: '{{city}}', label: 'City', example: 'Delhi-NCR' },
+  { key: 'city', token: '{{city}}', label: 'City', example: 'Mumbai' },
   { key: 'phone', token: '{{phone}}', label: 'Phone Number', example: '+91 98112 45678' },
   { key: 'agent_name', token: '{{agent_name}}', label: 'Your Name (Agent)', example: 'Anuj' },
   { key: 'quote_link', token: '{{quote_link}}', label: 'Quotation Link', example: 'https://leadsetu.in/quote/demo' },

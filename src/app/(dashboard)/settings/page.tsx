@@ -125,7 +125,7 @@ export default function SettingsPage() {
   const [nameInput, setNameInput] = useState(tenant?.companyName || '');
   const [logoUrlInput, setLogoUrlInput] = useState(tenant?.logoUrl || '');
   const [logoError, setLogoError] = useState<string | null>(null);
-  const [cityInput, setCityInput] = useState(tenant?.city || 'Delhi-NCR');
+  const [cityInput, setCityInput] = useState(tenant?.city || '');
   const [gstinInput, setGstinInput] = useState(tenant?.gstin || '');
   const [stateInput, setStateInput] = useState(tenant?.state || 'Delhi (07)');
   const [phoneInput, setPhoneInput] = useState(tenant?.phone || '');
@@ -232,7 +232,7 @@ export default function SettingsPage() {
         setUsage(tenantRes.usage);
         setNameInput(tenantRes.tenant.companyName || '');
         setLogoUrlInput(tenantRes.tenant.logoUrl || '');
-        setCityInput(tenantRes.tenant.city || 'Delhi-NCR');
+        setCityInput(tenantRes.tenant.city || '');
         setGstinInput(tenantRes.tenant.gstin || '');
         setStateInput(tenantRes.tenant.state || 'Delhi (07)');
         setPhoneInput(tenantRes.tenant.phone || '');
@@ -272,7 +272,7 @@ export default function SettingsPage() {
       const res = await updateCurrentTenantApi({
         companyName: nameInput.trim(),
         logoUrl: logoUrlInput,
-        city: cityInput.trim() || 'Delhi-NCR',
+        city: cityInput.trim() || '',
         gstin: gstinInput.trim().toUpperCase(),
         state: stateInput.trim(),
         phone: phoneInput.trim(),
@@ -457,7 +457,7 @@ export default function SettingsPage() {
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5 text-sky-300" />
-                  Hub: <strong className="text-white">{tenant?.city || 'Delhi-NCR'}</strong>
+                  Hub: <strong className="text-white">{tenant?.city || 'Not set'}</strong>
                 </span>
                 {tenant?.accountId && (
                   <button
@@ -886,7 +886,7 @@ export default function SettingsPage() {
                   {tenant?.gstin || 'Not configured yet'}
                 </span>
                 <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                  {tenant?.state || 'Delhi (07)'} · Hub: {tenant?.city || 'Delhi-NCR'}
+                  {tenant?.state || 'Delhi (07)'} · Hub: {tenant?.city || 'Not set'}
                 </span>
               </div>
 
@@ -1131,7 +1131,7 @@ export default function SettingsPage() {
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
                   Invite sales reps, configure Admin / Manager / Agent roles, set
-                  monthly revenue targets, and assign Delhi-NCR territories.
+                  monthly revenue targets, and assign regional sales territories.
                 </p>
               </div>
             </div>

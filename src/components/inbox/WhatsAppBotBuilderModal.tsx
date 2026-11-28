@@ -170,8 +170,8 @@ export function WhatsAppBotBuilderModal({
           interactiveOptionId,
           language: simLang === 'auto' ? undefined : simLang,
           session: activeSession,
-          buyerName: defaultBuyerName || 'Rajesh Sharma',
-          buyerPhone: defaultBuyerPhone || '+91 98112 45678',
+          buyerName: defaultBuyerName || 'Customer',
+          buyerPhone: defaultBuyerPhone || '+91 98000 00000',
           draftConfig: cfg,
         });
         setSimSession(res.nextSession || {});
@@ -215,8 +215,8 @@ export function WhatsAppBotBuilderModal({
             : data.defaultLanguage === 'english'
               ? 'Hi'
               : 'Namaste',
-        buyerName: defaultBuyerName || 'Rajesh Sharma',
-        buyerPhone: defaultBuyerPhone || '+91 98112 45678',
+        buyerName: defaultBuyerName || 'Customer',
+        buyerPhone: defaultBuyerPhone || '+91 98000 00000',
         draftConfig: data,
       });
       setSimSession(simRes.nextSession || {});

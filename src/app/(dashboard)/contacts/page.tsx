@@ -201,7 +201,7 @@ export default function ContactsPage() {
           {
             label: 'Total Contacts',
             value: stats.total.toLocaleString('en-IN'),
-            sub: 'Across all Delhi-NCR hubs',
+            sub: 'Across all regional hubs',
             icon: Users,
             color: '#3978EA',
           },

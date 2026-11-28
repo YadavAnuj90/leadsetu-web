@@ -537,7 +537,7 @@ export default function BillingSettingsPage() {
               </span>
             </div>
             <div className="text-slate-200/90">
-              {tenant?.address || tenant?.city || 'Delhi-NCR'} ·{' '}
+              {tenant?.address || tenant?.city || 'India'} ·{' '}
               {billing
                 ? `${billing.usage.activeSeats} / ${billing.usage.seatLimit} Seats Used`
                 : 'Loading seats...'}

@@ -843,7 +843,7 @@ export default function AnalyticsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="font-extrabold text-base text-brand-navy">
-                        Delhi-NCR &amp; Regional Hubs
+                        Regional Hubs &amp; City Analytics
                       </h2>
                       <p className="text-xs text-slate-400">
                         Noida, New Delhi, Gurugram &amp; Pan-India share

@@ -58,7 +58,7 @@ export default function Testimonials() {
           </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4 tracking-tight text-brand-navy dark:text-white">
             Trusted by 500+ leaders across{' '}
-            <span className="text-gradient-navy">Delhi-NCR &amp; India</span>
+            <span className="text-gradient-navy">India</span>
           </h2>
           <p className="text-slate-500 dark:text-slate-400 text-base sm:text-lg">
             See how high-growth Indian founders and sales directors transformed their revenue

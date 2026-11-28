@@ -57,7 +57,7 @@ export default function StartConversationModal({
   const [contactName, setContactName] = useState('');
   const [company, setCompany] = useState('');
   const [phone, setPhone] = useState('');
-  const [city, setCity] = useState('Delhi-NCR');
+  const [city, setCity] = useState('');
   const [estimatedValue, setEstimatedValue] = useState(0);
 
   const [initialMessage, setInitialMessage] = useState('');
@@ -72,7 +72,7 @@ export default function StartConversationModal({
     setContactName('');
     setCompany('');
     setPhone('');
-    setCity('Delhi-NCR');
+    setCity('');
     setEstimatedValue(0);
     setInitialMessage('');
     setSelectedTemplateId('');
@@ -113,7 +113,7 @@ export default function StartConversationModal({
     setContactName(item.contactName);
     setCompany(item.company);
     setPhone(item.phone);
-    setCity(item.city || 'Delhi-NCR');
+    setCity(item.city || '');
     setEstimatedValue(item.estimatedValue || 0);
   };
 

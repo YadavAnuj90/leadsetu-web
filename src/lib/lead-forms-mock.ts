@@ -85,7 +85,7 @@ export const MOCK_LEAD_FORMS: LeadFormConfig[] = [
     title: 'Industrial Stabilizer Quote',
     headline: 'Get 18% GST Factory Rate Card in 60 Seconds',
     subheadline:
-      'Direct OEM pricing on 3-Phase Servo Voltage Stabilizers & Transformers across Delhi-NCR & Pan-India.',
+      'Direct OEM pricing on 3-Phase Servo Voltage Stabilizers & Transformers across Pan-India.',
     brandColor: '#2563EB',
     logoText: 'WI',
     companyName: 'Webito Infotech Pvt Ltd',
@@ -119,7 +119,7 @@ export const MOCK_LEAD_FORMS: LeadFormConfig[] = [
             type: 'select',
             required: true,
             options: [
-              'Delhi-NCR (Noida / Gurugram / Faridabad)',
+              'North India Hub',
               'Maharashtra (Pune / Mumbai)',
               'Gujarat (Ahmedabad / Surat)',
               'Pan-India Dispatch',

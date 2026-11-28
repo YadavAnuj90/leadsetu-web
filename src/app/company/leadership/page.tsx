@@ -44,7 +44,7 @@ const principles = [
 const milestones = [
   {
     year: '2024',
-    title: 'Foundation in Delhi-NCR',
+    title: 'Foundation of Leadsetu',
     detail:
       'Anjali Yadav founded Leadsetu Technologies (Anujali Technologies Pvt. Ltd.) after seeing SME distributors lose 30%+ inbound inquiries between spreadsheets and personal WhatsApp.',
   },
@@ -134,7 +134,7 @@ export default function LeadershipMissionPage() {
 
               <p className="text-sm text-slate-300 leading-relaxed">
                 Leading product architecture, enterprise partnerships, and AI revenue strategy across
-                Delhi-NCR &amp; Pan-India, focused on helping Indian businesses replace fragmented tools
+                Pan-India, focused on helping Indian businesses replace fragmented tools
                 with one unified CRM + GST engine.
               </p>
             </div>
